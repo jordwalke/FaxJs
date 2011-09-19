@@ -4,9 +4,8 @@
 * **Componentization** - defining reusable ui components
 * **Declarative API** - The code *looks* like the UI itself. You tell the system what you want to be generated, and it figures out the details. (JSON style code API)
 * **Small Code Size** and rapid development.
-* **Rendering performance:** Fax usies string concatenation to generate the markup, coupled with top level event delegation - but you wouldn't know it - those details are hidden from the developer.
+* **Rendering performance:** Fax uses string concatenation to generate the markup, coupled exclusively with top level event delegation to handle events - but you wouldn't know it - those details are hidden from the developer. You just tell the api that you want something to happen "when the button is clicked".
 * **Pure Javascript Api:** You describe the interface, how to perform updates, even the stylesheets in **javascript**.
-
 
 
 ### A very brief example:
@@ -62,6 +61,7 @@ you can have separated styling/code, yet in a single file that you can share
 with someone.
 
 We could have ended the file with:
+
     module.exports = F.ComponentizeAll(Demo);
     module.styleExports = {
       someClassname: {
@@ -92,6 +92,43 @@ server.js also performs code transformations to make tail constructors faster
 The server continually parse and package the code. If there is a syntax error,
 the server will shut down. Sometimes the optimization process takes a while to
 transform code. If you load the demo and it seems slow, do not be fooled. The
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 generated code will render the demo in about 10ms, but the delay you observe is
 the server transforming/optimizing the javascript.
 The server also builds the includable stylesheets from styleModule javascript
