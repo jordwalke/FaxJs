@@ -1,0 +1,12 @@
+{
+  "name"          : "LayoutDesigner",
+  "description"   : "Object presentation components",
+  "url"           : "http://none.org",
+  "keywords"      : ["fax", "Fax", "LayoutDesigner", "ui", "rendering", "browser"],
+  "author"        : "Jordo <jordofx@gmail.com>",
+  "contributors"  : [],
+  "version"       : "0.0.1",
+  "main"          : "./LayoutDesigner",
+	"dependencies"  : {"Fax": "0.0.1", "FaxUi": "0.0.1"},
+  "engines"       : { "node": ">=0.4.0" }
+}

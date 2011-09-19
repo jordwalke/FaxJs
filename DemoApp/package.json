@@ -1,0 +1,12 @@
+{
+  "name"          : "DemoApp",
+  "description"   : "Declarative Components",
+  "url"           : "http://none.org",
+  "keywords"      : ["fax", "Fax", "DemoApp", "ui", "rendering", "browser"],
+  "author"        : "Jordo <jordofx@gmail.com>",
+  "contributors"  : [],
+  "version"       : "0.0.1",
+  "main"          : "./DemoApp",
+	"dependencies"  : {"FaxUi": "0.0.1", "Fax": "0.0.1"},
+  "engines"       : { "node": ">=0.4.0" }
+}

@@ -1,0 +1,12 @@
+{
+  "name"          : "FaxProcessor",
+  "description"   : "Optimization and style generation for Fax components",
+  "url"           : "http://none.org",
+  "keywords"      : ["fax", "Fax", "FaxUi", "ui", "rendering", "browser"],
+  "author"        : "Jordo <jordofx@gmail.com>",
+  "contributors"  : [],
+  "version"       : "0.0.1",
+  "dependencies"  : {"burrito" : "0.2.5"},
+  "main"          : "./FaxProcessor",
+  "engines"       : { "node": ">=0.4.0" }
+}
