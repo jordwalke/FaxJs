@@ -43,7 +43,7 @@ var _optimizeJs = function(src, fileName) {
 		if (node.name === 'call') {
 			if (node.value.length && node.value[0].length > 2 && node.value[0][2] === 'using') {
         // #iseewhatyoudidthere
-				node.wrap("var __NAMESPACE={}; Fax.populateNamespace=__NAMESPACE; (%s)");
+				node.wrap("var __NAMESPACE={}; require('Fax').populateNamespace=__NAMESPACE; (%s)");
 			}
 		 }
 	});
