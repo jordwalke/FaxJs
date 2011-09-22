@@ -6,7 +6,7 @@
   "author"        : "Jordo <jordofx@gmail.com>",
   "contributors"  : [],
   "version"       : "0.0.1",
-  "dependencies"  : {"burrito" : "0.2.7"},
+  "dependencies"  : {"uglify-js" : "1.0.4"},
   "main"          : "./FaxProcessor",
   "engines"       : { "node": ">=0.4.0" }
 }

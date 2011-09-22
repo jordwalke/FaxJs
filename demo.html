@@ -2,7 +2,15 @@
   <head>
     <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
     "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-    <script type="text/javascript" src="/browserify.js"></script>
+
+
+
+
+    <!-- Triggers the server side build 
+    <script type="text/javascript" src="/browserify.js"></script> -->
+    
+    <script type="text/javascript" src="/demo-build.js"></script>
+
     <meta http-equiv="Content-type" content="text/html; charset=utf-8">
     <title>Fax Ui Library Demonstration</title>
 		<link rel="stylesheet" type="text/css" href="/static_styles/style960/reset.css" media="screen" />
@@ -22,14 +30,22 @@
     <img src="images/darkGrain.png"></img>
     <script type="text/javascript">
       window.onload = function () {
-          var DemoApp = require('DemoApp'),
-              start = (new Date()).getTime();
 
-          Fax.renderTopLevelComponentAt(DemoApp.MainDemoApp, 'appMount', {
-            appStyle: true
-          });
-          var end = (new Date()).getTime();
-          alert('Total rendering and paint time:' + (end-start));
+        // You can just start hacking here. You can create your own components
+        // and require modules that have been prebuilt into demo-build.js using
+        // browser side requires.  (Such as require('Fax'), require('FaxUi"))
+        // You can get a feel for the framework without having to set up node.js.
+        // But don't trust any performance benchmarks unless you use the server
+        // side build which will optimize your code.
+
+        var DemoApp = require('DemoApp'),
+            start = (new Date()).getTime();
+
+        Fax.renderTopLevelComponentAt(DemoApp.MainDemoApp, 'appMount', {
+          appStyle: true
+        });
+        var end = (new Date()).getTime();
+        console.log('Total rendering and paint time:' + (end-start));
       };
     </script>
   </head>

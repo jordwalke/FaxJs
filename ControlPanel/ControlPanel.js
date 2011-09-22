@@ -95,10 +95,10 @@ ControlPanel.ToolBoxRow = {
 
       rightInput: {
         l: 50, r: 0, t: 0, b: 0, h: 22,
-        clssSet: {toolBoxRowInput: true},
-        value: F.TextNode(this.props.value),
+        additionalClssSet: {toolBoxRowInput: true},
+        value: this.props.value,
         entryType: this.props.entryType,
-        onChange: function(newVal) {
+        onBlur: function(newVal) {
           ths.props.onAttributeChange(ths.props.attributeName, newVal);
         }
       }.FInputView()

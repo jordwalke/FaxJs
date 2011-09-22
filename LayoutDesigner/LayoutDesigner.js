@@ -5,10 +5,9 @@
 var F = require('Fax'),
     FaxUi = require('FaxUi'),
     FWidgets = require('FWidgets'),
-    ControlPanel = require('ControlPanel'),
     LayoutDesigner = {};
 
-F.using(FaxUi, LayoutDesigner, FWidgets, ControlPanel);
+F.using(FaxUi, LayoutDesigner, FWidgets);
 
 /**
  * LayoutDesigner.LayoutDesigner:

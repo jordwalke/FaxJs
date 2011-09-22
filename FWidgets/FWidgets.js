@@ -78,14 +78,20 @@ FWidgets.FInputView = {
   },
   onKeyUp: function(abstractEvent) {
     var val = abstractEvent.target.value;
-
-    if (!this.externallyOwned()) {
-      this.updateModel({userText: val});
-    } else {
-      if (this.props.onChange) {
-        this.props.onChange(val);
+    if(this.model.userText !== val) {
+      if (!this.externallyOwned()) {
+        this.justUpdateModel({userText: val});
+      } else {
+        if (this.props.onChange) {
+          this.props.onChange(val);
+        }
       }
     }
+  },
+  onBlur: function(abstractEvent) {
+    this.justUpdateModel({focused: true});
+    this.props.onBlur &&
+        this.props.onBlur(abstractEvent.nativeEvent.target.value);
   },
   project: function() {
     var props = this.props, model = this.model, style = props.style || {};
@@ -93,7 +99,10 @@ FWidgets.FInputView = {
     var placeHeld = !intendedText && !model.focused;
     var textToShow = placeHeld && props.placeholder ? props.placeholder : (intendedText || '');
     return {
-      overrides: this.props,
+      overrides: {
+        clssSet: this.props.additionalClssSet,
+        posIno: F.extractPosInfo(this.props)
+      },
       clssSet: {
         FInput: true, FInputSuper: !!props.superMode,
         FInputPlaceheld: !!placeHeld, userSuppliedClass: props.clss
@@ -102,7 +111,7 @@ FWidgets.FInputView = {
       value: F.TextNode(textToShow),
       onKeyDown: this.onKeyDown.bind(this),
       onKeyUp: this.onKeyUp.bind(this),
-      onBlur: this.updater({focused: false}),
+      onBlur: this.onBlur.bind(this),
       onFocus: this.updater({focused: true})
     }.ViewInput();
   }

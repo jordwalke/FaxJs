@@ -4,7 +4,7 @@
 # sudo npm install connect;
 # sudo npm install burrito;
 
-echo 'Skipping instalation of dependencies (connect, burritto) uncomment above lines if need to download them';
+echo 'Skipping installation of dependencies (connect, burrito) uncomment above lines if need to download them';
 
 cd ./Fax;
 sudo npm link;
@@ -23,15 +23,19 @@ sudo npm link;
 cd ../LayoutDesigner;
 sudo npm link Fax;
 sudo npm link FaxUi;
+sudo npm link FWidgets;
 sudo npm link;
 cd ../ControlPanel;
 sudo npm link Fax;
 sudo npm link FaxUi;
 sudo npm link FWidgets;
+sudo npm link LayoutElements;
 sudo npm link;
 cd ../DemoApp;
 sudo npm link Fax;
 sudo npm link FaxUi;
+sudo npm link FWidgets;
+sudo npm link LayoutElements;
 sudo npm link LayoutDesigner;
 sudo npm link ControlPanel;
 sudo npm link;

@@ -52,8 +52,8 @@ DemoApp.DemoAppContent = {
       l: 0, t: 0, b: 0, r: 0,
       clssSet: {noSelect: true, appContent: true},
       designerPanel: {
-        clssSet: {shadowy: true},
         l: 30, t: 30, r: 250, b: 30,
+        clssSet: {shadowy: true},
         content: {
           onPaint: this.onPaint.bind(this),
           selectedTool: ths.model.selectedTool,
@@ -178,7 +178,7 @@ DemoApp.MainDemoApp = {
   },
   project : function() {
     return {
-      appContent: { }.DemoAppContent()
+      appContent: DemoApp.DemoAppContent()
     }.FView();
   }
 };

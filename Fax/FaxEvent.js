@@ -99,7 +99,7 @@ var FaxEvent = {
       }
     }
   },
-  __trapCapturedEvent: function (topLevelEventType, captureNativeEventType) {
+  __trapCapturedEvent: function (topLevelEventType, captureNativeEventType, onWhat) {
     var ourHandler = function(eParam) {
       var nativeEvent  = eParam || window.event;
       var targ  = nativeEvent.target || nativeEvent.srcElement;
@@ -108,10 +108,10 @@ var FaxEvent = {
       }
       _handleTopLevel(topLevelEventType, nativeEvent, targ);
     };
-    if (!document.addEventListener) {
-      document.attachEvent(captureNativeEventType, ourHandler);
+    if (!onWhat.addEventListener) {
+      onWhat.attachEvent(captureNativeEventType, ourHandler);
     } else {
-      document.addEventListener(captureNativeEventType, ourHandler , true);
+      onWhat.addEventListener(captureNativeEventType, ourHandler , true);
     }
   },
   /**
@@ -122,7 +122,7 @@ var FaxEvent = {
    * You'll also notice that we don't extensively normalize all of the event
    * data here, instead we normalize it as we need it (to save cpu).
    */
-  __trapBubbledEvent: function(topLevelEventType, windowHandlerName) {
+  __trapBubbledEvent: function(topLevelEventType, windowHandlerName, onWhat) {
     var ourHandler = function(eParam) {
       var nativeEvent  = eParam || window.event;
       var targ  = nativeEvent.target || nativeEvent.srcElement;
@@ -131,13 +131,13 @@ var FaxEvent = {
       }
       _handleTopLevel(topLevelEventType, nativeEvent, targ);
     };
-    if (document[windowHandlerName]) {
-      document[windowHandlerName] = function(nativeEvent) {
+    if (onWhat[windowHandlerName]) {
+      onWhat[windowHandlerName] = function(nativeEvent) {
         ourHandler(nativeEvent);
-        document[windowHandlerName](nativeEvent);
+        onWhat[windowHandlerName](nativeEvent);
       };
     } else {
-      document[windowHandlerName] = function(nativeEvent) {
+      onWhat[windowHandlerName] = function(nativeEvent) {
         ourHandler(nativeEvent);
       };
     }
@@ -509,22 +509,22 @@ FaxEvent.registerTopLevelListener = function() {
    * #todoie: onmouseover/out do not work on the window element on IE*, will
    * likely need to capture using addEventListener/attachEvent.
    */
-  FaxEvent.__trapBubbledEvent('topLevelMouseMove', 'onmousemove');
-  FaxEvent.__trapBubbledEvent('topLevelMouseIn', 'onmouseover');
-  FaxEvent.__trapBubbledEvent('topLevelMouseDown', 'onmousedown');
-  FaxEvent.__trapBubbledEvent('topLevelMouseUp', 'onmouseup');
-  FaxEvent.__trapBubbledEvent('topLevelMouseOut', 'onmouseout');
-  FaxEvent.__trapBubbledEvent('topLevelClick', 'onclick');
-  FaxEvent.__trapBubbledEvent('topLevelMouseWheel', 'onmousewheel');
+  FaxEvent.__trapBubbledEvent('topLevelMouseMove', 'onmousemove', document);
+  FaxEvent.__trapBubbledEvent('topLevelMouseIn', 'onmouseover', document);
+  FaxEvent.__trapBubbledEvent('topLevelMouseDown', 'onmousedown', document);
+  FaxEvent.__trapBubbledEvent('topLevelMouseUp', 'onmouseup', document);
+  FaxEvent.__trapBubbledEvent('topLevelMouseOut', 'onmouseout', document);
+  FaxEvent.__trapBubbledEvent('topLevelClick', 'onclick', document);
+  FaxEvent.__trapBubbledEvent('topLevelMouseWheel', 'onmousewheel', document);
 
   /**
    * #todoie: Supposedly, keyup/press/down won't bubble to window on ie, but
    * will bubble to document. Maybe we should just trap there.
    * http://www.quirksmode.org/dom/events/keys.html.
    */
-  FaxEvent.__trapBubbledEvent('topLevelKeyUp', 'onkeyup');
-  FaxEvent.__trapBubbledEvent('topLevelKeyPress', 'onkeypress');
-  FaxEvent.__trapBubbledEvent('topLevelKeyDown', 'onkeydown');
+  FaxEvent.__trapBubbledEvent('topLevelKeyUp', 'onkeyup', document);
+  FaxEvent.__trapBubbledEvent('topLevelKeyPress', 'onkeypress', document);
+  FaxEvent.__trapBubbledEvent('topLevelKeyDown', 'onkeydown', document);
 
   /**
    * TODO: IE has focusin and focusout which bubble, and we don't need to use
@@ -536,15 +536,15 @@ FaxEvent.registerTopLevelListener = function() {
    * focus and blur events do not bubble, but we can capture them on 'the way
    * down'.
    */
-  FaxEvent.__trapCapturedEvent('topLevelTouchStart', 'touchstart');
-  FaxEvent.__trapCapturedEvent('topLevelFocus', 'focus');
-  FaxEvent.__trapCapturedEvent('topLevelBlur', 'blur');
+  FaxEvent.__trapCapturedEvent('topLevelTouchStart', 'touchstart', document);
+  FaxEvent.__trapCapturedEvent('topLevelFocus', 'focus', window);
+  FaxEvent.__trapCapturedEvent('topLevelBlur', 'blur', window);
 
 
   /** http://www.quirksmode.org/dom/events/tests/scroll.html (Firefox needs to
    * capture a diff mouse scroll); */
-  FaxEvent.__trapCapturedEvent('topLevelMouseWheel', 'DOMMouseScroll');
-  FaxEvent.__trapCapturedEvent('topLevelMouseScroll', 'scroll');
+  FaxEvent.__trapCapturedEvent('topLevelMouseWheel', 'DOMMouseScroll', document);
+  FaxEvent.__trapCapturedEvent('topLevelMouseScroll', 'scroll', document);
 };
 
 
