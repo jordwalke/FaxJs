@@ -7,7 +7,6 @@
 * **Rendering performance:** Fax uses string concatenation to generate the markup, coupled exclusively with top level event delegation to handle events - but you wouldn't know it - those details are hidden from the developer. You just tell the api that you want something to happen "when the button is clicked".
 * **Pure Javascript Api:** You describe the interface, how to perform updates, even the stylesheets in **javascript**.
 
-
 ### A very brief example:
 We'll make a button wrapped inside of a containing div. The button will stretch to the size of it's container. When we click the inner button, we'll make the outer container change width. The button will, of course, stretch to fit it's container.
 
@@ -92,51 +91,34 @@ server.js also performs code transformations to make tail constructors faster
 The server continually parse and package the code. If there is a syntax error,
 the server will shut down. Sometimes the optimization process takes a while to
 transform code. If you load the demo and it seems slow, do not be fooled. The
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 generated code will render the demo in about 10ms, but the delay you observe is
 the server transforming/optimizing the javascript.
 The server also builds the includable stylesheets from styleModule javascript
 exports as explained earlier.
 
+
+### Here's what the demo looks like:
+
+![Some Image](https://www.github.com/jordow/FaxJs/raw/master/demo_screenshot.png)
+
+
+
+
+
+
+
+
+
+
+
 ####Setting up the npm modules:
 The modules that Fax consists of are npm modules, but they are not registered
 with npm. You'll have to manually link them or globally register each of them.
+(Note: I've included the environment setup script that should do this, and setup
+your environment for you. Just cd into the project root and execute
+
+        ./setupEnvironment.sh
+        
 Once that is done just cd into the main directory and execute:
 
         node server.js
