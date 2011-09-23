@@ -102,6 +102,9 @@ You can drag and resize the shapes on that layout designer interactively. There
 are two tools in the upper right hand of the tool box, a pointer/sizer and a
 painter with which you can drop shapes onto the designer panel.
 
+We'll get a link up to a running demo, but for now, if you deploy it yourself, you'll
+see an interactive app that looks like this.
+
 ![Some Image](https://www.github.com/jordow/FaxJs/raw/master/demo_screenshot.png)
 
 
