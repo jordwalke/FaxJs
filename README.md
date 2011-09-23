@@ -97,7 +97,10 @@ The server also builds the includable stylesheets from styleModule javascript
 exports as explained earlier.
 
 
-### Here's what the demo looks like:
+### Here's what the demo looks like: You can drag and resize the shapes on that
+layout designer interactively. There are two tools in the upper right hand of the
+tool box, a pointer/sizer and a painter with which you can drop shapes onto the
+designer panel.
 
 ![Some Image](https://www.github.com/jordow/FaxJs/raw/master/demo_screenshot.png)
 
