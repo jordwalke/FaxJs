@@ -90,8 +90,8 @@ FWidgets.FInputView = {
   },
   onBlur: function(abstractEvent) {
     this.justUpdateModel({focused: true});
-    this.props.onBlur &&
-        this.props.onBlur(abstractEvent.nativeEvent.target.value);
+    this.props.onBlur && this.props.onBlur(
+        abstractEvent.nativeEvent.target.value);
   },
   project: function() {
     var props = this.props, model = this.model, style = props.style || {};
@@ -101,7 +101,7 @@ FWidgets.FInputView = {
     return {
       overrides: {
         clssSet: this.props.additionalClssSet,
-        posIno: F.extractPosInfo(this.props)
+        posInfo: F.extractPosInfo(this.props)
       },
       clssSet: {
         FInput: true, FInputSuper: !!props.superMode,

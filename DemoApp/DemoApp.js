@@ -30,6 +30,20 @@ var CONSTS = {
  */
 DemoApp.DemoAppContent = {
 
+  /** Initialize the model. */
+  initModel: {
+    selectedTool: 'pointerTool',
+    selectedShapeId: 'box1',
+    shapes: {
+      box0: { name: 'box1', l: 90, t: 100, w: 100, h: 100,
+                drgX: 0, drgY:0, currentlyChanging: {}},
+      box1: { name: 'box1', l: 20, t: 100, w: 100, h: 100,
+                drgX: 0, drgY:0, currentlyChanging: {}},
+      box2: { name: 'box2', l: 50,t: 110, w: 100, h: 100,
+        drgX: 0, drgY:0, currentlyChanging: {}}
+    }
+  },
+
   /**
    * Defines the "projection" of the model. A projection of a model, is a
    * mapping from the model (state of this component) to:
@@ -85,18 +99,6 @@ DemoApp.DemoAppContent = {
         }.ToolBox()
       }.EmbeddedBorderView()
     }.FView();
-  },
-
-  /** Initialize the model. */
-  initModel: {
-    selectedTool: 'pointerTool',
-    selectedShapeId: 'box1',
-    shapes: {
-      box1: { name: 'box1', l: 0, t: 100, w: 100, h: 100,
-                drgX: 0, drgY:0, currentlyChanging: {}},
-      box2: { name: 'box2', l: 50,t: 110, w: 100, h: 100,
-        drgX: 0, drgY:0, currentlyChanging: {}}
-    }
   },
 
   /** When a paint callback occurs on the canvas.  */

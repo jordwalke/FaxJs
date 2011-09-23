@@ -112,7 +112,7 @@ LayoutDesigner.OwnedDesignerBox = {
       nameLabel: {
         l: 3, t: 3,
         innerHtml: F.TextNode(props.label)
-      }.ViewSpan(),
+      }.ViewDiv(),
       rightDragger: {
         clss: F.TextNode('noSelect designerBoxRightDragger'),
         onQuantizeDrag: function(x1, x0, y1, y0) {
@@ -167,19 +167,19 @@ module.exports.styleExports = {
 
   designerBoxRightDragger: {
     cursor: 'e-resize', position: 'absolute',
-    top: 0, right: -1, bottom: 0, width: 5
+    top: 0, right: -1, bottom: 0, width: 7
   },
   designerBoxLeftDragger: {
     cursor: 'w-resize', position: 'absolute',
-    top: 0, left: -1, bottom: 0, width: 5
+    top: 0, left: -1, bottom: 0, width: 7
   },
   designerBoxBottomDragger: {
     cursor: 's-resize', position: 'absolute',
-    left: 0, right: 0, bottom: -1, height: 5
+    left: 0, right: 0, bottom: -1, height: 7
   },
   designerBoxTopDragger: {
     cursor: 'n-resize', position: 'absolute',
-    top: -1, right: 0, left: 0, height: 5
+    top: -1, right: 0, left: 0, height: 7
   }
 };
 
