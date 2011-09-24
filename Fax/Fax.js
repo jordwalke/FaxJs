@@ -141,8 +141,14 @@ var _cssNumber = {
  * attribute name should be logical (no hyphens).
  */
 var _styleValue = function (logicalStyleAttrName, attrVal) {
-  if(typeof attrVal === 'number') {
-    return _cssNumber[logicalStyleAttrName] ? attrVal : attrVal + 'px';
+  if(attrVal === NaN) {
+    debugger;
+  }
+  if(attrVal !== 0 && !attrVal) {
+    return '';
+  }
+  if(!isNaN(attrVal)) {
+    return _cssNumber[logicalStyleAttrName] ? attrVal : (attrVal + 'px');
   }
   return attrVal;
 };
@@ -187,8 +193,7 @@ function _tagStyleAttrFragment(styleObj) {
       continue;
     }
     styleAttrVal = styleObj[logStyleAttrName];
-
-    if (styleAttrVal !== undefined && styleAttrVal !== null) {
+    if (styleAttrVal !== undefined) {
       styleAccum += _styleAttrNameForLogicalName(logStyleAttrName) + ":" +
           _styleValue(logStyleAttrName, styleObj[logStyleAttrName]) + ";";
     }
@@ -203,7 +208,7 @@ var _serializeInlineStyle = function (styleObj) {
       continue;
     }
     styleAttrVal = styleObj[logStyleAttrName];
-    if (styleAttrVal !== undefined && styleAttrVal !== null) {
+    if (styleAttrVal !== undefined) {
       accum += _styleAttrNameForLogicalName(logStyleAttrName) +
         ":" + _styleValue(logStyleAttrName, styleAttrVal) + ";";
     }
@@ -1030,7 +1035,7 @@ _Fax.controlPhysicalDomNode = function (elem, nextProps) {
           continue;
         }
         var styleAttrVal = style[logStyleAttrName];
-        if (styleAttrVal !== undefined && styleAttrVal !== null) {
+        if (styleAttrVal !== undefined) {
           elem.style[_styleAttrNameForLogicalName(logStyleAttrName)] =
               _styleValue(logStyleAttrName, styleAttrVal);
         }
@@ -1305,9 +1310,11 @@ function _makeDomContainerComponent(tag, optionalTagTextPar, pre, post, headText
             projectionKey);
         }
       } else if (projectionKey === 'style') {
-        for (var styleAttr in projectionForKey) {
-          if (!projectionForKey.hasOwnProperty(styleAttr)) { continue; }
-          parentDomNode.style[styleAttr] = projectionForKey[styleAttr];
+        for (var logStyleAttrName in projectionForKey) {
+          if (!projectionForKey.hasOwnProperty(logStyleAttrName) ||
+               projectionForKey[logStyleAttrName] === undefined) { continue; }
+          parentDomNode.style[_styleAttrNameForLogicalName(logStyleAttrName)] =
+            _styleValue(logStyleAttrName, projectionForKey[logStyleAttrName]);
         }
       } else if (!childComponents[projectionKey]) {
         if (projectionForKey && projectionForKey.maker) {
@@ -1730,25 +1737,25 @@ _Fax.extractPosInfo = function (obj) {
  */
 _Fax.sealPosInfo = function(posInfo) {
   var ret = {};
-  if (posInfo.w) {
-    ret.width = posInfo.w.charAt ? posInfo.w : posInfo.w + 'px';
+  if (posInfo.w === 0 || posInfo.w) {
+    ret.width = posInfo.w.charAt ? posInfo.w : (posInfo.w + 'px');
   }
-  if (posInfo.h) {
-    ret.height = posInfo.h.charAt ? posInfo.h : posInfo.h + 'px';
+  if (posInfo.h === 0 || posInfo.h) {
+    ret.height = posInfo.h.charAt ? posInfo.h : (posInfo.h + 'px');
   }
-  if (posInfo.l) {
-    ret.left = posInfo.l.charAt ? posInfo.l : posInfo.l + 'px';
+  if (posInfo.l === 0 || posInfo.l) {
+    ret.left = posInfo.l.charAt ? posInfo.l : (posInfo.l + 'px');
   }
-  if (posInfo.t) {
-    ret.top = posInfo.t.charAt ? posInfo.t : posInfo.t + 'px';
+  if (posInfo.t === 0 || posInfo.t) {
+    ret.top = posInfo.t.charAt ? posInfo.t : (posInfo.t + 'px');
   }
-  if (posInfo.b) {
-    ret.bottom = posInfo.b.charAt ? posInfo.b : posInfo.b + 'px';
+  if (posInfo.b === 0 || posInfo.b) {
+    ret.bottom = posInfo.b.charAt ? posInfo.b : (posInfo.b + 'px');
   }
-  if (posInfo.r) {
-    ret.right = posInfo.r.charAt ? posInfo.r : posInfo.r + 'px';
+  if (posInfo.r === 0 || posInfo.r) {
+    ret.right = posInfo.r.charAt ? posInfo.r : (posInfo.r + 'px');
   }
-  if (posInfo.z) {
+  if (posInfo.z === 0 || posInfo.z) {
     ret.zIndex = posInfo.z;
   }
   return ret;
@@ -1759,15 +1766,29 @@ _Fax.extractAndSealPosInfo = function(obj) {
   if(!obj) {
     return {};
   }
-  return {
-    width: (obj.w !== undefined) ? (obj.w.charAt ? obj.w : obj.w + 'px') : undefined,
-    height: (obj.h  !== undefined) ? (obj.h.charAt ? obj.h : obj.h + 'px') : undefined,
-    left: (obj.l !== undefined) ? (obj.l.charAt ? obj.l : obj.l + 'px') : undefined,
-    top: (obj.t !== undefined) ? (obj.t.charAt ? obj.t : obj.t + 'px') : undefined,
-    bottom: (obj.b !== undefined) ? (obj.b.charAt ? obj.b : obj.b) + 'px' : undefined,
-    right: (obj.r !== undefined) ? (obj.r.charAt ? obj.r : obj.r + 'px') : undefined,
-    zIndex:  obj.z
-  };
+  var ret = {};
+  if (obj.w === 0 || obj.w) {
+    ret.width = (obj.w.charAt ? obj.w : (obj.w + 'px'));
+  }
+  if (obj.h === 0 || obj.h) {
+    ret.height = (obj.h.charAt ? obj.h : (obj.h + 'px'));
+  }
+  if (obj.l === 0 || obj.l) {
+    ret.left = (obj.l.charAt ? obj.l : (obj.l + 'px'));
+  }
+  if (obj.t === 0 || obj.t) {
+    ret.top = (obj.t.charAt ? obj.t : (obj.t + 'px'));
+  }
+  if (obj.b === 0 || obj.b) {
+    ret.bottom = (obj.b.charAt ? obj.b : (obj.b + 'px'));
+  }
+  if (obj.r === 0 || obj.r) {
+    ret.right = (obj.r.charAt ? obj.r : (obj.r + 'px'));
+  }
+  if (obj.z === 0 || obj.z) {
+    ret.zIndex = obj.z;
+  }
+  return ret;
 };
 
 /*

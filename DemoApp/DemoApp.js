@@ -35,11 +35,32 @@ DemoApp.DemoAppContent = {
     selectedTool: 'pointerTool',
     selectedShapeId: 'box1',
     shapes: {
-      box0: { name: 'box1', l: 90, t: 100, w: 100, h: 100,
+      header: { name: 'header', l: 20, t: 20, w: 600, h: 80,
                 drgX: 0, drgY:0, currentlyChanging: {}},
-      box1: { name: 'box1', l: 20, t: 100, w: 100, h: 100,
+      underHeaderLeft: { name: 'under header left', l: 20, t: 120, w: 290, h: 50,
                 drgX: 0, drgY:0, currentlyChanging: {}},
-      box2: { name: 'box2', l: 50,t: 110, w: 100, h: 100,
+      underHeaderRight: { name: 'under header right', l: 330, t: 120, w: 290, h: 50,
+        drgX: 0, drgY:0, currentlyChanging: {}},
+
+      leftColumn: {
+        name: 'left column', l: 20, t: 190, w: 290, h: 400,
+        drgX: 0, drgY:0, currentlyChanging: {}},
+
+      rightColumn: {
+        name: 'right column', l: 330, t: 190, w: 290, h: 400,
+        drgX: 0, drgY:0, currentlyChanging: {}},
+
+      tileOne: {
+        name: 'bottom tile one', l: 20, t: 610, w: 135, h: 50,
+        drgX: 0, drgY:0, currentlyChanging: {}},
+      tileTwo: {
+        name: 'bottom tile two', l: 175, t: 610, w: 135, h: 50,
+        drgX: 0, drgY:0, currentlyChanging: {}},
+      tileThree: {
+        name: 'bottom tile three', l: 330, t: 610, w: 135, h: 50,
+        drgX: 0, drgY:0, currentlyChanging: {}},
+      tileFour: {
+        name: 'bottom tile four', l: 485, t: 610, w: 135, h: 50,
         drgX: 0, drgY:0, currentlyChanging: {}}
     }
   },
