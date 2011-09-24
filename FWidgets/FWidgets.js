@@ -97,7 +97,9 @@ FWidgets.FInputView = {
     var props = this.props, model = this.model, style = props.style || {};
     var intendedText = this.externallyOwned() ? props.value : model.userText;
     var placeHeld = !intendedText && !model.focused;
-    var textToShow = placeHeld && props.placeholder ? props.placeholder : (intendedText || '');
+    var textToShow =
+        placeHeld && props.placeholder ? props.placeholder :
+        (intendedText !== null && intendedText !== null) ? intendedText : '';
     return {
       overrides: {
         clssSet: this.props.additionalClssSet,
