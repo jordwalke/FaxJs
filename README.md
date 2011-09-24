@@ -1,5 +1,7 @@
 # Fax - Javascript Ui Framework
 
+###<a href='http://jordow.github.com/FaxJs/'>See a live Demo</a>
+
 ##  Fax is a javascript UI framework that focuses on:
 * **Componentization** - defining reusable ui components
 * **Declarative API** - The code *looks* like the UI itself. You tell the system what you want to be generated, and it figures out the details. (JSON style code API)
@@ -43,13 +45,13 @@ We'll make a button wrapped inside of a containing div. The button will stretch 
 
 ##Explanation of example:
 
-* The *initModel* method describes the component's initial state.
-* The *project* method defines how the view should be projected from an arbitrary model.
+* The **initModel** method describes the component's initial state.
+* The **project** method defines how the view should be projected from an arbitrary model.
   The 'project' method describes an invariant that the system upholds. You don't need
   separate creation/updating methods. Just tell the system what your component *is*,
   and that will be enforced automatically. Think of your your view, as a function of
   your model, and the project method being what defines that mapping.
-* The Button's *onClick* method executes an update to this component's model. The
+* The Button's **onClick** method executes an update to this component's model. The
   containing Div's width will automatically be changed, because the invariant 
   *project()* states that the outer container's width should always be equal to what is
   stored in the model.
@@ -60,16 +62,15 @@ What you get by calling F.ComponentizeAll(Demo):
 * No need to declare getters and setters for attributes - it's all just Plain 'Ol Javascript.
 
 <br>
-### Here's what the included demo app looks like:
+### Included demo app:
+Take a look at the <a href='http://jordow.github.com/FaxJs/'>demo app</a>.
 You can drag and resize the shapes on that layout designer interactively. There
 are two tools in the upper right hand of the tool box, a pointer/sizer and a
 painter with which you can drop shapes onto the designer panel.
 
-We'll get a link up to a running demo, but for now, if you deploy it yourself, you'll
-see an interactive app that looks like this.
-
+<a href='http://jordow.github.com/FaxJs/'>
 ![Some Image](https://www.github.com/jordow/FaxJs/raw/master/demo_screenshot.png)
-
+</a>
 
 <br>
 ## Get started now!:
