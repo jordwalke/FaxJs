@@ -8,9 +8,10 @@
 * **Small Code Size** and rapid development.
 * **Rendering performance:** Fax uses string concatenation to generate the markup, coupled exclusively with top level event delegation to handle events - but you wouldn't know it - those details are hidden from the developer. You just tell the api that you want something to happen "when the button is clicked".
 * **Pure Javascript Api:** You describe the interface, how to perform updates, even the stylesheets in **javascript**.
+<br>
 
 
-### A very brief example:
+## A very brief example:
 We'll make a button wrapped inside of a containing div. The button will stretch to the size of it's container. When we click the inner button, we'll make the outer container change width. The button will, of course, stretch to fit it's container.
 
     var F = require('Fax'),
@@ -62,7 +63,7 @@ What you get by calling F.ComponentizeAll(Demo):
 * No need to declare getters and setters for attributes - it's all just Plain 'Ol Javascript.
 
 <br>
-### Included demo app:
+## Included demo app:
 Take a look at the <a href='http://jordow.github.com/FaxJs/'>demo app</a>.
 You can drag and resize the shapes on that layout designer interactively. There
 are two tools in the upper right hand of the tool box, a pointer/sizer and a
@@ -73,7 +74,19 @@ painter with which you can drop shapes onto the designer panel.
 </a>
 
 <br>
-## Get started now!:
+<br>
+## Get started  (One click install):
+
+If you just want to get a feel for the toolkit and try a couple examples, this should be enough for you to play around.
+
+#### 1. Simply download the <a href='https://github.com/jordow/FaxJs/blob/gh-pages/EasySetup_JustOpenMeAndStartHacking.zip?raw=true'>One Click Install</a>
+
+#### 2. index.html runs the demo app. Start coding in the script tag.
+
+#### 3. Try creating your own component and mount it "as a top level" component as is done with the demo app, replacing the demo app with your own!
+
+
+## Get started  (nodejs auto builder, optimizer, and development server):
 
 #### 1. Make sure you have node.js and npm installed and can run node/npm by
 executing:
@@ -101,10 +114,15 @@ packages in FaxJs, using purely npm.
 
         ./runServer.sh
         
+This starts up a development server that serves static files directly off of your
+disk. This is only for development purposes. When you deploy, copy over the built
+files into your standard static file deployment method. The server provided in
+FaxJs is not meant to be ran as a public server.
+        
 
-# Additional features:
+## Additional features:
 
-## Style Sheets:
+### Style Sheets:
 
 Fax lets you define stylesheets in your favorite language - javascript. This
 is important because often programatic behavior at runtime needs to be consistent
@@ -142,7 +160,7 @@ export is assumed to be a class name. If you want to style based on a dom id,
 include the key in quotes with a pound sign.
 
     
-###If you're curious what the backend is doing:
+##Backend processing
 This packaging of Fax uses browserify to run commonjs modules in the browser. An
 example server.js node.js file and demo.html is given that will automatically
 package up these modules into browser ready components. In addition, the
@@ -156,12 +174,8 @@ the server transforming/optimizing the javascript.
 The server also builds the includable stylesheets from styleModule javascript
 exports as explained earlier.
 
-###Deployment:
-The backend server and optimizer is not currently meant to deploy your app itself.
-It's just the deveopment environment. Once the backend optimizes your javascript,
-and generates your css, you can copy these over into your standard deployment method.
 
-###Other features:
+##Other features:
 There is currently support for the most commont application events such as onFocus,
 onBlur, onClick, onKeyUp etc. For each of these events, there is are two other
 corresponding versions of these handlers suffixed with 'Direct' and 'FirstHandler'.
