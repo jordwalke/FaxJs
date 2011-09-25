@@ -1,7 +1,5 @@
 # Fax - Javascript Ui Framework
 
-###<a href='http://jordow.github.com/FaxJs/'>See a live Demo</a>
-
 ##  Fax is a javascript UI framework that focuses on:
 * **Componentization** - defining reusable ui components
 * **Declarative API** - The code *looks* like the UI itself. You tell the system what you want to be generated, and it figures out the details. (JSON style code API)
@@ -10,8 +8,20 @@
 * **Pure Javascript Api:** You describe the interface, how to perform updates, even the stylesheets in **javascript**.
 <br>
 
+<br>
+##Demo App:
+Here is a simple <a href='http://jordow.github.com/FaxJs/'>Demo App</a>.
+You can drag and resize the shapes on that layout designer interactively. There
+are two tools in the upper right hand of the tool box, a pointer/sizer and a
+painter with which you can drop shapes onto the designer panel. (Though Fax is designed for
+all browsers, this particular app doesn't work well in IE. Try it in Chrome/Safari/FF.
 
-## A very brief example:
+<a href='http://jordow.github.com/FaxJs/'>
+![Some Image](https://www.github.com/jordow/FaxJs/raw/master/demo_screenshot.png)
+</a>
+
+<br>
+## A very simple example:
 We'll make a button wrapped inside of a containing div. The button will stretch to the size of it's container. When we click the inner button, we'll make the outer container change width. The button will, of course, stretch to fit it's container.
 
     var F = require('Fax'),
@@ -62,16 +72,6 @@ What you get by calling F.ComponentizeAll(Demo):
 * A reusable component that can be instantiated in the same declarative manner as the *project* method.
 * No need to declare getters and setters for attributes - it's all just Plain 'Ol Javascript.
 
-<br>
-## Included demo app:
-Take a look at the <a href='http://jordow.github.com/FaxJs/'>demo app</a>.
-You can drag and resize the shapes on that layout designer interactively. There
-are two tools in the upper right hand of the tool box, a pointer/sizer and a
-painter with which you can drop shapes onto the designer panel.
-
-<a href='http://jordow.github.com/FaxJs/'>
-![Some Image](https://www.github.com/jordow/FaxJs/raw/master/demo_screenshot.png)
-</a>
 
 <br>
 <br>
