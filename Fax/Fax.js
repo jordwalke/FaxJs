@@ -1030,16 +1030,7 @@ _Fax.controlPhysicalDomNode = function (elem, nextProps) {
     }
     var prop = nextProps[propKey];
     if (propKey === 'style') {
-      for (var logStyleAttrName in style) {
-        if (!style.hasOwnProperty(logStyleAttrName)) {
-          continue;
-        }
-        var styleAttrVal = style[logStyleAttrName];
-        if (styleAttrVal !== undefined) {
-          elem.style[_styleAttrNameForLogicalName(logStyleAttrName)] =
-              _styleValue(logStyleAttrName, styleAttrVal);
-        }
-      }
+      elem.cssText = _serializeInlineStyle(prop);
     } else if (_controlUsingSetAttrDomAttrsMap[propKey]) {
       if(prop.__textNode) {
         elem.setAttribute(_controlUsingSetAttrDomAttrsMap[propKey],
