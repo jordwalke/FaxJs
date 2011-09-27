@@ -1,11 +1,12 @@
-# Fax - Javascript Ui Framework
+# FaxJs - Javascript Ui Framework
 
-##  Fax is a javascript UI framework that focuses on:
-* **Componentization** - defining reusable ui components
+##  FaxJs is a javascript Ui framework that focuses on:
+* **Componentization** - Defining reusable ui components
 * **Declarative API** - The code *looks* like the UI itself. You tell the system what you want to be generated, and it figures out the details. (JSON style code API)
-* **Small Code Size** and rapid development.
-* **Rendering performance:** Fax uses string concatenation to generate the markup, coupled exclusively with top level event delegation to handle events - but you wouldn't know it - those details are hidden from the developer. You just tell the api that you want something to happen "when the button is clicked".
+* **Small Code Size** - Quick downloads and rapid development.
+* **Rendering performance:** FaxJs uses string concatenation to generate markup, and top level event delegation to handle events - but you don't have to worry about any of that'. You just tell the FaxJs what you want to construct and it figures out the details.
 * **Pure Javascript Api:** You describe the interface, how to perform updates, even the stylesheets in **javascript**.
+
 <br>
 
 <br>
@@ -13,7 +14,7 @@
 Here is a simple <a href='http://jordow.github.com/FaxJs/'>Demo App</a>.
 You can drag and resize the shapes on that layout designer interactively. There
 are two tools in the upper right hand of the tool box, a pointer/sizer and a
-painter with which you can drop shapes onto the designer panel. (Though Fax is designed for
+painter with which you can drop shapes onto the designer panel. (Though FaxJs is designed for
 all browsers, this particular app doesn't work well in IE. Try it in Chrome/Safari/FF.
 
 <a href='http://jordow.github.com/FaxJs/'>
@@ -24,27 +25,26 @@ all browsers, this particular app doesn't work well in IE. Try it in Chrome/Safa
 ## A very simple example:
 We'll make a button wrapped inside of a containing div. The button will stretch to the size of it's container. When we click the inner button, we'll make the outer container change width. The button will, of course, stretch to fit it's container.
 
-    var F = require('Fax'),
-         FaxUi = require('FaxUi'),
-         Demo = {};
-
+    // Just set up our environment a bit.
+    var F = require('Fax'), FaxUi = require('FaxUi'), Demo = {};
     F.using(FaxUi);   // Allows use of Div and Button components
 
+    // Defining a new component
     Demo.StretchyButon = {
       initModel: {
         theContainerWidth: '200px'
       },
 
+      stretchyButtonClicked: function() {
+        this.updateModel({theContainerWidth: '500px'});
+      },
+
       project : function() {
-        var ths = this;
         return {
           style: {width: this.model.theContainerWidth},
-
           innerButton: {
             style: {width: '100%'},
-            onClick: function() {
-              ths.updateModel({theContainerWidth: '500px'});
-            }
+            onClick: this.stretchyButtonClicked.bind(this)
           }.Button()
         }.Div();
       }
@@ -110,7 +110,7 @@ packages in FaxJs, using purely npm.
         ./setupEnvironmentIfNodeLaterThanFive.sh
         
 
-#### 4. run the server and point your browser at localhost:8080/demo.html
+#### 4. Run the server and point your browser at localhost:8080/demo.html
 
         ./runServer.sh
         
@@ -124,7 +124,7 @@ FaxJs is not meant to be ran as a public server.
 
 ### Style Sheets:
 
-Fax lets you define stylesheets in your favorite language - javascript. This
+FaxJs lets you define stylesheets in your favorite language - javascript. This
 is important because often programatic behavior at runtime needs to be consistent
 with css styles. If you can declare some javascript constants and generate code *and*
 style from them, this takes much of the pain out of interactive ui development.
@@ -152,7 +152,7 @@ replace '.js' with '.css'.
 
     <link rel="stylesheet" type="text/css" href="/Demo/Demo.css">
 
-The Fax backend system will automatically convert that module into an
+The FaxJs backend system will automatically convert that module into an
 includable css file, on the fly, based on what you specified as that
 javascript's module.styleExports. The css rules are just the same as you're used
 to, but with hyphens translated to camelCase. Also, each member of the style
@@ -161,7 +161,7 @@ include the key in quotes with a pound sign.
 
     
 ##Backend processing
-This packaging of Fax uses browserify to run commonjs modules in the browser. An
+This packaging of FaxJs uses browserify to run commonjs modules in the browser. An
 example server.js node.js file and demo.html is given that will automatically
 package up these modules into browser ready components. In addition, the
 server.js also performs code transformations to make tail constructors faster
