@@ -298,11 +298,11 @@ var FaxEvent = {
     };
   },
 
-  eventGlobalY: function(e) {
+  eventGlobalY: function(event) {
     return event.pageY !== undefined ? event.pageY :
                 event.clientY + FEnv.currentScrollTop;
   },
-  eventGlobalX: function(e) {
+  eventGlobalX: function(event) {
     return event.pageX !== undefined ? event.pageX :
                 event.clientX + FEnv.currentScrollLeft;
   },
@@ -467,7 +467,7 @@ var FaxEvent = {
 
         var abstractEvent = new AbstractEvent(
           'onQuantizeDrag', 'topLevelMouseMove',
-          targ, event, abstractEventData);
+          targ, nativeEvent, abstractEventData);
         FaxEvent.activeDragHandlersByHandlerDesc[dragDesc](abstractEvent);
       }
       FaxEvent.lastTriggeredDragAtX = globalX;
