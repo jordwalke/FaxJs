@@ -30,9 +30,12 @@ LayoutDesigner.Designer.onSurfaceClick = function(abstractEvent) {
   abstractEvent.preventDefault();
 };
 
-LayoutDesigner.Designer.onSurfaceDrag = function(x1, x0, y1, y0) {
+LayoutDesigner.Designer.onSurfaceDrag = function(absE) {
   if(this.props.selectedTool === 'pointerTool') {
-    this.updateModel({ drgY: y1-y0, drgX: x1-x0 });
+    this.updateModel({
+      drgY: absE.data.globalY - absE.data.startY,
+      drgX: absE.data.globalX - absE.data.startX
+    });
   }
 };
 
@@ -57,6 +60,7 @@ LayoutDesigner.Designer.onSurfaceDragDone = function() {
  */
 LayoutDesigner.Designer.project = function() {
   var model = this.model, props = this.props, ths = this;
+
   return {
     onClickFirstHandler: this.onSurfaceClick.bind(this),
     onQuantizeDragFirstHandler: this.onSurfaceDrag.bind(this),
@@ -101,43 +105,47 @@ LayoutDesigner.OwnedDesignerBox = {
     var props = this.props, ths = this;
     return {
       overrides: this.props,
-      clssSet: { designerBox: true, selected: props.selected },
+      clssSet: {noSelect: true, designerBox: true, selected: props.selected },
       onMouseDown: props.onMouseDown,
       onMouseIn: props.onMouseIn,
       onMouseOut: props.onMouseOut,
-      onQuantizeDragFirstHandler: function(x1, x0, y1, y0) {
-        props.onDragSignal({drgX: x1 - x0, drgY: y1-y0});
+      onQuantizeDragFirstHandler: function(absE) {
+        props.onDragSignal({
+          drgX: absE.data.globalX - absE.data.startX,
+          drgY: absE.data.globalY - absE.data.startY
+       });
       },
       onDragDoneFirstHandler: props.onDragComplete,
       nameLabel: {
+        clssSet: {noSelect: true},
         l: 3, t: 3,
-        innerHtml: F.TextNode(props.label)
+        innerHtml: props.label
       }.ViewDiv(),
       rightDragger: {
-        clss: F.TextNode('noSelect designerBoxRightDragger'),
-        onQuantizeDrag: function(x1, x0, y1, y0) {
-          props.onResizeSignal({right: x1 - x0});
+        clss: 'noSelect designerBoxRightDragger',
+        onQuantizeDrag: function(absE) {
+          props.onResizeSignal({right: absE.data.globalX - absE.data.startX});
         },
         onDragDone: props.onResizeComplete
       }.Div(),
       topDragger: {
-        clss: F.TextNode('noSelect designerBoxTopDragger'),
-        onQuantizeDrag: function(x1, x0, y1, y0) {
-          ths.props.onResizeSignal({top: y1 - y0});
+        clss: 'noSelect designerBoxTopDragger',
+        onQuantizeDrag: function(absE) {
+          props.onResizeSignal({top: absE.data.globalY - absE.data.startY});
         },
         onDragDone: ths.props.onResizeComplete
       }.Div(),
       leftDragger: {
-        clss: F.TextNode('noSelect designerBoxLeftDragger'),
-        onQuantizeDrag: function(x1, x0, y1, y0) {
-          ths.props.onResizeSignal({left: x1 - x0});
+        clss: 'noSelect designerBoxLeftDragger',
+        onQuantizeDrag: function(absE) {
+          props.onResizeSignal({left: absE.data.globalX - absE.data.startX});
         },
         onDragDone: ths.props.onResizeComplete
       }.Div(),
       bottomDragger: {
-        clss: F.TextNode('noSelect designerBoxBottomDragger'),
-        onQuantizeDrag: function(x1, x0, y1, y0) {
-          ths.props.onResizeSignal({bottom: y1 - y0});
+        clss: 'noSelect designerBoxBottomDragger',
+        onQuantizeDrag: function(absE) {
+          props.onResizeSignal({bottom: absE.data.globalY - absE.data.startY});
         },
         onDragDone: ths.props.onResizeComplete
       }.Div()

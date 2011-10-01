@@ -1,3 +1,5 @@
+var FEnv = require('./FEnv');
+
 /**
  * Helper class. Provides a nicer api for a conceptual 'event'. Eliminates some
  * cross-browser inconsistencies. In the future, continue to place x-browser
@@ -57,9 +59,9 @@ var FaxEvent = {
   /**
    * The top level method that kicks off rendering to the dom should call this.
    */
-  ensureListening: function() {
+  ensureListening: function(mountAt) {
     if (!FaxEvent.listeningYet) {
-      FaxEvent.registerTopLevelListener();
+      FaxEvent.registerTopLevelListener(mountAt);
       FaxEvent.listeningYet = true;
     }
   },
@@ -114,6 +116,7 @@ var FaxEvent = {
       onWhat.addEventListener(captureNativeEventType, ourHandler , true);
     }
   },
+
   /**
    * Blatantly duplicating this event normalization code (same as
    * __trapCapturedEvent) for performance reasons. Factoring out into helper
@@ -141,6 +144,18 @@ var FaxEvent = {
         ourHandler(nativeEvent);
       };
     }
+  },
+
+  /**
+   * Just inline this in critical sections of code.
+   */
+  _getTarget: function(nativeEvent) {
+      var nativeEvent  = nativeEvent || window.event;
+      var targ  = nativeEvent.target || nativeEvent.srcElement;
+      if (targ.nodeType === 3) { // defeat Safari bug
+        targ = targ.parentNode;
+      }
+      return targ;
   },
 
   /**
@@ -194,8 +209,8 @@ var FaxEvent = {
       if(!abstractEvent.data.rightMouseButton) {
         somethingHandledThisLowLevelEvent = true;
         var dragDoneDesc = nextId + '@onDragDone' + mode;
-        var pageX= nativeEvent.pageX;
-        var pageY= nativeEvent.pageY;
+        var pageX = FaxEvent.eventGlobalX(nativeEvent);
+        var pageY = FaxEvent.eventGlobalY(nativeEvent);
         FaxEvent.activeDragHandlersByHandlerDesc[dragDesc] =
             abstractEventHandlersById[dragDesc].callThis;
         FaxEvent.activeDragHandlersCount++;
@@ -247,7 +262,7 @@ var FaxEvent = {
    * jquery, we need to normalize mouse events here.  The below is mostly borrowed
    * from: jScrollPane/script/jquery.mousewheel.js
    */
-  _normalizeAbstractMouseWheelEvent: function(event /*native */, target) {
+  _normalizeAbstractMouseWheelEventData: function(event /*native */, target) {
     var orgEvent = event, args, delta = 0, deltaX = 0, deltaY = 0;
     event.type = "mousewheel";
 
@@ -272,7 +287,7 @@ var FaxEvent = {
     return { delta: delta, deltaX: deltaX, deltaY: deltaY };
   },
 
-  _normalizeAbstractScrollEvent: function(event /*native */, target) {
+  _normalizeAbstractScrollEventData: function(event /*native */, target) {
     return {
       scrollTop: target.scrollTop,
       scrollLeft: target.scrollLeft,
@@ -283,15 +298,34 @@ var FaxEvent = {
     };
   },
 
+  eventGlobalY: function(e) {
+    return event.pageY !== undefined ? event.pageY :
+                event.clientY + FEnv.currentScrollTop;
+  },
+  eventGlobalX: function(e) {
+    return event.pageX !== undefined ? event.pageX :
+                event.clientX + FEnv.currentScrollLeft;
+  },
   _normalizeMouseData: function(event /*native */, target) {
     return {
-      globalX: event.clientX,
-      globalY: event.clientY,
+      globalX: FaxEvent.eventGlobalX(event),
+      globalY: FaxEvent.eventGlobalY(event),
       rightMouseButton: FaxEvent._isNativeClickEventRightClick(event)
     };
   },
 
-  /* well need to handle all events that have either a from or to starting with
+  _normalizeAbstractDragEventData: function(event /*native*/,
+                                            globalX,
+                                            globalY,
+                                            startedDraggingAtX,
+                                            startedDraggingAtY) {
+    return {
+      globalX: globalX, globalY: globalY,
+      startX: startedDraggingAtX, startY: startedDraggingAtY
+    };
+  },
+
+  /* Well need to handle all events that have either a from or to starting with
    * a '.'.  This should be the first thing checked at the top.  We only need to
    * handle mouse out events, as we can always infer the mouse in event.  If we
    * handle both, we get duplicate events firing.  TODO: All of this would be
@@ -412,25 +446,32 @@ var FaxEvent = {
      * nice to be able to only do this occasionally. We'll offer two things, 1.
      * Custom sample rate, 2. adaptive sampling - sample less when each signal
      * takes a longer amount of time to respond to - trailing average. */
-    var SAMPLE_RATE = 3;
+    var SAMPLE_RATE = 10;
     if (FaxEvent.activeDragHandlersCount) {
-      var pageX = nativeEvent.pageX;
-      var pageY = nativeEvent.pageY;
+      var globalX = FaxEvent.eventGlobalX(nativeEvent);
+      var globalY = FaxEvent.eventGlobalY(nativeEvent);
 
-      if(Math.abs(pageX - FaxEvent.lastTriggeredDragAtX) +
-            Math.abs(pageY - FaxEvent.lastTriggeredDragAtY) < SAMPLE_RATE) {
+      if(Math.abs(globalX - FaxEvent.lastTriggeredDragAtX) +
+            Math.abs(globalY - FaxEvent.lastTriggeredDragAtY) < SAMPLE_RATE) {
         return;
       }
       for (var dragDesc in FaxEvent.activeDragHandlersByHandlerDesc) {
         if (!FaxEvent.activeDragHandlersByHandlerDesc.hasOwnProperty(dragDesc)) {
           continue;
         }
-        FaxEvent.activeDragHandlersByHandlerDesc[dragDesc](
-            pageX, FaxEvent.startedDraggingAtX,
-            pageY, FaxEvent.startedDraggingAtY);
+
+        var abstractEventData = FaxEvent._normalizeAbstractDragEventData(
+            nativeEvent, globalX, globalY,
+            FaxEvent.startedDraggingAtX,
+            FaxEvent.startedDraggingAtY);
+
+        var abstractEvent = new AbstractEvent(
+          'onQuantizeDrag', 'topLevelMouseMove',
+          targ, event, abstractEventData);
+        FaxEvent.activeDragHandlersByHandlerDesc[dragDesc](abstractEvent);
       }
-      FaxEvent.lastTriggeredDragAtX = pageX;
-      FaxEvent.lastTriggeredDragAtY = pageY;
+      FaxEvent.lastTriggeredDragAtX = globalX;
+      FaxEvent.lastTriggeredDragAtY = globalY;
     }
   },
 
@@ -488,6 +529,53 @@ for (var ei = 0; ei < _eventModes.length; ei++) {
 
 
 /**
+ * The Fax system needs to listen to document scroll events to update the single
+ * point of inventory on the document's currently scrolled to position. The idea
+ * is that there's a single point where this is maintained and always kept up to
+ * date. Anyone who wants to know that value should as the FEnv what the latest
+ * value is. If everyone queried the document when they wanted to know the
+ * value, they'd trigger reflows like mad. I don't think we needed to normalize
+ * the target here. Check this on safari etc - we only care about one very
+ * specific event on a very specific target - as long as it works for that case.
+ */
+FaxEvent.registerDocumentScrollListener = function() {
+  var previousDocumentScroll = document.onscroll;
+  document.onscroll = function(nativeEvent) {
+    if(nativeEvent.target === document) {
+      FEnv.currentScrollLeft =
+        document.body.scrollLeft +
+            document.documentElement.scrollLeft;
+      FEnv.currentScrollTop =
+        document.body.scrollTop +
+            document.documentElement.scrollTop;
+    }
+    if(previousDocumentScroll) {
+      previousDocumentScroll(nativeEvent);
+    }
+  }
+};
+
+/**
+ * This is just for IE only. For other browsers, we can easily apply a noselect
+ * class. In IE we need to inspect every element that was selected and see if it
+ * had a noselect class on it :( This also deactivates that horrible horrible
+ * horrible horrible "accelerator" popups on IE8.
+ */
+FaxEvent.registerIeOnSelectStartListener = function() {
+  var previousOnSelectStart = document.onselectstart;
+  document.onselectstart = function(nativeEvent) {
+    var targ = FaxEvent._getTarget(nativeEvent);
+    if (targ.className && targ.className.search(/noSelect/) !== -1) {
+      (nativeEvent || window.event).returnValue = false;
+    }
+    if (previousOnSelectStart) {
+      previousOnSelectStart(nativeEvent || window.event);
+    }
+  }
+}
+
+
+/**
  * ----------------------------------------------------------------------------
  * Events Summary: We trap low level, and often browser specify 'native' events
  * at the top level (window/document). We dedupe cross-browser events
@@ -503,28 +591,29 @@ for (var ei = 0; ei < _eventModes.length; ei++) {
  * ----------------------------------------------------------------------------
  */
 
-FaxEvent.registerTopLevelListener = function() {
-
+FaxEvent.registerTopLevelListener = function(mountAt) {
+  FaxEvent.registerDocumentScrollListener();
+  FaxEvent.registerIeOnSelectStartListener();
   /**
    * #todoie: onmouseover/out do not work on the window element on IE*, will
    * likely need to capture using addEventListener/attachEvent.
    */
-  FaxEvent.__trapBubbledEvent('topLevelMouseMove', 'onmousemove', document);
-  FaxEvent.__trapBubbledEvent('topLevelMouseIn', 'onmouseover', document);
-  FaxEvent.__trapBubbledEvent('topLevelMouseDown', 'onmousedown', document);
-  FaxEvent.__trapBubbledEvent('topLevelMouseUp', 'onmouseup', document);
-  FaxEvent.__trapBubbledEvent('topLevelMouseOut', 'onmouseout', document);
-  FaxEvent.__trapBubbledEvent('topLevelClick', 'onclick', document);
-  FaxEvent.__trapBubbledEvent('topLevelMouseWheel', 'onmousewheel', document);
+  FaxEvent.__trapBubbledEvent('topLevelMouseMove', 'onmousemove', mountAt || document);
+  FaxEvent.__trapBubbledEvent('topLevelMouseIn', 'onmouseover', mountAt || document);
+  FaxEvent.__trapBubbledEvent('topLevelMouseDown', 'onmousedown', mountAt || document);
+  FaxEvent.__trapBubbledEvent('topLevelMouseUp', 'onmouseup', mountAt || document);
+  FaxEvent.__trapBubbledEvent('topLevelMouseOut', 'onmouseout', mountAt || document);
+  FaxEvent.__trapBubbledEvent('topLevelClick', 'onclick', mountAt || document);
+  FaxEvent.__trapBubbledEvent('topLevelMouseWheel', 'onmousewheel', mountAt || document);
 
   /**
    * #todoie: Supposedly, keyup/press/down won't bubble to window on ie, but
    * will bubble to document. Maybe we should just trap there.
    * http://www.quirksmode.org/dom/events/keys.html.
    */
-  FaxEvent.__trapBubbledEvent('topLevelKeyUp', 'onkeyup', document);
-  FaxEvent.__trapBubbledEvent('topLevelKeyPress', 'onkeypress', document);
-  FaxEvent.__trapBubbledEvent('topLevelKeyDown', 'onkeydown', document);
+  FaxEvent.__trapBubbledEvent('topLevelKeyUp', 'onkeyup', mountAt || document);
+  FaxEvent.__trapBubbledEvent('topLevelKeyPress', 'onkeypress', mountAt || document);
+  FaxEvent.__trapBubbledEvent('topLevelKeyDown', 'onkeydown', mountAt || document);
 
   /**
    * TODO: IE has focusin and focusout which bubble, and we don't need to use
@@ -536,15 +625,15 @@ FaxEvent.registerTopLevelListener = function() {
    * focus and blur events do not bubble, but we can capture them on 'the way
    * down'.
    */
-  FaxEvent.__trapCapturedEvent('topLevelTouchStart', 'touchstart', document);
-  FaxEvent.__trapCapturedEvent('topLevelFocus', 'focus', window);
-  FaxEvent.__trapCapturedEvent('topLevelBlur', 'blur', window);
+  FaxEvent.__trapCapturedEvent('topLevelTouchStart', 'touchstart', mountAt || document);
+  FaxEvent.__trapCapturedEvent('topLevelFocus', 'focus', mountAt || window);
+  FaxEvent.__trapCapturedEvent('topLevelBlur', 'blur', mountAt || window);
 
 
   /** http://www.quirksmode.org/dom/events/tests/scroll.html (Firefox needs to
    * capture a diff mouse scroll); */
-  FaxEvent.__trapCapturedEvent('topLevelMouseWheel', 'DOMMouseScroll', document);
-  FaxEvent.__trapCapturedEvent('topLevelMouseScroll', 'scroll', document);
+  FaxEvent.__trapCapturedEvent('topLevelMouseWheel', 'DOMMouseScroll', mountAt || document);
+  FaxEvent.__trapCapturedEvent('topLevelMouseScroll', 'scroll', mountAt || document);
 };
 
 
@@ -554,10 +643,10 @@ function _constructAbstractEventDirectlyFromTopLevel(topLevelEventType,
   var data;
   switch(topLevelEventType) {
     case 'topLevelMouseWheel':
-      data = FaxEvent._normalizeAbstractMouseWheelEvent(nativeEvent, target);
+      data = FaxEvent._normalizeAbstractMouseWheelEventData(nativeEvent, target);
       break;
     case 'topLevelMouseScroll':
-      data = FaxEvent._normalizeAbstractScrollEvent(nativeEvent, target);
+      data = FaxEvent._normalizeAbstractScrollEventData(nativeEvent, target);
       break;
     case 'topLevelClick':
     case 'topLevelMouseDown':
@@ -578,6 +667,11 @@ function _constructAbstractEventDirectlyFromTopLevel(topLevelEventType,
 }
 
 
+/**
+ * We test for the most time sensitive events first to get them out of the way
+ * (we don't need any additional slow down when dispatching scroll/mousemove
+ * events.
+ */
 function _handleTopLevel(topLevelEventType, nativeEvent, targ) {
   var abstractEventHandlersById =
       FaxEvent.abstractEventHandlersById, nextId = targ.id;
@@ -588,6 +682,12 @@ function _handleTopLevel(topLevelEventType, nativeEvent, targ) {
   if (topLevelEventType === 'topLevelMouseUp') {
     FaxEvent._handleMouseUp(nativeEvent, targ);
     return;
+  }
+
+
+  /**
+  if(topLevelEventType === 'topLevelFaxSystemScroll') {
+
   }
 
   // Get first dom node with a registered id.

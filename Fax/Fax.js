@@ -63,6 +63,21 @@ _Fax.controlDirectlyDomAttrsMap = {
   scrollTop: 'scrollTop', scrollLeft: 'scrollLeft'
 };
 
+var logicalStyleAttrNamesMap = {
+  boxSizing: 'box-sizing', boxShadow: 'box-shadow',
+  paddingRight: 'padding-right', paddingLeft: 'padding-left',
+  paddingTop: 'padding-top', paddingBottom: 'padding-bottom',
+  marginRight: 'margin-right', marginLeft: 'margin-left',
+  marginTop: 'margin-top', marginBottom: 'margin-bottom',
+  zIndex: 'z-index', backgroundImage: 'background-image',
+  border: 'border', borderTop: 'border-top',
+  fontSize: 'font-size', fontWeight: 'font-weight',
+  fontColor: 'font-color', textTransform: 'text-transform',
+  textDecoration: 'text-decoration', textAlign: 'text-align',
+  borderLeft: 'border-left', borderRight: 'border-right',
+  borderBottom: 'border-bottom', borderColor: 'border-color',
+  position: 'position', backgroundColor: 'background-color'
+};
 
 /**
  * _controlUsingSetAttrDomAttrsMap: Attributes of a dom node that show up in the
@@ -111,21 +126,7 @@ _Fax.markupDomTagAttrsMap = {
  * supported ones, we'll translate into the harder to type hyphenated version.
  */
 var _styleAttrNameForLogicalName = function(attr) {
-  return {
-    boxSizing: 'box-sizing', boxShadow: 'box-shadow',
-    paddingRight: 'padding-right', paddingLeft: 'padding-left',
-    paddingTop: 'padding-top', paddingBottom: 'padding-bottom',
-    marginRight: 'margin-right', marginLeft: 'margin-left',
-    marginTop: 'margin-top', marginBottom: 'margin-bottom',
-    zIndex: 'z-index', backgroundImage: 'background-image',
-    border: 'border', borderTop: 'border-top',
-    fontSize: 'font-size', fontWeight: 'font-weight',
-    fontColor: 'font-color', textTransform: 'text-transform',
-    textDecoration: 'text-decoration', textAlign: 'text-align',
-    borderLeft: 'border-left', borderRight: 'border-right',
-    borderBottom: 'border-bottom', borderColor: 'border-color',
-    position: 'position', backgroundColor: 'background-color'
-  }[attr] || attr;
+  return logicalStyleAttrNamesMap[attr] || attr;
 };
 
 /** Set of attribute names for which we do not append 'px'. */
@@ -160,23 +161,12 @@ var _styleValue = function (logicalStyleAttrName, attrVal) {
  * placed in the opening tag - for this single attribute.
  */
 function _tagDomAttrMarkupFragment(tagAttrName, tagAttrVal) {
-  if(tagAttrVal && tagAttrVal.__textNode) {
-    return _Fax.markupDomTagAttrsMap[tagAttrName] +
-        "='" + FaxUtils.escapeTextNodeForBrowser(tagAttrVal) + "'";
-  } else if(tagAttrVal) {
-    _Fax.Fatal("Saw dom attr fragment value for key " + tagAttrName +
-      " but does not appear to expect escaping");
-  }
-  return '';
+  return _Fax.markupDomTagAttrsMap[tagAttrName] +
+      "='" + FaxUtils.escapeTextNodeForBrowser(tagAttrVal) + "'";
 }
 
 function _innerHtmlMarkupFragment(innerHtmlAttrVal) {
-  if(innerHtmlAttrVal && innerHtmlAttrVal.__textNode) {
-    return FaxUtils.escapeTextNodeForBrowser(innerHtmlAttrVal);
-  } else if(innerHtmlAttrVal) {
-    _Fax.Fatal("Saw innerHtml fragment but does not appear to expect escaping");
-  }
-  return '';
+  return FaxUtils.escapeTextNodeForBrowser(innerHtmlAttrVal);
 }
 
 /**
@@ -226,7 +216,12 @@ var _serializeInlineStyle = function (styleObj) {
  * Changes to the component instance will be reflected on the DOM automatically.
  */
 _Fax.renderAt = function(projection, id) {
-  FaxEvent.ensureListening();
+  var mountAt = document.getElementById(id);
+  if(!mountAt.parentNode || mountAt === document.body) {
+    throw "You need to mount your application at least one node deeper " +
+          "than the document body itself. I know, it's stupid but that's " +
+          "what some browsers require for the way we handle events.";
+  }
   if (_Fax.beforeRendering.length) {
     for (var i = _Fax.beforeRendering.length - 1; i >= 0; i--) {
       _Fax.beforeRendering[i]();
@@ -235,7 +230,6 @@ _Fax.renderAt = function(projection, id) {
 
   var componentInstance = (new (projection.maker)(projection.props));
   var markup = componentInstance.genMarkup('.top', true, true);
-  var mountAt = document.getElementById(id);
   var nextSibling = mountAt.nextSibling;
   var parent = mountAt.parentNode;
   /** In some browsers, you'd be better off *not* removing the element before
@@ -247,6 +241,7 @@ _Fax.renderAt = function(projection, id) {
   } else {
     parent.appendChild(mountAt);
   }
+  FaxEvent.ensureListening(mountAt);
   _executeDomReadyQueue();
   var renderedComponentInstance = componentInstance;
   return renderedComponentInstance;
@@ -281,7 +276,9 @@ _Fax.renderTopLevelComponentAt = function(TopLevelProjectingConstructor, id, opt
   /**
    * Refresher function that does a control on the rendered dom node whenever
    * something in the top level data pipeline changes. This wipes out any
-   * existing handler.
+   * existing handler. Todo: put this in FaxEvent such that it populates FEnv
+   * with reflow triggering data - so coders don't have to query the window for
+   * these attributes.
    */
   window.onresize = function() {
     dims = FaxUtils.getViewportDims();
@@ -343,6 +340,7 @@ _Fax.merge = function(one, two) {
 
 _Fax.mergeThree = function(one, two, three) {
   var ret = {}, aKey, one = one || {}, two = two || {}, three = three || {};
+
   for (aKey in one) {
     if (one.hasOwnProperty(aKey)) {
       ret[aKey] = one[aKey];
@@ -1032,21 +1030,11 @@ _Fax.controlPhysicalDomNode = function (elem, nextProps) {
     if (propKey === 'style') {
       elem.cssText = _serializeInlineStyle(prop);
     } else if (_controlUsingSetAttrDomAttrsMap[propKey]) {
-      if(prop.__textNode) {
-        elem.setAttribute(_controlUsingSetAttrDomAttrsMap[propKey],
-            FaxUtils.escapeTextNodeForBrowser(prop));
-      } else {
-        _Fax.Fatal("Property: " + propKey + " should be but did not expect to" +
-          " be escaped when controlling dom node - wrap in TextNode:" + elem.id);
-      }
+      elem.setAttribute(_controlUsingSetAttrDomAttrsMap[propKey],
+          FaxUtils.escapeTextNodeForBrowser(prop));
     } else if (_Fax.controlDirectlyDomAttrsMap[propKey]) {
-      if(prop.__textNode) {
-        elem[_Fax.controlDirectlyDomAttrsMap[propKey]] =
-            FaxUtils.escapeTextNodeForBrowser(prop);
-      } else {
-        _Fax.Fatal("Property: " + propKey + " should be but did not expect to" +
-          " be escaped when controlling dom node - wrap in TextNode:" + elem.id);
-      }
+      elem[_Fax.controlDirectlyDomAttrsMap[propKey]] =
+          FaxUtils.escapeTextNodeForBrowser(prop);
     }
   }
 };
@@ -1095,7 +1083,7 @@ _Fax.controlPhysicalDomNode = function (elem, nextProps) {
  * {$post}
  */
 function _makeDomContainerComponent(tag, optionalTagTextPar, pre, post, headText, footText) {
-  var optionalTagText = optionalTagTextPar ? ' ' + optionalTagText : '';
+  var optionalTagText = optionalTagTextPar ? ' unselectable=on' + optionalTagText : '';
   var tagOpen = (pre || '') + "<" + tag + optionalTagText + " id='";
   var tagClose = (footText || '') + "</" + tag + ">" + (post || '');
   var headTextTagClose = ">" + (headText || '');
@@ -1282,24 +1270,12 @@ function _makeDomContainerComponent(tag, optionalTagTextPar, pre, post, headText
       // Check for native attributes and apply them to the dom.
       var childControllableDomAttr = _controlUsingSetAttrDomAttrsMap[projectionKey];
       if (childControllableDomAttr) {
-        if(projectionForKey && projectionForKey.__textNode) {
-          parentDomNode.setAttribute(
-              childControllableDomAttr,
-              FaxUtils.escapeTextNodeForBrowser(projectionForKey));
-        } else {
-          _Fax.Error(
-            "Encountered propertyDomAttr not intended to be escaped:" +
-            projectionKey);
-        }
+        parentDomNode.setAttribute(
+            childControllableDomAttr,
+            FaxUtils.escapeTextNodeForBrowser(projectionForKey));
       } else if (_Fax.controlDirectlyDomAttrsMap[projectionKey]) {
-        if(projectionForKey && projectionForKey.__textNode) {
-          parentDomNode[_Fax.controlDirectlyDomAttrsMap[projectionKey]] =
-            FaxUtils.escapeTextNodeForBrowser(projectionForKey);
-        } else {
-          _Fax.Error(
-            "Encountered propertyDomAttr not intended to be escaped:" +
-            projectionKey);
-        }
+        parentDomNode[_Fax.controlDirectlyDomAttrsMap[projectionKey]] =
+          FaxUtils.escapeTextNodeForBrowser(projectionForKey);
       } else if (projectionKey === 'style') {
         for (var logStyleAttrName in projectionForKey) {
           if (!projectionForKey.hasOwnProperty(logStyleAttrName) ||
@@ -1634,11 +1610,7 @@ _Fax.clssSet = function(namedSet) {
       accum += val;
     }
   }
-  return {
-    __textNode: true,
-    text: accum,
-    escaped: true
-  };
+  return accum;
 };
 
 

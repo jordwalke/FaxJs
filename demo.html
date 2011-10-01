@@ -39,17 +39,19 @@
         var DemoApp = require('DemoApp'),
             start = (new Date()).getTime();
 
-        Fax.renderTopLevelComponentAt(DemoApp.MainDemoApp, 'appMount', {
+        Fax.renderTopLevelComponentAt(DemoApp.MainDemoApp, 'eventMount', {
           appStyle: true
         });
         var end = (new Date()).getTime();
-        console.log('Total rendering and paint time:' + (end-start));
+        alert('Total rendering and paint time:' + (end-start));
       };
     </script>
   </head>
   <body id="appMount">
-    Wait for it.. Wait for it... (If you're still reading this then the Fax
-        Server is probably optimizing your code and computing css stylesheets
-        from your javascript style exports.
+    <div id='eventMount'>
+      Wait for it.. Wait for it... (If you're still reading this then the Fax
+          Server is probably optimizing your code and computing css stylesheets
+          from your javascript style exports.
+    </div>
   </body>
 </html>

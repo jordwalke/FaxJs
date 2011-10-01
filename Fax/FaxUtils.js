@@ -5,7 +5,7 @@
  */
 module.exports = {
   escapeTextNodeForBrowser : function (textNode) {
-    return textNode.text;
+    return textNode;
   },
   /** Gets the viewport dimensions: #todoreplacewithframework. Likely redundant
    * with whatever framework the client is already including. Including this

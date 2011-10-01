@@ -18,7 +18,7 @@ ControlPanel.ToolBox = {
     var props = this.props, ths = this, selectedShape = ths.props.selectedShape;
 
     return {
-      clss: F.TextNode('noSelect'),
+      clss: 'noSelect',
       pointerToolButton: {
         l: 9, t: 9, h: 22, w: 22,
         highlighted: props.selectedTool === 'pointerTool',
@@ -26,8 +26,8 @@ ControlPanel.ToolBox = {
           props.onToolChange('pointerTool');
         },
         iconImage: {
-          clss: F.TextNode('buttonIcon'),
-          src: F.TextNode("./images/pointer_icon.png")
+          clss: 'buttonIcon',
+          src: "./images/pointer_icon.png"
         }.Img()
       }.MaterialButton(),
       painterToolButton: {
@@ -37,8 +37,8 @@ ControlPanel.ToolBox = {
           props.onToolChange('painterTool');
         },
         iconImage: {
-          clss: F.TextNode('buttonIcon'),
-          src: F.TextNode("./images/plus_icon.png")
+          clss: 'buttonIcon',
+          src: "./images/plus_icon.png"
         }.Img()
       }.MaterialButton(),
       toolBoxEditorPanel: {
@@ -90,7 +90,7 @@ ControlPanel.ToolBoxRow = {
 
       leftLabel: {
         style: {left: 0, width: 50},
-        innerHtml: F.TextNode(this.props.label)
+        innerHtml: this.props.label
       }.ViewDiv(),
 
       rightInput: {

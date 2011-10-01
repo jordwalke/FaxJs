@@ -109,8 +109,8 @@ FWidgets.FInputView = {
         FInput: true, FInputSuper: !!props.superMode,
         FInputPlaceheld: !!placeHeld, userSuppliedClass: props.clss
       },
-      type: F.TextNode(!props.secure || placeHeld ? 'text' : 'password'),
-      value: F.TextNode(textToShow),
+      type: !props.secure || placeHeld ? 'text' : 'password',
+      value: textToShow,
       onKeyDown: this.onKeyDown.bind(this),
       onKeyUp: this.onKeyUp.bind(this),
       onBlur: this.onBlur.bind(this),

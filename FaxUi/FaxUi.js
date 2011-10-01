@@ -186,7 +186,10 @@ module.exports.styleExports = {
 		'-webkit-user-select': 'none',
     '-khtml-user-select': 'none',
     'user-select': 'none'
-	}
+	},
+  '.noSelect::selection': {
+    'background-color': 'transparent'
+  }
 };
 
 /**

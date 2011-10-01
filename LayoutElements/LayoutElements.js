@@ -41,7 +41,7 @@ LayoutElements.MaterialButton = {
       overrides: this.props,
       highlighted: this.props.highlighted,
       buttonText: {
-        innerHtml: F.TextNode(this.props.text ? this.props.text : '')
+        innerHtml: this.props.text ? this.props.text : ''
       }.Span()
     }.MaterialView();
   }
@@ -80,13 +80,13 @@ LayoutElements.PhysicalButton = {
       clssSet: {buttonAnchor: true, texturedObject: true,
         smallerTexturedObject: true},
       overrides: F.objExclusion(this.props, {text: true}),
-      href: F.TextNode('http://www.facebook.com'),
+      href: 'http://www.facebook.com',
       physicalObject: {
         lighting: {
-          clss: F.TextNode('abs texturedObjectLighting smallerTexturedObjectLighting')
+          clss: 'abs texturedObjectLighting smallerTexturedObjectLighting'
         }.Div(),
         buttonText: {
-          innerHtml: F.TextNode(this.props.text)
+          innerHtml: this.props.text
         }.Span()
       }.ViewDiv()
     }.ViewA();
