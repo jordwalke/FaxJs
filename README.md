@@ -122,6 +122,32 @@ FaxJs is not meant to be ran as a public server.
 
 ## Additional features:
 
+### Optional server side rendering:
+The reason why FaxJs uses top level event delegation for the eventing system, is so
+that the interactive portions can work with the markup, regardless of where the
+markup was generated. Once you have a component instance generated, the last two
+parameters of the genMarkup method specify whether or not markup should be generated
+and returned, and whether or not the event system should be used.
+For server side rendering on node.js, just set the first parameter to true, and the
+second to false. Change this arbitrarily depending on your performance needs.
+
+On node.js:
+
+    componentInstance.genMarkup('.top', true, false);
+    
+On the browser: (No markup will be generated, but will work with the markup that
+came from the server)
+
+    // Assume the markup is on the page mounted at id '.top'
+
+    componentInstance.genMarkup('.top', false, true);
+
+Now your event system is live and working with the markup that came from the server.
+The user expeience (viewing) isn't blocked on the events being registered and the
+server can likely generate the markup faster than your user's browser. You'll need
+to consider where you want the node.js code executed, as it will depend on how you're
+currently generating your pages (connect etc.)
+
 ### Style Sheets:
 
 FaxJs lets you define stylesheets in your favorite language - javascript. This
