@@ -25,34 +25,45 @@ all browsers, this particular app doesn't work well in IE. Try it in Chrome/Safa
 ## A very simple example:
 We'll make a button wrapped inside of a containing div. The button will stretch to the size of it's container. When we click the inner button, we'll make the outer container change width. The button will, of course, stretch to fit it's container.
 
-    // Just set up our environment a bit.
-    var F = require('Fax'), FaxUi = require('FaxUi'), Demo = {};
-    F.using(FaxUi);   // Allows use of Div and Button components
+```javascript
+// Just set up our environment a bit.
+var F = require('Fax'),
+    FaxUi = require('FaxUi'),
+    Demo = {};
 
-    // Defining a new component
-    Demo.StretchyButon = {
-      initModel: {
-        theContainerWidth: '200px'
+
+// Allow use of Divs/Spans/etc.
+F.using(FaxUi);
+
+Demo.StretchyButton = {
+  // Initialize state for this component.
+  initModel: {
+    theContainerWidth: '200px'
+  },
+
+  // Will be used to handle an event.
+  stretchyButtonClicked: function() {
+    this.updateModel({theContainerWidth: '500px'});
+  },
+
+  // Returns the view as a function of state - an invariant FaxJs upholds
+  project : function() {
+    return {
+      style: {
+        width: this.model.theContainerWidth
       },
+      innerButton: {
+        clss: 'someClassFromCss',
+        onClick: this.stretchyButtonClicked.bind(this)
+      }.Button()
+    }.Div();
+  }
+};
 
-      stretchyButtonClicked: function() {
-        this.updateModel({theContainerWidth: '500px'});
-      },
+// Turns all members of Demo (1) into components
+module.exports = F.ComponentizeAll(Demo);
 
-      project : function() {
-        return {
-          style: {width: this.model.theContainerWidth},
-          innerButton: {
-            style: {width: '100%'},
-            onClick: this.stretchyButtonClicked.bind(this)
-          }.Button()
-        }.Div();
-      }
-    };
-
-    module.exports = F.ComponentizeAll(Demo);
-
-
+```
 
 ##Explanation of example:
 
