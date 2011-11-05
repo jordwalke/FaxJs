@@ -1,12 +1,12 @@
 # FaxJs - Javascript Ui Framework
 
 ##  FaxJs is a javascript Ui framework that focuses on:
-* **Componentization** - Defining reusable ui components
 * **Declarative** - The code *looks* like the UI itself. Just tell FaxJs what you want, and it figures out the details. (using a JSON style description).
+* **Componentization** - Defining reusable ui components
 * **Small Code Size** - Quick downloads and rapid development.
-* **Rendering performance:** FaxJs uses string concatenation to generate markup, and top level event delegation to handle events - but you don't have to worry about any of that'. You just tell the FaxJs what you want to construct and it figures out the details.
+* **Rendering performance:** FaxJs uses string concatenation to generate markup, and top level event delegation to handle events - but you don't have to worry about any of that. You just tell the FaxJs what you want to construct and it figures out the details.
 * **Pure Javascript Api:** You describe the interface, how to perform updates, even the stylesheets in **javascript**.
-
+* **Markup generation completely separated from Event system** - FaxJs can render your app on the server. That means you can take advantage of very fast server rendering. But you won't have to rewrite your code to make it happen. It's all behind the scenes - you just write the widgets.
 <br>
 
 <br>
