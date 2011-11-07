@@ -62,7 +62,7 @@ LayoutDesigner.Designer.project = function() {
   var model = this.model, props = this.props, ths = this;
 
   return {
-    onClickFirstHandler: this.onSurfaceClick.bind(this),
+    onMouseDownFirstHandler: this.onSurfaceClick.bind(this),
     onQuantizeDragFirstHandler: this.onSurfaceDrag.bind(this),
     onMouseIn: ths.updater({hoveringShapeId: null}),
     onDragDoneFirstHandler: this.onSurfaceDragDone.bind(this),
@@ -80,12 +80,11 @@ LayoutDesigner.Designer.project = function() {
                    (obj.currentlyChanging.bottom || 0),
         label: obj.name,
         selected: props.selectedShapeId === shapeId,
-        onDragSignal: F.curryOne(props.onDragSignalShapeId, shapeId),
-        onDragComplete: F.curryOne(props.onDragCompleteShapeId, shapeId),
-        onResizeSignal: F.curryOne(props.onResizeSignalShapeId, shapeId),
-        onResizeComplete: F.curryOne(props.onResizeCompleteShapeId, shapeId),
-        onMouseDown: F.curryOne(props.onMouseDownShapeId, shapeId),
-        onClick: function() { }  // keep background from receiving
+        onBoxDragSignal: F.curryOne(props.onDragSignalShapeId, shapeId),
+        onBoxDragComplete: F.curryOne(props.onDragCompleteShapeId, shapeId),
+        onBoxResizeSignal: F.curryOne(props.onResizeSignalShapeId, shapeId),
+        onBoxResizeComplete: F.curryOne(props.onResizeCompleteShapeId, shapeId),
+        onBoxClick: F.curryOne(props.onMouseDownShapeId, shapeId)
       }.OwnedDesignerBox();
     }).MultiDynamic()
   }.FView();
@@ -98,24 +97,25 @@ LayoutDesigner.Designer.project = function() {
  */
 LayoutDesigner.OwnedDesignerBox = {
   project : function() {
-    F.sure(this.props, ['onDragSignal',
-        'onDragComplete', 'onResizeSignal', 'onResizeComplete',
+    F.sure(this.props, ['onBoxDragSignal',
+        'onBoxDragComplete', 'onBoxResizeSignal', 'onBoxResizeComplete',
         'l', 't', 'w', 'h']);
 
     var props = this.props, ths = this;
+
     return {
       overrides: this.props,
       clssSet: {noSelect: true, designerBox: true, selected: props.selected },
-      onMouseDown: props.onMouseDown,
-      onMouseIn: props.onMouseIn,
-      onMouseOut: props.onMouseOut,
+      onClick: props.onBoxClick,
+      onMouseIn: props.onBoxMouseIn,
+      onMouseOut: props.onBoxMouseOut,
       onQuantizeDragFirstHandler: function(absE) {
-        props.onDragSignal({
+        props.onBoxDragSignal({
           drgX: absE.data.globalX - absE.data.startX,
           drgY: absE.data.globalY - absE.data.startY
        });
       },
-      onDragDoneFirstHandler: props.onDragComplete,
+      onDragDoneFirstHandler: props.onBoxDragComplete,
       nameLabel: {
         clssSet: {noSelect: true},
         l: 3, t: 3,
@@ -124,30 +124,30 @@ LayoutDesigner.OwnedDesignerBox = {
       rightDragger: {
         clss: 'noSelect designerBoxRightDragger',
         onQuantizeDrag: function(absE) {
-          props.onResizeSignal({right: absE.data.globalX - absE.data.startX});
+          props.onBoxResizeSignal({right: absE.data.globalX - absE.data.startX});
         },
-        onDragDone: props.onResizeComplete
+        onDragDone: props.onBoxResizeComplete
       }.Div(),
       topDragger: {
         clss: 'noSelect designerBoxTopDragger',
         onQuantizeDrag: function(absE) {
-          props.onResizeSignal({top: absE.data.globalY - absE.data.startY});
+          props.onBoxResizeSignal({top: absE.data.globalY - absE.data.startY});
         },
-        onDragDone: ths.props.onResizeComplete
+        onDragDone: ths.props.onBoxResizeComplete
       }.Div(),
       leftDragger: {
         clss: 'noSelect designerBoxLeftDragger',
         onQuantizeDrag: function(absE) {
-          props.onResizeSignal({left: absE.data.globalX - absE.data.startX});
+          props.onBoxResizeSignal({left: absE.data.globalX - absE.data.startX});
         },
-        onDragDone: ths.props.onResizeComplete
+        onDragDone: ths.props.onBoxResizeComplete
       }.Div(),
       bottomDragger: {
         clss: 'noSelect designerBoxBottomDragger',
         onQuantizeDrag: function(absE) {
-          props.onResizeSignal({bottom: absE.data.globalY - absE.data.startY});
+          props.onBoxResizeSignal({bottom: absE.data.globalY - absE.data.startY});
         },
-        onDragDone: ths.props.onResizeComplete
+        onDragDone: ths.props.onBoxResizeComplete
       }.Div()
     }.ViewA();
   }

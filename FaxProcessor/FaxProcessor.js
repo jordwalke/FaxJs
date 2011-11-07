@@ -17,6 +17,8 @@ var fs = require('fs'),
 
 var cache = {};
 
+
+
 /**
  * Setup compiler.
  * Options:
@@ -41,6 +43,10 @@ exports = module.exports = function compiler(options){
     throw new Error('compiler\'s "enable" option is not set, nothing will be compiled.');
   }
 
+  /**
+   * Todo: This compiler is not even used, but must be returned.
+   * Not sure why it's not needed.
+   */
   return function compiler(req, res, next){
     if ('GET' != req.method) return next();
     var pathname = parse(req.url).pathname;
@@ -75,7 +81,7 @@ exports = module.exports = function compiler(options){
                 if (srcStats.mtime > destStats.mtime || true) {
                   compile();
                 } else {
-                  require('sys').puts('dering to file saving' + pathname);
+                  require('sys').puts('defering to file saving' + pathname);
                   // Defer file serving
                   next();
                 }
@@ -86,13 +92,13 @@ exports = module.exports = function compiler(options){
 
         // Compile to the destination
         function compile() {
-          require('sys').puts('compiling source in COMPILE()');
           fs.readFile(src, 'utf8', function(err, str){
             if (err) {
               next(err);
             } else {
               compiler.compile(str, src, function(err, str){
                 if (err) {
+                  throw(err);
                   next(err);
                 } else {
                   fs.writeFile(dest, str, 'utf8', function(err){
@@ -112,7 +118,6 @@ exports = module.exports = function compiler(options){
 
 exports.FaxOptimizer = require('./FaxOptimizer');
 exports.StyleGenerator = require('./FaxStyleGenerator');
-
 /**
  * Bundled compilers:
  *
@@ -128,6 +133,7 @@ var compilers = exports.compilers = {
           cache.faxOptimizer ||
           (cache.faxOptimizer = require('./FaxOptimizer'));
       try {
+        require('sys').puts("COMPILING WITH OPTIMIZER");
         faxOptimizer(str, fileName, fn);
       } catch (err) {
         fn(err);
@@ -150,3 +156,4 @@ var compilers = exports.compilers = {
     }
   }
 };
+

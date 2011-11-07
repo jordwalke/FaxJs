@@ -4,6 +4,9 @@ var sys = require('sys');
 var FaxProcessor = require('FaxProcessor');
 var FaxOptimizer = FaxProcessor.FaxOptimizer;
 
+/* Simply registering the FaxOptimizer is sufficient. But for some reason -
+ * after reducing, the following line causes problems on the second time a file
+ * is reduced.*/
 server.use(FaxProcessor({ src: __dirname, enable: ['faxOptimizer', 'faxStyleGenerator'] }));
 server.use(connect.static(__dirname));
 

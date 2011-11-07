@@ -40,7 +40,8 @@
             start = (new Date()).getTime();
 
         Fax.renderTopLevelComponentAt(DemoApp.MainDemoApp, 'eventMount', {
-          appStyle: true
+          appStyle: true,
+          renderingStrategy: Fax.renderingStrategies.standard
         });
         var end = (new Date()).getTime();
         alert('Total rendering and paint time:' + (end-start));

@@ -7,8 +7,12 @@ var sys = require('sys'),
 		vm = require('vm'),
 		F = require('Fax');
 
+/** Forward declaration. */
+var _generateCss;
+
 module.exports = {
 	render: function (input, fileName, callback) {
+    var ee;
 		if (callback) {
 			try {
 				callback(null, _generateCss(input, fileName));
@@ -33,9 +37,6 @@ module.exports = {
 
 var _getResultOfExecuting = function (content, fileName) {
 	var result = require(fileName);
-	var sys = require('sys');
-  sys.puts('result of executing:');
-  sys.puts(result);
 	return result.styleExports;
 };
 
@@ -46,23 +47,20 @@ var _standardTags = {
 };
 
 var _convertObjectToCss = function (styleObj) {
-  sys.puts('serializing:' + styleObj);
-	var accum = '';
-	for (var selector in styleObj) {
+	var accum = '', selector;
+	for (selector in styleObj) {
 		if (!styleObj.hasOwnProperty(selector)) {
 			continue;
 		}
-    require('sys').puts('serializing for key: "' + selector + '"');
 		var valueForSelector = styleObj[selector];
-		require('sys').puts(JSON.stringify(valueForSelector));
 		if (!_standardTags[selector] &&
         // No special selectors, default standard object keys to class names
         // because those are the most common selectors.
-				selector.indexOf('~') == -1 &&
-				selector.indexOf('[') == -1 &&
-				selector.indexOf('#') == -1 &&
-				selector.indexOf('.') == -1 &&
-				selector.indexOf(' ') == -1) {
+				selector.indexOf('~') === -1 &&
+				selector.indexOf('[') === -1 &&
+				selector.indexOf('#') === -1 &&
+				selector.indexOf('.') === -1 &&
+				selector.indexOf(' ') === -1) {
 			selector = '.' + selector;
     }
 		if (typeof valueForSelector === 'string') {

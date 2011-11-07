@@ -57,14 +57,16 @@ FaxUi.MakeTagView = function(NativeTagProjectingConstructor) {
        * positioning info, then override with any 'override' positioning
        * attributes.
        */
-      var nativeTagStyle = F.mergeThree(
-          props.style,
-          F.extractAndSealPosInfo(props),
-          F.extractAndSealPosInfo(overrides));
+      var nativeTagStyle = props.style;
+
+      var nativeTagPosInfo = F.merge(
+            F.extractPosInfo(props),
+            F.extractPosInfo(overrides));
 
       nativeTagProps = F.mergeThree(props, overrides, {
         clss: F.clssSet(tagClssSet),
-        style: nativeTagStyle
+        style: nativeTagStyle,
+        posInfo: nativeTagPosInfo
       });
 
       delete nativeTagProps.overrides;

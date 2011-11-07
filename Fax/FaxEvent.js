@@ -1,4 +1,7 @@
-var FEnv = require('./FEnv');
+var FEnv = require('./FEnv'),
+    FaxUtils = require('./FaxUtils');
+
+
 
 /**
  * Helper class. Provides a nicer api for a conceptual 'event'. Eliminates some
@@ -26,6 +29,41 @@ AbstractEvent.prototype.preventDefault = function() {
 };
 
 
+function _constructAbstractEventDirectlyFromTopLevel(topLevelEventType,
+                                                     nativeEvent,
+                                                     target) {
+  var data;
+  switch(topLevelEventType) {
+    case 'topLevelMouseWheel':
+      data = FaxEvent._normalizeAbstractMouseWheelEventData(nativeEvent, target);
+      break;
+    case 'topLevelMouseScroll':
+      data = FaxEvent._normalizeAbstractScrollEventData(nativeEvent, target);
+      break;
+    case 'topLevelClick':
+    case 'topLevelMouseDown':
+    case 'topLevelMouseUp':
+    case 'topLevelTouchMove':
+    case 'topLevelTouchStart':
+    case 'topLevelTouchEnd':
+      data = FaxEvent._normalizeMouseData(nativeEvent, target);
+      break;
+    default:
+      data = {};
+  }
+
+  return new AbstractEvent(
+      FaxEvent.topLevelEventTypesDirectlyMappedToAbstractHandlerName[
+        topLevelEventType],
+      topLevelEventType,
+      target,
+      nativeEvent,
+      data);
+}
+
+
+
+
 /**
  * Fax events module.
  */
@@ -36,32 +74,51 @@ var FaxEvent = {
    * event. The 'active' drag handlers are handlers that are currently active
    * and should receive drag signals when the mouse is used. The bubbling has
    * already occured at the time of mouse down and the set of registered drag
-   * handlers have been stored in these global sets.
+   * handlers have been stored in these global sets. We'll reuse this global
+   * store for both mouse and also touch events.
    */
   activeDragHandlersByHandlerDesc : {},
+  currentlyPressingDown: false,
   activeDragHandlersCount : 0,
   activeDragDoneHandlersByHandlerDesc : {},
   activeDragDoneHandlersCount: 0,
-  startedDraggingAtX : null,
-  startedDraggingAtY : null,
+  lastTouchedDownAtX : null,
+  lastTouchedDownAtY : null,
   lastTriggeredDragAtX : null,
   lastTriggeredDragAtY : null,
+  lastTriggeredDragAtTime : 0,
   listeningYet: false,
+
+  /* Arbitrarily choose 3 as the required delta - easy to customize later.
+   * Mouse move events can trigger huge propagations in ui appearance and it's
+   * nice to be able to only do this occasionally. We'll offer two things, 1.
+   * Custom sample rate, 2. Adaptive sampling - sample less when each signal
+   * takes a longer amount of time to respond to - trailing average. */
+  DRAG_PIXEL_SAMPLE_RATE : 3,
+
+  /**
+   * Will not fire drag events spaced further apart than 50 milliseconds.
+   */
+  DRAG_TIME_SAMPLE_THRESH: 25,
+
+  /**
+   * The number of pixels that are tolerated in between a touchStart and
+   * touchEnd in order to still be considered a 'tap' event. */
+  TAP_MOVEMENT_THRESHOLD : 10,
 
   /* This funny initialization is only needed so that browserify can reload
    * modules from a local cache. */
-  abstractEventHandlersById :
-      typeof FaxEvent === 'object'  ? FaxEvent.abstractEventHandlersById : {},
+  abstractEventHandlersById : {},
 
   /* To be populated */
-  abstractHandlerNames : {},
+  abstractHandlerNames : typeof FaxEvent === 'object' ? FaxEvent.abstractHandlerNames : {},
 
   /**
    * The top level method that kicks off rendering to the dom should call this.
    */
-  ensureListening: function(mountAt) {
+  ensureListening: function(mountAt, touchInsteadOfMouse) {
     if (!FaxEvent.listeningYet) {
-      FaxEvent.registerTopLevelListener(mountAt);
+      FaxEvent.registerTopLevelListeners(mountAt, touchInsteadOfMouse);
       FaxEvent.listeningYet = true;
     }
   },
@@ -88,7 +145,8 @@ var FaxEvent = {
    * Also performs the mapping from handler name to abstract event name.
    */
   registerHandlers : function(domNodeId, props) {
-    for (var handlerName in FaxEvent.abstractHandlerNames) {
+    var handlerName;
+    for (handlerName in FaxEvent.abstractHandlerNames) {
       if (!FaxEvent.abstractHandlerNames.hasOwnProperty(handlerName)) {
         continue;
       }
@@ -101,6 +159,7 @@ var FaxEvent = {
       }
     }
   },
+
   __trapCapturedEvent: function (topLevelEventType, captureNativeEventType, onWhat) {
     var ourHandler = function(eParam) {
       var nativeEvent  = eParam || window.event;
@@ -150,12 +209,12 @@ var FaxEvent = {
    * Just inline this in critical sections of code.
    */
   _getTarget: function(nativeEvent) {
-      var nativeEvent  = nativeEvent || window.event;
-      var targ  = nativeEvent.target || nativeEvent.srcElement;
-      if (targ.nodeType === 3) { // defeat Safari bug
-        targ = targ.parentNode;
-      }
-      return targ;
+    nativeEvent = nativeEvent || window.event;
+    var targ  = nativeEvent.target || nativeEvent.srcElement;
+    if (targ.nodeType === 3) { // defeat Safari bug
+      targ = targ.parentNode;
+    }
+    return targ;
   },
 
   /**
@@ -172,6 +231,8 @@ var FaxEvent = {
     topLevelBlur: 'onBlur',
     topLevelMouseDown: 'onMouseDown',
     topLevelTouchStart: 'onTouchStart',
+    topLevelTouchEnd: 'onTouchEnd',
+    topLevelTouchMove: 'onTouchMove',
     topLevelMouseUp: 'onMouseUp'
   },
 
@@ -183,6 +244,20 @@ var FaxEvent = {
   /**
    * Triggers any registered events on an id as part of a very regular bubbling
    * procedure (meaning straight up to the top, not like mouseIn/Out).
+   * It's kind of funny how in the standard bubbling iteration we reason a lot
+   * about drag handlers - never call them. Yet on mouse move or mouse ups type
+   * handlers we don't even talk about bubbling. It's because all of the bubbling
+   * (even for draggy events) were 'locked' in at the time of mouse down (this
+   * function, actually).
+   * Another funny thing about this function is that we infer high level onTouchTap
+   * events here. We never "locked those in" at mouse down time though we could have.
+   * The motive for locking in mouse move events was performance. Why recalculate
+   * the exact same bubble path on every pixel? That would have been costly. But
+   * onTouchTap shouldn't concern us - though it might be cleaner to lock it in
+   * on mouse down - #todo (we should do this now because when there are multiple
+   * fingers on the page, we need to know who started the touch down, so that when
+   * we get a touchEnd event we can match it with the one that started the touch.)
+   *
    * @mode: Such as 'Direct' or 'FirstHandler'.
    * @returns whether or not the event was handled by the dom node with this id
    */
@@ -191,68 +266,103 @@ var FaxEvent = {
                                       mode,
                                       nativeEvent,
                                       targ) {
-    var abstractEventHandlersById = FaxEvent.abstractEventHandlersById;
-    var dragDesc = nextId + '@onQuantizeDrag' + mode;
-    var somethingHandledThisLowLevelEvent = false;
+  
+    var abstractEventHandlersById = FaxEvent.abstractEventHandlersById,
+        mouseDownDragDesc = nextId + '@onQuantizeDrag' + mode,
+        touchStartDragDesc = nextId + '@onQuantizeTouchDrag' + mode,
+        mouseDownDragDoneDesc = nextId + '@onDragDone' + mode,
+        touchStartDragDoneDesc = nextId + '@onTouchDragDone' + mode,
+        dragDesc = topLevelEventType === 'topLevelMouseDown' ? mouseDownDragDesc :
+                   topLevelEventType === 'topLevelTouchStart' ? touchStartDragDesc :
+                   false, // in this case you won't be using it anyways.
+        dragDoneDesc = topLevelEventType === 'topLevelMouseDown' ? mouseDownDragDoneDesc :
+                   topLevelEventType === 'topLevelTouchStart' ? touchStartDragDoneDesc:
+                   false; // in this case you won't be using it anyways.
+
+    var handledLowLevelEventByRegisteringDragListeners,
+        handledLowLevelEventByFindingRelevantListeners = false;
     /** Lazily defined when we first need it. */
-    var abstractEvent;
-    if (topLevelEventType === 'topLevelMouseDown' && abstractEventHandlersById[dragDesc]) {
-      abstractEvent = _constructAbstractEventDirectlyFromTopLevel(
-          topLevelEventType,
-          nativeEvent,
-          targ);
-      /* even if nothing handles the mouse down, and something handles the
-       * click, we say that anything above this in the dom tree will not be the
-       * first handler, whether or not they're listening for clicks/drags. We
-       * can eventually change that to care about what exactly was handled, but
-       * this is kind of convenient.*/
-      if(!abstractEvent.data.rightMouseButton) {
-        somethingHandledThisLowLevelEvent = true;
-        var dragDoneDesc = nextId + '@onDragDone' + mode;
-        var pageX = FaxEvent.eventGlobalX(nativeEvent);
-        var pageY = FaxEvent.eventGlobalY(nativeEvent);
-        FaxEvent.activeDragHandlersByHandlerDesc[dragDesc] =
-            abstractEventHandlersById[dragDesc].callThis;
-        FaxEvent.activeDragHandlersCount++;
-        var activeDragDoneHandlerForNextId =
-            abstractEventHandlersById[dragDoneDesc];
-        if (activeDragDoneHandlerForNextId) {
-          FaxEvent.activeDragDoneHandlersByHandlerDesc[dragDoneDesc] =
-              activeDragDoneHandlerForNextId.callThis;
-          FaxEvent.activeDragDoneHandlersCount++;
+    var abstractEvent, globalX, globalY;
+    if (topLevelEventType === 'topLevelMouseDown' ||
+        topLevelEventType === 'topLevelTouchStart') {
+
+      globalX = FaxEvent.eventGlobalX(nativeEvent, true);
+      globalY = FaxEvent.eventGlobalY(nativeEvent, true);
+      FaxEvent.currentlyPressingDown = true;
+      FaxEvent.lastTouchedDownAtX = globalX;
+      FaxEvent.lastTouchedDownAtY = globalY;
+
+      if (abstractEventHandlersById[dragDesc]) {
+        abstractEvent = _constructAbstractEventDirectlyFromTopLevel(
+            topLevelEventType, nativeEvent, targ);
+
+        /* even if nothing handles the mouse down, and something handles the
+         * click, we say that anything above this in the dom tree will not be the
+         * first handler, whether or not they're listening for clicks/drags. We
+         * can eventually change that to care about what exactly was handled, but
+         * this is kind of convenient.*/
+        if(!abstractEvent.data.rightMouseButton) {
+          handledLowLevelEventByRegisteringDragListeners = true;
+          FaxEvent.activeDragHandlersByHandlerDesc[dragDesc] =
+              abstractEventHandlersById[dragDesc].callThis;
+          FaxEvent.activeDragHandlersCount++;
+          var activeDragDoneHandlerForNextId =
+              abstractEventHandlersById[dragDoneDesc];
+          if (activeDragDoneHandlerForNextId) {
+            FaxEvent.activeDragDoneHandlersByHandlerDesc[dragDoneDesc] =
+                activeDragDoneHandlerForNextId.callThis;
+            FaxEvent.activeDragDoneHandlersCount++;
+          }
+          FaxEvent.lastTriggeredDragAtX = globalX; // not really, but works
+          FaxEvent.lastTriggeredDragAtY = globalY;
+          // Setting this to zero, so that the very first drag event will never
+          // be held back on account of the drag time. In fact it might be a good
+          // idea to do something similar with the other two global trackers
+          // (x/y)
+          FaxEvent.lastTriggeredDragAtTime = 0;
         }
-        FaxEvent.startedDraggingAtX = pageX;
-        FaxEvent.startedDraggingAtY = pageY;
-        FaxEvent.lastTriggeredDragAtX = pageX; // not really, but works
-        FaxEvent.lastTriggeredDragAtY = pageY;
       }
+    } else if (topLevelEventType === 'topLevelTouchEnd') {
+      globalX = FaxEvent.eventGlobalX(nativeEvent);
+      globalY = FaxEvent.eventGlobalY(nativeEvent);
+
+      var totalDistanceSinceLastTouchedDown =
+          Math.abs(globalX - FaxEvent.lastTouchedDownAtX) +
+          Math.abs(globalY - FaxEvent.lastTouchedDownAtY);
+      if (totalDistanceSinceLastTouchedDown < FaxEvent.TAP_MOVEMENT_THRESHOLD) {
+        /* Code below will search for handlers that are interested in this
+         * abstract event. */
+        abstractEvent =
+            new AbstractEvent('onTouchTap', topLevelEventType, targ, nativeEvent, {});
+      }
+    } else if (FaxEvent.topLevelEventTypeHasCorrespondingAbstractType(topLevelEventType)) {
+      /**
+       * Some abstract events are just simple one-one corresponding event types
+       * with top level events.
+       */
+      abstractEvent = _constructAbstractEventDirectlyFromTopLevel(
+          topLevelEventType, nativeEvent, targ); 
     }
 
-
-    /**
-     * Some abstract events are just simple one-one corresponding event types
-     * with top level events.
-     */
-    if (FaxEvent.topLevelEventTypeHasCorrespondingAbstractType(topLevelEventType)) {
-      abstractEvent = typeof abstractEvent !== 'undefined' ?
-          abstractEvent :
-          _constructAbstractEventDirectlyFromTopLevel(
-              topLevelEventType, nativeEvent, targ); 
-
+    /* We'll take abstractEvent being set to something as a signal that we
+     * should even try to search for handlers of the event. */
+    if (typeof abstractEvent !== 'undefined') {
       var maybeEventListener = abstractEventHandlersById[
               nextId + "@" + abstractEvent.abstractEventType + mode];
       if (maybeEventListener) {
         maybeEventListener.callThis(abstractEvent, nativeEvent);
-        somethingHandledThisLowLevelEvent = true;
+        // Also, this may have already been set to true
+        handledLowLevelEventByFindingRelevantListeners = true;
       }
     }
-    return somethingHandledThisLowLevelEvent;
+    return handledLowLevelEventByFindingRelevantListeners ||
+           handledLowLevelEventByRegisteringDragListeners;
   },
 
   /** I <3 Quirksmode.org */
   _isNativeClickEventRightClick: function(nativeEvent) {
-    return nativeEvent.which ? nativeEvent.which == 3 :
-           nativeEvent.button ? nativeEvent.button == 3 :
+    return nativeEvent.which ? nativeEvent.which === 3 :
+           nativeEvent.button ? nativeEvent.button === 3 :
            false;
   },
 
@@ -264,7 +374,6 @@ var FaxEvent = {
    */
   _normalizeAbstractMouseWheelEventData: function(event /*native */, target) {
     var orgEvent = event, args, delta = 0, deltaX = 0, deltaY = 0;
-    event.type = "mousewheel";
 
     /* traditional scroll wheel data */
     if ( event.wheelDelta ) { delta = event.wheelDelta/120; }
@@ -298,11 +407,34 @@ var FaxEvent = {
     };
   },
 
-  eventGlobalY: function(event) {
+  /**
+   * Note: for touchEnd the touches will usually be empty, or not what you
+   * would think they are. Just don't rely on them for handling touchEnd events.
+   * http://stackoverflow.com/questions/3666929/
+   *    mobile-sarai-touchend-event-not-firing-when-last-touch-is-removed
+   * We're usually only interested in single finger gestures or mouse clicks,
+   * which is why we only care about touches of length 1.
+   * We can extract more interesting gesture patterns later.
+   */
+  eventGlobalY: function(event, log) {
+    if ((!event.touches || event.touches.length === 0) &&
+        event.changedTouches && event.changedTouches.length === 1) {
+      return event.changedTouches[0].pageY;
+    }
+    if(event.touches && event.touches.length === 1) {
+      return event.touches[0].pageY;
+    }
     return event.pageY !== undefined ? event.pageY :
                 event.clientY + FEnv.currentScrollTop;
   },
-  eventGlobalX: function(event) {
+  eventGlobalX: function(event, log) {
+    if ((!event.touches || event.touches.length === 0) &&
+        event.changedTouches && event.changedTouches.length === 1) {
+      return event.changedTouches[0].pageX;
+    }
+    if(event.touches && event.touches[0]) {
+      return event.touches[0].pageX;
+    }
     return event.pageX !== undefined ? event.pageX :
                 event.clientX + FEnv.currentScrollLeft;
   },
@@ -317,11 +449,11 @@ var FaxEvent = {
   _normalizeAbstractDragEventData: function(event /*native*/,
                                             globalX,
                                             globalY,
-                                            startedDraggingAtX,
-                                            startedDraggingAtY) {
+                                            lastTouchedDownAtX,
+                                            lastTouchedDownAtY) {
     return {
       globalX: globalX, globalY: globalY,
-      startX: startedDraggingAtX, startY: startedDraggingAtY
+      startX: lastTouchedDownAtX, startY: lastTouchedDownAtY
     };
   },
 
@@ -399,7 +531,7 @@ var FaxEvent = {
         maybeEventListener = abstractEventHandlersById[traverseId + "@onMouseOut"];
         if (maybeEventListener) {
           maybeEventListener.callThis(
-              new AbstractEvent('onMouseOut', topLevelEventType, nativeEvent, {}),
+              new AbstractEvent('onMouseOut', topLevelEventType, targ, nativeEvent, {}),
               targ, nativeEvent);
         }
         var oldtrav = traverseId;
@@ -437,68 +569,127 @@ var FaxEvent = {
   },
 
   /**
-   * Todo, pass an instance of AbstractEvent to the handler with coords inside
-   * of the 'data' attribute (consistency).
+   * Handles events that are 'movementy', meaning mouse and touch drags, not mouse
+   * in or out events which are more instantaneous in nature occuring at element
+   * boundries and thus don't need the same quantization as movementy events.
+   * From these top level movementy events we can infer (currently) two higher
+   * level events (both drag events) (onQuantizeTouchDrag and onQuantizeDrag)
    */
-  _handleMouseMove: function(nativeEvent, targ) {
-    /* Arbitrarily choose 3 as the required delta - easy to customize later.
-     * Mouse move events can trigger huge propagations in ui appearance and it's
-     * nice to be able to only do this occasionally. We'll offer two things, 1.
-     * Custom sample rate, 2. adaptive sampling - sample less when each signal
-     * takes a longer amount of time to respond to - trailing average. */
-    var SAMPLE_RATE = 10;
-    if (FaxEvent.activeDragHandlersCount) {
-      var globalX = FaxEvent.eventGlobalX(nativeEvent);
-      var globalY = FaxEvent.eventGlobalY(nativeEvent);
+  _handleMovementyTopLevelEvent: function(topLevelEventType, nativeEvent, targ) {
+    if (!FaxEvent.currentlyPressingDown) {
+      return;
+    }
 
-      if(Math.abs(globalX - FaxEvent.lastTriggeredDragAtX) +
-            Math.abs(globalY - FaxEvent.lastTriggeredDragAtY) < SAMPLE_RATE) {
+    var globalX, globalY, dragDesc, totalDistanceSinceLastDrag,
+        nowMs, totalMsSinceLastDrag;
+
+    globalX = FaxEvent.eventGlobalX(nativeEvent);
+    globalY = FaxEvent.eventGlobalY(nativeEvent);
+
+
+    if (FaxEvent.activeDragHandlersCount) {
+      totalDistanceSinceLastDrag =
+          Math.abs(globalX - FaxEvent.lastTriggeredDragAtX) +
+          Math.abs(globalY - FaxEvent.lastTriggeredDragAtY);
+
+      nowMs = (new Date()).getTime();
+      totalMsSinceLastDrag = nowMs - FaxEvent.lastTriggeredDragAtTime;
+
+      if(totalDistanceSinceLastDrag < FaxEvent.DRAG_PIXEL_SAMPLE_RATE ||
+         totalMsSinceLastDrag < FaxEvent.DRAG_TIME_SAMPLE_THRESH) {
         return;
       }
-      for (var dragDesc in FaxEvent.activeDragHandlersByHandlerDesc) {
+
+      /* Okay, the active drag handlers bank could have either touched drag or regular
+       * drag handlers, but practically you'll never be running in a context where
+       * the two types could simultaneously exist - we don't need to check their
+       * types - in fact we could consolidate this into a conceptual onAnyDrag event
+       * early on.
+       */
+      for (dragDesc in FaxEvent.activeDragHandlersByHandlerDesc) {
         if (!FaxEvent.activeDragHandlersByHandlerDesc.hasOwnProperty(dragDesc)) {
           continue;
         }
 
         var abstractEventData = FaxEvent._normalizeAbstractDragEventData(
             nativeEvent, globalX, globalY,
-            FaxEvent.startedDraggingAtX,
-            FaxEvent.startedDraggingAtY);
+            FaxEvent.lastTouchedDownAtX,
+            FaxEvent.lastTouchedDownAtY);
 
         var abstractEvent = new AbstractEvent(
-          'onQuantizeDrag', 'topLevelMouseMove',
+          topLevelEventType ===
+              'onTouchMove' ? 'onQuantizeTouchDrag' : 'onQuantizeDrag',
+          topLevelEventType,
           targ, nativeEvent, abstractEventData);
-        FaxEvent.activeDragHandlersByHandlerDesc[dragDesc](abstractEvent);
+        FaxEvent.activeDragHandlersByHandlerDesc[dragDesc](abstractEvent, nativeEvent);
       }
       FaxEvent.lastTriggeredDragAtX = globalX;
       FaxEvent.lastTriggeredDragAtY = globalY;
+      FaxEvent.lastTriggeredDragAtTime = nowMs;
     }
   },
 
-  _handleMouseUp: function(nativeEvent, targ) {
-    var SAMPLE_RATE = 3;
-    var pageX = nativeEvent.pageX;
-    var pageY = nativeEvent.pageY;
+  /**
+   * Handles events that are of the "let up" nature, meaning a mouseup/touchup, but this
+   * also gives us an opportunity to infer a higher level event onTouchTap (which is a
+   * touchStart followed by not much movement followed by a touchEnd). We don't need to
+   * immediately track the originating element that was toucheStarted upon because no
+   * movement occured - except in the case where the touchStart hides the element, no
+   * movement occurs then a touchEnd is observed. (We can fix that if it becomes an
+   * issue.)
+   */
+  _handleLetUppyTopLevelEvent: function(topLevelEventType, nativeEvent, targ) {
+    var globalX, globalY, dragDoneDesc,
+        totalDistanceSinceLastTouchedDown, totalDistanceSinceLastDrag;
+
+    globalX = FaxEvent.eventGlobalX(nativeEvent);
+    globalY = FaxEvent.eventGlobalY(nativeEvent);
+
+
+    totalDistanceSinceLastTouchedDown =
+        Math.abs(globalX - FaxEvent.lastTouchedDownAtX) +
+        Math.abs(globalY - FaxEvent.lastTouchedDownAtY);
+
     if (FaxEvent.activeDragDoneHandlersCount) {
       /* Only trigger the dragDone event if there has been some mouse movement
        * while the mouse was depressed (at same quantizeDrag threshold
-       * (SAMPLE_RATE))*/
-      if(Math.abs(pageX - FaxEvent.startedDraggingAtX) +
-            Math.abs(pageY - FaxEvent.startedDraggingAtY) > SAMPLE_RATE) {
-        for (var dragDoneDesc in FaxEvent.activeDragDoneHandlersByHandlerDesc) {
+       * (FaxEvent.DRAG_PIXEL_SAMPLE_RATE))*/
+      if(totalDistanceSinceLastTouchedDown > FaxEvent.DRAG_PIXEL_SAMPLE_RATE) {
+        for (dragDoneDesc in FaxEvent.activeDragDoneHandlersByHandlerDesc) {
           if (!FaxEvent.activeDragDoneHandlersByHandlerDesc.hasOwnProperty(dragDoneDesc)) {
             continue;
           }
+          var abstractEvent = new AbstractEvent(
+              (topLevelEventType === 'onMouseUp' ? 'onDragDone' : 'onTouchDragDone'),
+              topLevelEventType, targ, nativeEvent, {});
+
+          // Todo: pass an abstract event nicely normalized
           FaxEvent.activeDragDoneHandlersByHandlerDesc[dragDoneDesc]();
         }
       }
     }
+
+    /**
+     * Currently, all drag handlers are locked down at the time of mousedown/
+     * touchstart. All drag signal events are sent with respect to the initial
+     * (single) mousedown/touchstart that triggered. In a world of multiple
+     * input devices (or touches) that is not sufficient. For each drag handler
+     * we need to remember the initial event that instigated the drag. That
+     * will also make handling single taps easier - see the main top level
+     * handler (we had to handle letUppy events very last because bubbling
+     * needed certain data that it cleared.) Doing this right will be harder
+     * than it sounds - we're talking about multiple drag events. That would
+     * require that when multiple touches occur, and multiple touchmoves occur
+     * that we track which originating objects should receive which signal
+     * channel for touch events. Maybe the browser helps us out with this? 
+     */
     FaxEvent.activeDragHandlersByHandlerDesc = {};
+    FaxEvent.currentlyPressingDown = false;
     FaxEvent.activeDragHandlersCount = 0;
     FaxEvent.activeDragDoneHandlersCount = 0;
     FaxEvent.activeDragDoneHandlersByHandlerDesc = {};
-    FaxEvent.startedDraggingAtX = 0;
-    FaxEvent.startedDraggingAtY = 0;
+    FaxEvent.lastTouchedDownAtX = 0;
+    FaxEvent.lastTouchedDownAtY = 0;
   }
 };
 
@@ -515,12 +706,15 @@ var FaxEvent = {
  */
 var _eventModes = ['', 'Direct', 'FirstHandler' ];
 var _abstractHandlerBaseNames =
-['onTouchStart', 'onClick', 'onDragDone', 'onQuantizeDrag', 'onMouseWheel',
-  'onMouseScroll', 'onKeyUp', 'onKeyDown', 'onKeyPress', 'onFocus', 'onBlur',
-  'onMouseIn', 'onMouseOut', 'onMouseDown', 'onMouseUp' ];
+['onTouchTap', 'onTouchEnd', 'onTouchMove', 'onTouchStart', 'onQuantizeTouchDrag',
+ 'onTouchDragDone', 'onClick', 'onDragDone', 'onQuantizeDrag', 'onMouseWheel',
+ 'onMouseScroll', 'onKeyUp', 'onKeyDown', 'onKeyPress', 'onFocus', 'onBlur',
+ 'onMouseIn', 'onMouseOut', 'onMouseDown', 'onMouseUp'];
 
-for (var ei = 0; ei < _eventModes.length; ei++) {
-  for (var hi = 0; hi < _abstractHandlerBaseNames.length; hi++) {
+
+var ei, hi;
+for (ei = 0; ei < _eventModes.length; ei++) {
+  for (hi = 0; hi < _abstractHandlerBaseNames.length; hi++) {
     FaxEvent.abstractHandlerNames[
       _abstractHandlerBaseNames[hi] + _eventModes[ei]] = true;
   }
@@ -537,23 +731,50 @@ for (var ei = 0; ei < _eventModes.length; ei++) {
  * value, they'd trigger reflows like mad. I don't think we needed to normalize
  * the target here. Check this on safari etc - we only care about one very
  * specific event on a very specific target - as long as it works for that case.
+ * TODO: Make resizing recalculate these as well. 
  */
 FaxEvent.registerDocumentScrollListener = function() {
   var previousDocumentScroll = document.onscroll;
   document.onscroll = function(nativeEvent) {
     if(nativeEvent.target === document) {
-      FEnv.currentScrollLeft =
-        document.body.scrollLeft +
-            document.documentElement.scrollLeft;
-      FEnv.currentScrollTop =
-        document.body.scrollTop +
-            document.documentElement.scrollTop;
+      FEnv.refreshAuthoritativeScrollValues();
     }
-    if(previousDocumentScroll) {
-      previousDocumentScroll(nativeEvent);
+    if(previousDocumentScroll) { previousDocumentScroll(nativeEvent); }
+    if (FaxEvent.applicationDocumentScrollListener) {
+      FaxEvent.applicationDocumentScrollListener(nativeEvent);
     }
-  }
+  };
 };
+
+/**
+ * Default resize batching time is zero (n/a) but you can set this to whatever
+ * ms you want elapsed in between firing application registered resize events.
+ * If you reset the FEnv's knowledge of viewport dimensions on every resize,
+ * you could be causing an entirely new reflow.
+ */
+FaxEvent.applicationResizeBatchTimeMs = 0;
+FaxEvent.registerWindowResizeListener = function() {
+  var previousResizeListener = window.onresize;   
+  var pendingCallback = null;
+  var lastMs = (new Date()).getTime(), now, ellapsed;
+  window.onresize = function(nativeEvent) {
+    now = (new Date()).getTime();
+    ellapsed = now - lastMs;
+    if (!pendingCallback) {
+      pendingCallback = true;
+      window.setTimeout(function(nativeEvent) {
+          FEnv.refreshAuthoritativeViewportValues();
+          if (previousResizeListener) {previousResizeListener(nativeEvent);}
+          if (FaxEvent.applicationResizeListener) {
+            FaxEvent.applicationResizeListener(nativeEvent);
+          }
+          pendingCallback = false;
+          lastMs = now;
+        }, Math.max(FaxEvent.applicationResizeBatchTimeMs - ellapsed + 1, 1));
+      return; // Don't trigger a reflow by querying for the window dimensions   
+    }
+  };
+}; 
 
 /**
  * This is just for IE only. For other browsers, we can easily apply a noselect
@@ -571,8 +792,8 @@ FaxEvent.registerIeOnSelectStartListener = function() {
     if (previousOnSelectStart) {
       previousOnSelectStart(nativeEvent || window.event);
     }
-  }
-}
+  };
+};
 
 
 /**
@@ -591,20 +812,30 @@ FaxEvent.registerIeOnSelectStartListener = function() {
  * ----------------------------------------------------------------------------
  */
 
-FaxEvent.registerTopLevelListener = function(mountAt) {
+FaxEvent.registerTopLevelListeners = function(mountAt, touchInsteadOfMouse) {
   FaxEvent.registerDocumentScrollListener();
+  FaxEvent.registerWindowResizeListener();
   FaxEvent.registerIeOnSelectStartListener();
+
   /**
    * #todoie: onmouseover/out do not work on the window element on IE*, will
    * likely need to capture using addEventListener/attachEvent.
    */
-  FaxEvent.__trapBubbledEvent('topLevelMouseMove', 'onmousemove', mountAt || document);
-  FaxEvent.__trapBubbledEvent('topLevelMouseIn', 'onmouseover', mountAt || document);
-  FaxEvent.__trapBubbledEvent('topLevelMouseDown', 'onmousedown', mountAt || document);
-  FaxEvent.__trapBubbledEvent('topLevelMouseUp', 'onmouseup', mountAt || document);
-  FaxEvent.__trapBubbledEvent('topLevelMouseOut', 'onmouseout', mountAt || document);
-  FaxEvent.__trapBubbledEvent('topLevelClick', 'onclick', mountAt || document);
-  FaxEvent.__trapBubbledEvent('topLevelMouseWheel', 'onmousewheel', mountAt || document);
+  if (!touchInsteadOfMouse) {
+    FaxEvent.__trapBubbledEvent('topLevelMouseMove', 'onmousemove', mountAt || document);
+    FaxEvent.__trapBubbledEvent('topLevelMouseIn', 'onmouseover', mountAt || document);
+    FaxEvent.__trapBubbledEvent('topLevelMouseDown', 'onmousedown', mountAt || document);
+    FaxEvent.__trapBubbledEvent('topLevelMouseUp', 'onmouseup', mountAt || document);
+    FaxEvent.__trapBubbledEvent('topLevelMouseOut', 'onmouseout', mountAt || document);
+    FaxEvent.__trapBubbledEvent('topLevelClick', 'onclick', mountAt || document);
+    FaxEvent.__trapBubbledEvent('topLevelMouseWheel', 'onmousewheel', mountAt || document);
+  } else {
+    FaxEvent.__trapCapturedEvent('topLevelTouchStart', 'touchstart', mountAt || document);
+    FaxEvent.__trapCapturedEvent('topLevelTouchEnd', 'touchend', mountAt || document);
+    FaxEvent.__trapCapturedEvent('topLevelTouchMove', 'touchmove', mountAt || document);
+    // We don't allow clients to handle touch cancel but the system needs it.
+    FaxEvent.__trapCapturedEvent('topLevelTouchCancel', 'touchcancel', mountAt || document);
+  }
 
   /**
    * #todoie: Supposedly, keyup/press/down won't bubble to window on ie, but
@@ -625,7 +856,6 @@ FaxEvent.registerTopLevelListener = function(mountAt) {
    * focus and blur events do not bubble, but we can capture them on 'the way
    * down'.
    */
-  FaxEvent.__trapCapturedEvent('topLevelTouchStart', 'touchstart', mountAt || document);
   FaxEvent.__trapCapturedEvent('topLevelFocus', 'focus', mountAt || window);
   FaxEvent.__trapCapturedEvent('topLevelBlur', 'blur', mountAt || window);
 
@@ -637,36 +867,6 @@ FaxEvent.registerTopLevelListener = function(mountAt) {
 };
 
 
-function _constructAbstractEventDirectlyFromTopLevel(topLevelEventType,
-                                                     nativeEvent,
-                                                     target) {
-  var data;
-  switch(topLevelEventType) {
-    case 'topLevelMouseWheel':
-      data = FaxEvent._normalizeAbstractMouseWheelEventData(nativeEvent, target);
-      break;
-    case 'topLevelMouseScroll':
-      data = FaxEvent._normalizeAbstractScrollEventData(nativeEvent, target);
-      break;
-    case 'topLevelClick':
-    case 'topLevelMouseDown':
-    case 'topLevelMouseUp':
-      data = FaxEvent._normalizeMouseData(nativeEvent, target);
-      break;
-    default:
-      data = {};
-  }
-
-  return new AbstractEvent(
-      FaxEvent.topLevelEventTypesDirectlyMappedToAbstractHandlerName[
-        topLevelEventType],
-      topLevelEventType,
-      target,
-      nativeEvent,
-      data);
-}
-
-
 /**
  * We test for the most time sensitive events first to get them out of the way
  * (we don't need any additional slow down when dispatching scroll/mousemove
@@ -676,27 +876,24 @@ function _handleTopLevel(topLevelEventType, nativeEvent, targ) {
   var abstractEventHandlersById =
       FaxEvent.abstractEventHandlersById, nextId = targ.id;
   if (topLevelEventType === 'topLevelMouseMove') {
-    FaxEvent._handleMouseMove(nativeEvent, targ);
+    FaxEvent._handleMovementyTopLevelEvent(topLevelEventType, nativeEvent, targ);
     return;
   }
-  if (topLevelEventType === 'topLevelMouseUp') {
-    FaxEvent._handleMouseUp(nativeEvent, targ);
-    return;
+  /** Return for mousemove because we don't yet support handling those native
+   * events directly - let's support onTouchMove directly, however - won't return*/
+  if (topLevelEventType === 'topLevelTouchMove') {
+    FaxEvent._handleMovementyTopLevelEvent(topLevelEventType, nativeEvent, targ);
   }
 
-
-  /**
-  if(topLevelEventType === 'topLevelFaxSystemScroll') {
-
-  }
-
-  // Get first dom node with a registered id.
+  /** Now we begin the bubbling process! Get first dom
+    * node with a registered id. */
   while (targ.parentNode && targ.parentNode !== targ &&
       (nextId === null || nextId.length === 0)) {
     targ = targ.parentNode;
     nextId = targ.id;
   }
 
+  /** There is no touch analog to this. */
   if (topLevelEventType === 'topLevelMouseIn' ||
       topLevelEventType === 'topLevelMouseOut') {
     FaxEvent._handleMouseInOut(topLevelEventType, nativeEvent, targ);
@@ -707,7 +904,9 @@ function _handleTopLevel(topLevelEventType, nativeEvent, targ) {
    * We don't currently have a good way to tell the event system to "stop
    * bubbling". In fact, that somewhat breaks encapsulation. Parents have the
    * option, instead, to declare that they are interested in events that have
-   * not been bubbled up, or events that may/may not have been bubbled.
+   * not been bubbled up, or events that may/may not have been bubbled, or,
+   * optionally, anything that has may or may not have been bubbled yet has not
+   * yet been handled by any contained elements.
    * Currently, we'll have two modes, 'direct' and default (which encompasses
    * direct events and bubbled). Not yet implemented explicitly specifying that
    * events must be indirect.
@@ -746,6 +945,22 @@ function _handleTopLevel(topLevelEventType, nativeEvent, targ) {
     // still works even if lastIndexDot is -1
     nextId = nextId.substr(0, lastIndexDot);
   }
+
+  /**
+   * This needs to occur last because it resets global information such as the
+   * touched down location which the standard bubbling needs. Once we put touchTap
+   * inference into the "lock down" phase of onTouchStart (in bubbling) we could
+   * probably end up moving this back - if we trap all info needed at that point.
+   */
+  if (topLevelEventType === 'topLevelMouseUp' ||
+      topLevelEventType === 'topLevelTouchEnd' ||
+      topLevelEventType === 'topLevelTouchCancel') {
+    FaxEvent._handleLetUppyTopLevelEvent(topLevelEventType, nativeEvent, targ);
+    /* We don't return here because the mouse up event might need to be handled
+     * in it's own right - _handleLetUppyTopLevelEvent only is used to infer
+     * high level events. But we'll still allow the low level ones as well.*/
+  }
+
 }
 
 module.exports = FaxEvent;

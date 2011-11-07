@@ -116,7 +116,7 @@ module.exports.styleExports = {
   buttonIcon: { position: 'absolute', height: 16, width: 16, left: 3, top: 3 },
   toolBoxRowInput: {
     color: '#000', fontSize: '13px', backgroundColor: '#888',
-    position: 'absolute', left: 50, right: 0, top:0, bottom: 0,
+    position: 'absolute', left: 0, right: 0, top:0, bottom: 0,
     border: '1px solid #222'
   }
 };

@@ -133,6 +133,7 @@ FWidgets.FInputView = {
 (FWidgets.FAbsInput = {}).project = function() {
   return {
     clssSet: {abs: true},
+    style: {padding: '2px'}, // because the textbox itself likely has borders
     overrides: F.objSubset(this.props, F.POS_KEYS),
     contained: {
       w: '100%',

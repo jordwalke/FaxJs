@@ -31,38 +31,40 @@ var CONSTS = {
 DemoApp.DemoAppContent = {
 
   /** Initialize the model. */
-  initModel: {
-    selectedTool: 'pointerTool',
-    selectedShapeId: 'box1',
-    shapes: {
-      header: { name: 'header', l: 20, t: 20, w: 600, h: 80,
-                drgX: 0, drgY:0, currentlyChanging: {}},
-      underHeaderLeft: { name: 'under header left', l: 20, t: 120, w: 290, h: 50,
-                drgX: 0, drgY:0, currentlyChanging: {}},
-      underHeaderRight: { name: 'under header right', l: 330, t: 120, w: 290, h: 50,
-        drgX: 0, drgY:0, currentlyChanging: {}},
+  initModel: function(props) {
+    return {
+      selectedTool: 'pointerTool',
+      selectedShapeId: 'leftColumn',
+      shapes: {
+        header: { name: 'header', l: 20, t: 20, w: 600, h: 80,
+                  currentlyChanging: { drgX: 0, drgY:0 }},
+        underHeaderLeft: { name: 'under header left', l: 20, t: 120, w: 290, h: 50,
+                  currentlyChanging: { drgX: 0, drgY:0 }},
+        underHeaderRight: { name: 'under header right', l: 330, t: 120, w: 290, h: 50,
+          currentlyChanging: { drgX: 0, drgY:0 }},
 
-      leftColumn: {
-        name: 'left column', l: 20, t: 190, w: 290, h: 400,
-        drgX: 0, drgY:0, currentlyChanging: {}},
+        leftColumn: {
+          name: 'left column', l: 20, t: 190, w: 290, h: 400,
+          currentlyChanging: { drgX: 0, drgY:0 }},
 
-      rightColumn: {
-        name: 'right column', l: 330, t: 190, w: 290, h: 400,
-        drgX: 0, drgY:0, currentlyChanging: {}},
+        rightColumn: {
+          name: 'right column', l: 330, t: 190, w: 290, h: 400,
+          currentlyChanging: {drgX: 0, drgY:0 }},
 
-      tileOne: {
-        name: 'bottom tile one', l: 20, t: 610, w: 135, h: 50,
-        drgX: 0, drgY:0, currentlyChanging: {}},
-      tileTwo: {
-        name: 'bottom tile two', l: 175, t: 610, w: 135, h: 50,
-        drgX: 0, drgY:0, currentlyChanging: {}},
-      tileThree: {
-        name: 'bottom tile three', l: 330, t: 610, w: 135, h: 50,
-        drgX: 0, drgY:0, currentlyChanging: {}},
-      tileFour: {
-        name: 'bottom tile four', l: 485, t: 610, w: 135, h: 50,
-        drgX: 0, drgY:0, currentlyChanging: {}}
-    }
+        tileOne: {
+          name: 'bottom tile one', l: 20, t: 610, w: 135, h: 50,
+          currentlyChanging: {drgX: 0, drgY:0 }},
+        tileTwo: {
+          name: 'bottom tile two', l: 175, t: 610, w: 135, h: 50,
+          currentlyChanging: {drgX: 0, drgY:0 }},
+        tileThree: {
+          name: 'bottom tile three', l: 330, t: 610, w: 135, h: 50,
+          currentlyChanging: {drgX: 0, drgY:0 }},
+        tileFour: {
+          name: 'bottom tile four', l: 485, t: 610, w: 135, h: 50,
+          currentlyChanging: {drgX: 0, drgY:0 }}
+      }
+    };
   },
 
   /**
@@ -130,12 +132,12 @@ DemoApp.DemoAppContent = {
       name: 'block',
       l: abstractEvent.data.globalX - CONSTS.drawingOffsetL - mapLeftOffset,
       t: abstractEvent.data.globalY - CONSTS.drawingOffsetT - mapTopOffset,
-      w: 100, h: 100, drgX: 0, drgY:0, currentlyChanging: {}
+      w: 100, h: 100, currentlyChanging: {drgX: 0, drgY:0}
     };
     this.updateModelDeep(updateBlock);
   },
 
-  /** * User clicked on a particular shape.  */
+  /** User clicked on a particular shape.  */
   onMouseDownShapeId: function(shapeId) {
     this.updateModel({selectedShapeId: shapeId});
   },
