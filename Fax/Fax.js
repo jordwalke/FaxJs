@@ -7,8 +7,18 @@ var ERROR_MESSAGES = {
       "node deeper than the document body itself. I know, it's stupid but " + 
       " that's what some browsers require in order to catch bubbled events " +
       "reliably.",
-  UPDATE_STATE_PRE_PROJECT: "Cannot update state before your done projecting!!"
+  OWNED_NOT_FOUND: "Could not find an object owned by you, at that projection path",
+  UPDATE_STATE_PRE_PROJECT: "Cannot update state before your done projecting!!",
+  CANNOT_SET_INNERHTML: "YOU CANNOT EVER SET INNERHTML. You must use the name " +
+                        "That evokes what is really going on. dangerouslySetInnerHtml"
 };
+
+/**
+ * Just so we can use this in declarative ternary expressions.
+ */
+function _throw(e) {
+  throw e;
+}
 
 /**
  * We need to flatten all of these package records. Either as an uglify
@@ -17,6 +27,7 @@ var ERROR_MESSAGES = {
  * http://jsperf.com/accessing-object-method/2/edits
  */
 var _Fax = {
+  componentCurrentlyProjectingLock: null,
   beforeRendering: []
 };
 
@@ -116,8 +127,18 @@ _Fax.controlDirectlyDomAttrsMap = {
   value: 'value', scrollTop: 'scrollTop', scrollLeft: 'scrollLeft'
 };
 
+/**
+ * We don't even do a lookup in this map for perf reasons.
+ */
 _Fax.controlDirectlyDomAttrsMapNoEscape = {
-  innerHtml: 'innerHTML'
+  dangerouslySetInnerHtml: 'innerHTML'
+};
+
+/**
+ * We don't even do a lookup in this map for perf reasons.
+ */
+_Fax.controlDirectlyDomAttrsMapDoEscape = {
+  content: 'innerHTML-ButFirstEscape-Not-A-Real-Property'
 };
 
 var logicalStyleAttrNamesMap = {
@@ -161,7 +182,9 @@ var _allNativeTagAttributes = {
   // controlDirectlyDomAttrsMap
   value: 'value', scrollTop: 'scrollTop', scrollLeft: 'scrollLeft',
   // controlDirectlyDomAttrsMapNoEscape
-  innerHtml: 'innerHTML',
+  dangerouslySetInnerHtml: 'innerHTML',
+  // controlDirectlyDomAttrsMapDoEscape
+  content: 'innerHTML-ButFirstEscape-Not-A-Real-Property',
   // cannotEverControl
   type: 'type'
 };
@@ -232,13 +255,6 @@ var _styleValue = function (logicalStyleAttrName, attrVal) {
 function _tagDomAttrMarkupFragment(tagAttrName, tagAttrVal) {
   return _markupDomTagAttrsMap[tagAttrName] +
       "='" + FaxUtils.escapeTextForBrowser(tagAttrVal) + "'";
-}
-
-function _innerHtmlMarkupFragmentXss(innerHtmlAttrVal) {
-  return innerHtmlAttrVal;
-}
-function _innerTextMarkupFragment(innerTextVal) {
-  return FaxUtils.escapeTextForBrowser(innerTextVal);
 }
 
 /**
@@ -327,7 +343,9 @@ _Fax.renderAt = function(projection, id, renderOptionsParam) {
    */
   var nextSibling = mountAt.nextSibling,
       parent = mountAt.parentNode,
-      componentInstance = (new (projection.maker)(projection.props)),
+      componentInstance = (new (projection.maker)(
+          projection.props, projection.instantiator
+      )),
       shouldGenMarkupFirstPass =
           renderingStrategy !== _Fax.renderingStrategies.onlyInstantiate,
       shouldRegHandlersFirstPass =
@@ -392,7 +410,9 @@ _Fax.preRenderingAnything = function(mountAt, renderOptions) {
  * Careful not to read the viewport dims unless we know the window actually
  * changed, so as not to trigger a reflow needlessly.
  */
-_Fax.renderTopLevelComponentAt = function(TopLevelProjectingConstructor, id, renderOptions) {
+_Fax.renderTopLevelComponentAt = function(TopLevelProjectingConstructor,
+                                          id,
+                                          renderOptions) {
   var dims = FaxUtils.getViewportDims();
   var cookies = FaxUtils.readCookie() || {};
 
@@ -483,7 +503,7 @@ _Fax.merge = function(one, two) {
  * A quick lookup to determine if a field in a tag projection construction is
  * something supported by the dom, as opposed to a child member.
  */
-var _allNativeTagPropertiesExcludingChildren =
+var _allNativeTagPropertiesIncludingHandlerNames =
     _Fax.merge(_allNativeTagAttributes, FaxEvent.abstractHandlerNames);
 
 _Fax.mergeThree = function(one, two, three) {
@@ -571,12 +591,11 @@ _Fax.MakeComponentClass = function(spec, addtlMixins) {
   var specKey = null, mixinKey = null;
   var prototypeBlackList = {initModel: true};
   var j;
-  var ComponentClass = function(initProps) {
+  var ComponentClass = function(initProps, instantiator) {
     this.props = initProps || {};
 
     this._strigifiedProps = null;
     this.model = {};
-    this.lock = false; // Lock on updating model
     if (spec.initModel) {
       if (typeof spec.initModel === 'function') {
         this.model = spec.initModel.call(this, initProps);
@@ -614,12 +633,14 @@ _Fax.universalPublicMixins = {
     this.props = props;
     this._recomputeProjectionAndPropagate();
   },
+
   genMarkup: function(idTreeSoFar, gen, events) {
     this._rootDomId = idTreeSoFar;
     return !events && this._optimizedRender ?
        this._optimizedRender(idTreeSoFar) :
        this._allocateChildrenGenMarkup(idTreeSoFar, gen, events);
-  }
+   }
+
 };
 
 _Fax.universalPrivateMixins = {
@@ -658,14 +679,18 @@ _Fax.universalPrivateMixins = {
    * that.
    */
   updateModel: function(nextModelFragment) {
-    if (this.lock) { throw ERROR_MESSAGES.UPDATE_STATE_PRE_PROJECT; }
+    if (this.componentCurrentlyProjectingLock) {
+      throw ERROR_MESSAGES.UPDATE_STATE_PRE_PROJECT;
+    }
     this.justUpdateModel(nextModelFragment);
     this._recomputeProjectionAndPropagate();
     return true;
   },
 
   updateModelDeep: function(nextModelFragment) {
-    if (this.lock) { throw ERROR_MESSAGES.UPDATE_STATE_PRE_PROJECT; }
+    if (this.componentCurrentlyProjectingLock) {
+      throw ERROR_MESSAGES.UPDATE_STATE_PRE_PROJECT;
+    }
     this.justUpdateModelDeep(nextModelFragment);
     this._recomputeProjectionAndPropagate();
     return true;
@@ -836,14 +861,16 @@ _Fax.multiComponentMixins = {
     }
   },
   _allocateChildrenGenMarkup: function(idSpaceSoFar, gen, events) {
-    var projection, childKey, child, markupAccum, newChild;
+    var projection, childKey, childProjection, markupAccum, newChild;
     markupAccum = '';
     this.children = {};
     projection = this.props;   // the projection is the props!
     for (childKey in projection) {
       if (!this.projection.hasOwnProperty(childKey)) { continue; }
-      newChild =
-          new projection[childKey].maker(projection[childKey].props);
+      childProjection = projection[childKey];
+      newChild = new childProjection.maker(
+          childProjection.props,
+          childProjection.instantiator);
       markupAccum += newChild.genMarkup(idSpaceSoFar+('.' + childKey), gen, events);
       this.children[childKey] = newChild;
     }
@@ -856,7 +883,10 @@ _Fax.multiComponentMixins = {
 
 
 /**
- * Fax.standardComponentMixins
+ * Fax.standardComponentMixins. Most components you define will be a 'standard'
+ * component. Meaning it only really has a single child. Even if that single
+ * child is a 'MultiDynamic' child with several children - your component only
+ * has a single child.
  */
 _Fax.standardComponentMixins = {
   _recomputeProjectionAndPropagate: function() {
@@ -864,13 +894,15 @@ _Fax.standardComponentMixins = {
   },
   _allocateChildrenGenMarkup: function(idSpaceSoFar, gen, events) {
     var projection = this._getProjection();
-    this.child = new projection.maker(projection.props);
+    this.child = new projection.maker(
+        projection.props,
+        projection.instantiator);
     return this.child.genMarkup(idSpaceSoFar, gen, events);
   },
   _getProjection: function() {
-    this.lock = true;
+    _Fax.componentCurrentlyProjectingLock = this;
     var projection = this.project();
-    this.lock = false;
+    _Fax.componentCurrentlyProjectingLock = null;
     return projection;
   },
   _controlDomNode: function (path, domAttrs) {
@@ -885,6 +917,7 @@ _Fax.standardComponentMixins = {
     var normalized = path.replace('projection', '');
     return document.getElementById(this._rootDomId + normalized);
   }
+  
 };
 
 /**
@@ -903,7 +936,8 @@ _Fax.orderedComponentMixins = {
    * i.e. table elements
    */
   _recomputeProjectionAndPropagate: function() {
-    var child, newChild, projection, newMarkup, jj, ii, kk, domNodeToRemove,
+    var child, childToReconcile, newChild, projection, newMarkup,
+        jj, ii, kk, domNodeToRemove,
         projectionToReconcile = this.props,
         numAlreadyExistingThatShouldRemain =
             Math.min(this.children.length, projectionToReconcile.length);
@@ -929,13 +963,16 @@ _Fax.orderedComponentMixins = {
      * how-do-i-create-a-new-dom-element-from-an-html-string-using-built-in-dom-methods
      */
     for (kk = numAlreadyExistingThatShouldRemain; kk < projectionToReconcile.length; kk++) {
-      newChild = new (projectionToReconcile[kk].maker)(projectionToReconcile[kk].props);
+      childToReconcile = projectionToReconcile[kk];
+      newChild = new (childToReconcile.maker)(
+        childToReconcile.props, childToReconcile.instantiator);
       newMarkup = newChild.genMarkup(this._rootDomId + ('.' + kk), true, true);
       this.children[kk] = newChild;
       _appendMarkup(document.getElementById(this._rootDomId), newMarkup);
     }
     this.children.length = projectionToReconcile.length;
   },
+
 
   /**
    * #todoperf: get a queued implementation and special data structure
@@ -954,12 +991,15 @@ _Fax.orderedComponentMixins = {
    * objects being the perfect solution - use MultiDynamic which accomplishes this.
    */
   _allocateChildrenGenMarkup: function(idSpaceSoFar, gen, events) {
-    var jj, projection, childKey, child, markupAccum, newChild;
+    var jj, projection, childKey, childProjection, markupAccum, newChild;
     markupAccum = '<div id="' + idSpaceSoFar + '" style="display:inherit">';
     projection = this.props;   // the projection is the props!
     this.children = [];
     for (jj = 0; jj < projection.length; jj++) {
-      newChild = new (projection[jj].maker)(projection[jj].props);
+      childProjection = projection[jj];
+      newChild = new (childProjection.maker)(
+          childProjection.props,
+          childProjection.instantiator);
       markupAccum += newChild.genMarkup(idSpaceSoFar+('.' + jj), gen, events);
       this.children[jj] = newChild;
     }
@@ -999,7 +1039,9 @@ _Fax.multiChildMixins = {
     for (childKey in projection) {
       if (!projection.hasOwnProperty(childKey)) { continue; }
       var childProjection = projection[childKey];
-      newChild = new (childProjection.maker)(childProjection.props);
+      newChild = new (childProjection.maker)(
+          childProjection.props,
+          childProjection.instantiator);
       markupAccum += newChild.genMarkup(idSpaceSoFar + ('.' + childKey), gen, events);
       thisDotChildren[childKey] = newChild;
     }
@@ -1019,8 +1061,8 @@ _Fax.multiChildMixins = {
       /* May as well control them now while we have them. */
       if(currentChildComponent && newProjection && newProjection.maker &&
          newProjection.maker === currentChildComponent.constructor) {
-         /* where the new child is a component, and appears to be the same as the
-          * previous child, let's just control what's there.*/
+         /* where the new child is a component, and appears to be the same type
+          * as the previous child, let's just control what's there.*/
         keepChildrenInstances[currentChildKey] = currentChildComponent;
         currentChildComponent.doControl(newProjection.props);
       } else {
@@ -1081,7 +1123,9 @@ _Fax.multiChildMixins = {
       } else {
         if (projectionForKey && projectionForKey.maker) {
           // If there's not yet a child and we want to allocate a component
-          newChild = new (projectionForKey.maker)(projectionForKey.props);
+          newChild = new (projectionForKey.maker)(
+              projectionForKey.props,
+              projectionKey.instantiator);
           newChildId = this._rootDomId + ('.' + projectionKey);
           newMarkup = newChild.genMarkup(newChildId, true, true);
           childComponents[projectionKey] = newChild;
@@ -1144,6 +1188,7 @@ _Fax.Componentize = function(spec) {
   var ProjectingConstructor = function(propsArgs) {
     var props = propsArgs || this;
     return {
+      instantiator: _Fax.componentCurrentlyProjectingLock,
       props: props,
       maker: Constructor
     };
@@ -1211,7 +1256,8 @@ _Fax.controlPhysicalDomByNodeOrId = function (elem,
         nextPosInfo.r !== lastPosInfo.r || nextPosInfo.b !== lastPosInfo.b)) ||
       (nextProps.style &&
             JSON.stringify(nextProps.style) !== JSON.stringify(lastProps.style)) ||
-      nextProps.innerHtml !== lastProps.innerHtml ||
+      nextProps.dangerouslySetInnerHtml !== lastProps.dangerouslySetInnerHtml ||
+      nextProps.content !== lastProps.content ||
       nextProps.clss !== lastProps.clss || nextProps.value !== lastProps.value) {
 
     /* At this point, we know something was changed, may as well invest in
@@ -1232,8 +1278,12 @@ _Fax.controlPhysicalDomByNodeOrId = function (elem,
         cssText += _serializeInlineStyle(prop);
       } else if(propKey === 'posInfo') {
         cssText += _extractAndSealPosInfoInlineImpl(prop);
-      } else if (_Fax.controlDirectlyDomAttrsMapNoEscape[propKey]) {
-        elem[_Fax.controlDirectlyDomAttrsMapNoEscape[propKey]] = prop;
+      } else if (propKey === 'content') {
+        elem.innerHTML = FaxUtils.escapeTextForBrowser(prop);
+      } else if (propKey === 'dangerouslySetInnerHtml') {
+        elem.innerHTML = prop;
+      } else if (propKey === 'innerHTML') {
+        throw ERROR_MESSAGES.CANNOT_SET_INNERHTML
       }
     }
     if (cssText) {
@@ -1503,7 +1553,9 @@ function _makeDomContainerComponent(tag, optionalTagTextPar, pre, post, headText
         if (projectionForKey && projectionForKey.maker) {
           // If there's not yet a child and we want to allocate a component
           newChildId = this._rootDomId + ('.' + projectionKey);
-          newChild = new (projectionForKey.maker)(projectionForKey.props);
+          newChild = new (projectionForKey.maker)(
+              projectionForKey.props,
+              projectionForKey.instantiator);
           newMarkup = newChild.genMarkup(newChildId, true, true);
           childComponents[projectionKey] = newChild;
           var newDomNode = Fax.singleDomNodeFromMarkup(newMarkup);
@@ -1575,7 +1627,7 @@ function _makeDomContainerComponent(tag, optionalTagTextPar, pre, post, headText
           cssText += _extractAndSealPosInfoInlineImpl(prop);
         } else if (prop.maker) {
           containedIdRoot = idTreeSoFar + '.' + propKey;
-          newComponent = new (prop.maker)(prop.props);
+          newComponent = new (prop.maker)(prop.props, prop.instantiator);
           containedComponents[propKey] = newComponent;
           childrenAccum += newComponent.genMarkup(
               containedIdRoot, shouldGenMarkup, shouldRegHandlers);
@@ -1584,18 +1636,18 @@ function _makeDomContainerComponent(tag, optionalTagTextPar, pre, post, headText
            * later decide to have something here. This allows clients to
            * conditionally include children but decide their placement. */
           containedComponents[propKey] = null;
-        } else if (propKey === 'innerHtml') {
-          childrenAccum += _innerHtmlMarkupFragmentXss(prop);
-        } else if (propKey === 'text') {
-          childrenAccum += _innerTextMarkupFragment(prop);
+        } else if (propKey === 'content') {
+          childrenAccum += FaxUtils.escapeTextForBrowser(prop);
+        } else if (propKey === 'dangerouslySetInnerHtml') {
+          childrenAccum += prop;
         } else {
           /* Probably something that was just included due to mixing in.
            * We duck type in general, it's okay to include more than what is
-           * supported, if it is convenient.*/
+           * supported, if it is convenient - or could be an event handler*/
         }
       } else if (prop && prop.maker) {
         containedIdRoot = idTreeSoFar + '.' + propKey;
-        newComponent = new (prop.maker)(prop.props);
+        newComponent = new (prop.maker)(prop.props, prop.instantiator);
         containedComponents[propKey] = newComponent;
         newComponent.genMarkup(containedIdRoot, shouldGenMarkup, shouldRegHandlers);
         return null;
@@ -2371,7 +2423,7 @@ if (typeof Fax === 'object') {
     POS_KEYS: {l:true, h:true, w:true, r:true, b:true, t:true },
     POS_CLSS_KEYS: {l:true, h:true, w:true, r:true, b:true, t:true, clssSet: true },
     allNativeTagAtrributes: _allNativeTagAttributes,
-    allNativeTagPropertiesExcludingChildren: _allNativeTagPropertiesExcludingChildren,
+    allNativeTagPropertiesIncludingHandlerNames: _allNativeTagPropertiesIncludingHandlerNames,
     escapeTextForBrowser: FaxUtils.escapeTextForBrowser,
     clearBeforeRenderingQueue: _Fax.clearBeforeRenderingQueue,
     renderingStrategies: _Fax.renderingStrategies

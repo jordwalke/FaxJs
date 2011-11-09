@@ -119,7 +119,7 @@ LayoutDesigner.OwnedDesignerBox = {
       nameLabel: {
         clssSet: {noSelect: true},
         l: 3, t: 3,
-        innerHtml: props.label
+        content: props.label
       }.ViewDiv(),
       rightDragger: {
         clss: 'noSelect designerBoxRightDragger',

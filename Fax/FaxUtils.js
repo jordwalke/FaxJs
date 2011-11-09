@@ -136,7 +136,10 @@ module.exports = {
   },
 
   escapeTextForBrowser : function (textNode) {
-       return (''+textNode).replace(/[&><"'\/]/g, escaper);
+    if ((!textNode || !textNode.indexOf) && isNaN(textNode)) {
+      throw "Cannot set content to an object";
+    }
+    return (''+textNode).replace(/[&><"'\/]/g, escaper);
   },
 
   /** Gets the viewport dimensions: #todoreplacewithframework. Likely redundant

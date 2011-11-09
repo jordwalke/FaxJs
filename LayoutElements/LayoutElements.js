@@ -41,7 +41,7 @@ LayoutElements.MaterialButton = {
       overrides: this.props,
       highlighted: this.props.highlighted,
       buttonText: {
-        innerHtml: this.props.text ? this.props.text : ''
+        content: this.props.text ? this.props.text : ''
       }.Span()
     }.MaterialView();
   }
@@ -86,7 +86,7 @@ LayoutElements.PhysicalButton = {
           clss: 'abs texturedObjectLighting smallerTexturedObjectLighting'
         }.Div(),
         buttonText: {
-          innerHtml: this.props.text
+          content: this.props.text
         }.Span()
       }.ViewDiv()
     }.ViewA();

@@ -16,7 +16,6 @@ F.using(FaxUi, ControlPanel, FWidgets, LayoutElements);
 ControlPanel.ToolBox = {
   project : function() {
     var props = this.props, ths = this, selectedShape = ths.props.selectedShape;
-
     return {
       clss: 'noSelect',
       pointerToolButton: {
@@ -90,12 +89,12 @@ ControlPanel.ToolBoxRow = {
 
       leftLabel: {
         style: {left: 0, width: 50},
-        innerHtml: this.props.label
+        content: this.props.label
       }.ViewDiv(),
 
       rightInput: {
         l: 50, r: 0, t: 0, b: 0, h: 22,
-        additionalClssSet: {toolBoxRowInput: true},
+        additionalClssSet: { toolBoxRowInput: true },
         value: this.props.value,
         entryType: this.props.entryType,
         onBlur: function(newVal) {

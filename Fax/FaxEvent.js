@@ -53,7 +53,7 @@ function _constructAbstractEventDirectlyFromTopLevel(topLevelEventType,
   }
 
   return new AbstractEvent(
-      FaxEvent.topLevelEventTypesDirectlyMappedToAbstractHandlerName[
+      FaxEvent.topLevelEventTypesDirectlyMappedToAbstractListenerName[
         topLevelEventType],
       topLevelEventType,
       target,
@@ -77,11 +77,11 @@ var FaxEvent = {
    * handlers have been stored in these global sets. We'll reuse this global
    * store for both mouse and also touch events.
    */
-  activeDragHandlersByHandlerDesc : {},
+  activeDragListenersByListenerDesc : {},
   currentlyPressingDown: false,
-  activeDragHandlersCount : 0,
-  activeDragDoneHandlersByHandlerDesc : {},
-  activeDragDoneHandlersCount: 0,
+  activeDragListenersCount : 0,
+  activeDragDoneListenersByListenerDesc : {},
+  activeDragDoneListenersCount: 0,
   lastTouchedDownAtX : null,
   lastTouchedDownAtY : null,
   lastTriggeredDragAtX : null,
@@ -108,7 +108,7 @@ var FaxEvent = {
 
   /* This funny initialization is only needed so that browserify can reload
    * modules from a local cache. */
-  abstractEventHandlersById : {},
+  abstractEventListenersById : {},
 
   /* To be populated */
   abstractHandlerNames : typeof FaxEvent === 'object' ? FaxEvent.abstractHandlerNames : {},
@@ -125,7 +125,7 @@ var FaxEvent = {
 
   /** Puts a particular event listener on the queue.  */
   enqueueEventReg : function (id, listener) {
-    FaxEvent.abstractEventHandlersById[
+    FaxEvent.abstractEventListenersById[
         id + "@" + listener.listenForAbstractHandlerName] = listener;
   },
 
@@ -220,7 +220,7 @@ var FaxEvent = {
   /**
    * In terms of event base names (not including 'Direct' etc.)
    */
-  topLevelEventTypesDirectlyMappedToAbstractHandlerName: {
+  topLevelEventTypesDirectlyMappedToAbstractListenerName: {
     topLevelClick: 'onClick',
     topLevelMouseWheel: 'onMouseWheel',
     topLevelMouseScroll: 'onMouseScroll',
@@ -237,7 +237,7 @@ var FaxEvent = {
   },
 
   topLevelEventTypeHasCorrespondingAbstractType: function(topLevelEventType) {
-    return !!FaxEvent.topLevelEventTypesDirectlyMappedToAbstractHandlerName[
+    return !!FaxEvent.topLevelEventTypesDirectlyMappedToAbstractListenerName[
           topLevelEventType];
   },
 
@@ -267,7 +267,7 @@ var FaxEvent = {
                                       nativeEvent,
                                       targ) {
   
-    var abstractEventHandlersById = FaxEvent.abstractEventHandlersById,
+    var abstractEventListenersById = FaxEvent.abstractEventListenersById,
         mouseDownDragDesc = nextId + '@onQuantizeDrag' + mode,
         touchStartDragDesc = nextId + '@onQuantizeTouchDrag' + mode,
         mouseDownDragDoneDesc = nextId + '@onDragDone' + mode,
@@ -292,7 +292,7 @@ var FaxEvent = {
       FaxEvent.lastTouchedDownAtX = globalX;
       FaxEvent.lastTouchedDownAtY = globalY;
 
-      if (abstractEventHandlersById[dragDesc]) {
+      if (abstractEventListenersById[dragDesc]) {
         abstractEvent = _constructAbstractEventDirectlyFromTopLevel(
             topLevelEventType, nativeEvent, targ);
 
@@ -303,15 +303,15 @@ var FaxEvent = {
          * this is kind of convenient.*/
         if(!abstractEvent.data.rightMouseButton) {
           handledLowLevelEventByRegisteringDragListeners = true;
-          FaxEvent.activeDragHandlersByHandlerDesc[dragDesc] =
-              abstractEventHandlersById[dragDesc].callThis;
-          FaxEvent.activeDragHandlersCount++;
-          var activeDragDoneHandlerForNextId =
-              abstractEventHandlersById[dragDoneDesc];
-          if (activeDragDoneHandlerForNextId) {
-            FaxEvent.activeDragDoneHandlersByHandlerDesc[dragDoneDesc] =
-                activeDragDoneHandlerForNextId.callThis;
-            FaxEvent.activeDragDoneHandlersCount++;
+          FaxEvent.activeDragListenersByListenerDesc[dragDesc] =
+              abstractEventListenersById[dragDesc];
+          FaxEvent.activeDragListenersCount++;
+          var activeDragDoneListenerForNextId =
+              abstractEventListenersById[dragDoneDesc];
+          if (activeDragDoneListenerForNextId) {
+            FaxEvent.activeDragDoneListenersByListenerDesc[dragDoneDesc] =
+                activeDragDoneListenerForNextId;
+            FaxEvent.activeDragDoneListenersCount++;
           }
           FaxEvent.lastTriggeredDragAtX = globalX; // not really, but works
           FaxEvent.lastTriggeredDragAtY = globalY;
@@ -347,7 +347,7 @@ var FaxEvent = {
     /* We'll take abstractEvent being set to something as a signal that we
      * should even try to search for handlers of the event. */
     if (typeof abstractEvent !== 'undefined') {
-      var maybeEventListener = abstractEventHandlersById[
+      var maybeEventListener = abstractEventListenersById[
               nextId + "@" + abstractEvent.abstractEventType + mode];
       if (maybeEventListener) {
         maybeEventListener.callThis(abstractEvent, nativeEvent);
@@ -479,7 +479,7 @@ var FaxEvent = {
    * common ancestor. (Similarly with 'to'). */
   _handleMouseInOut: function(topLevelEventType, nativeEvent, targ) {
     var to = targ, from = targ, fromId = '', toId = '',
-        abstractEventHandlersById = FaxEvent.abstractEventHandlersById;
+        abstractEventListenersById = FaxEvent.abstractEventListenersById;
 
     if (topLevelEventType === 'topLevelMouseIn') {
       from = nativeEvent.relatedTarget || nativeEvent.fromElement;
@@ -528,7 +528,7 @@ var FaxEvent = {
     if (from) {
       i = 0;
       while (traverseId !== commonAncestorId) {
-        maybeEventListener = abstractEventHandlersById[traverseId + "@onMouseOut"];
+        maybeEventListener = abstractEventListenersById[traverseId + "@onMouseOut"];
         if (maybeEventListener) {
           maybeEventListener.callThis(
               new AbstractEvent('onMouseOut', topLevelEventType, targ, nativeEvent, {}),
@@ -552,7 +552,7 @@ var FaxEvent = {
         traverseId = toId.indexOf('.', traverseId.length +1) === -1 ?
           toId :
           toId.substr(0, (toId.indexOf('.', traverseId.length+1)));
-        maybeEventListener = abstractEventHandlersById[traverseId + "@onMouseIn"];
+        maybeEventListener = abstractEventListenersById[traverseId + "@onMouseIn"];
         if (maybeEventListener) {
           maybeEventListener.callThis(
               new AbstractEvent('onMouseIn', topLevelEventType, nativeEvent, {}),
@@ -587,7 +587,7 @@ var FaxEvent = {
     globalY = FaxEvent.eventGlobalY(nativeEvent);
 
 
-    if (FaxEvent.activeDragHandlersCount) {
+    if (FaxEvent.activeDragListenersCount) {
       totalDistanceSinceLastDrag =
           Math.abs(globalX - FaxEvent.lastTriggeredDragAtX) +
           Math.abs(globalY - FaxEvent.lastTriggeredDragAtY);
@@ -606,22 +606,22 @@ var FaxEvent = {
        * types - in fact we could consolidate this into a conceptual onAnyDrag event
        * early on.
        */
-      for (dragDesc in FaxEvent.activeDragHandlersByHandlerDesc) {
-        if (!FaxEvent.activeDragHandlersByHandlerDesc.hasOwnProperty(dragDesc)) {
+      for (dragDesc in FaxEvent.activeDragListenersByListenerDesc) {
+        if (!FaxEvent.activeDragListenersByListenerDesc.hasOwnProperty(dragDesc)) {
           continue;
         }
-
         var abstractEventData = FaxEvent._normalizeAbstractDragEventData(
             nativeEvent, globalX, globalY,
             FaxEvent.lastTouchedDownAtX,
-            FaxEvent.lastTouchedDownAtY);
+            FaxEvent.lastTouchedDownAtY),
+            listener = FaxEvent.activeDragListenersByListenerDesc[dragDesc];
 
         var abstractEvent = new AbstractEvent(
           topLevelEventType ===
               'onTouchMove' ? 'onQuantizeTouchDrag' : 'onQuantizeDrag',
           topLevelEventType,
           targ, nativeEvent, abstractEventData);
-        FaxEvent.activeDragHandlersByHandlerDesc[dragDesc](abstractEvent, nativeEvent);
+        listener.callThis.call(listener.context || null, abstractEvent, nativeEvent);
       }
       FaxEvent.lastTriggeredDragAtX = globalX;
       FaxEvent.lastTriggeredDragAtY = globalY;
@@ -640,7 +640,8 @@ var FaxEvent = {
    */
   _handleLetUppyTopLevelEvent: function(topLevelEventType, nativeEvent, targ) {
     var globalX, globalY, dragDoneDesc,
-        totalDistanceSinceLastTouchedDown, totalDistanceSinceLastDrag;
+        totalDistanceSinceLastTouchedDown, totalDistanceSinceLastDrag,
+        activeDragDoneListenerForDragDesc;
 
     globalX = FaxEvent.eventGlobalX(nativeEvent);
     globalY = FaxEvent.eventGlobalY(nativeEvent);
@@ -650,21 +651,24 @@ var FaxEvent = {
         Math.abs(globalX - FaxEvent.lastTouchedDownAtX) +
         Math.abs(globalY - FaxEvent.lastTouchedDownAtY);
 
-    if (FaxEvent.activeDragDoneHandlersCount) {
+    if (FaxEvent.activeDragDoneListenersCount) {
       /* Only trigger the dragDone event if there has been some mouse movement
        * while the mouse was depressed (at same quantizeDrag threshold
        * (FaxEvent.DRAG_PIXEL_SAMPLE_RATE))*/
       if(totalDistanceSinceLastTouchedDown > FaxEvent.DRAG_PIXEL_SAMPLE_RATE) {
-        for (dragDoneDesc in FaxEvent.activeDragDoneHandlersByHandlerDesc) {
-          if (!FaxEvent.activeDragDoneHandlersByHandlerDesc.hasOwnProperty(dragDoneDesc)) {
+        for (dragDoneDesc in FaxEvent.activeDragDoneListenersByListenerDesc) {
+          if (!FaxEvent.activeDragDoneListenersByListenerDesc.hasOwnProperty(dragDoneDesc)) {
             continue;
           }
+          activeDragDoneListenerForDragDesc =
+              FaxEvent.activeDragDoneListenersByListenerDesc[dragDoneDesc];
           var abstractEvent = new AbstractEvent(
               (topLevelEventType === 'onMouseUp' ? 'onDragDone' : 'onTouchDragDone'),
               topLevelEventType, targ, nativeEvent, {});
 
           // Todo: pass an abstract event nicely normalized
-          FaxEvent.activeDragDoneHandlersByHandlerDesc[dragDoneDesc]();
+          activeDragDoneListenerForDragDesc.callThis.call(
+            activeDragDoneListenerForDragDesc.context || null);
         }
       }
     }
@@ -683,11 +687,11 @@ var FaxEvent = {
      * that we track which originating objects should receive which signal
      * channel for touch events. Maybe the browser helps us out with this? 
      */
-    FaxEvent.activeDragHandlersByHandlerDesc = {};
+    FaxEvent.activeDragListenersByListenerDesc = {};
     FaxEvent.currentlyPressingDown = false;
-    FaxEvent.activeDragHandlersCount = 0;
-    FaxEvent.activeDragDoneHandlersCount = 0;
-    FaxEvent.activeDragDoneHandlersByHandlerDesc = {};
+    FaxEvent.activeDragListenersCount = 0;
+    FaxEvent.activeDragDoneListenersCount = 0;
+    FaxEvent.activeDragDoneListenersByListenerDesc = {};
     FaxEvent.lastTouchedDownAtX = 0;
     FaxEvent.lastTouchedDownAtY = 0;
   }
@@ -873,8 +877,8 @@ FaxEvent.registerTopLevelListeners = function(mountAt, touchInsteadOfMouse) {
  * events.
  */
 function _handleTopLevel(topLevelEventType, nativeEvent, targ) {
-  var abstractEventHandlersById =
-      FaxEvent.abstractEventHandlersById, nextId = targ.id;
+  var abstractEventListenersById =
+      FaxEvent.abstractEventListenersById, nextId = targ.id;
   if (topLevelEventType === 'topLevelMouseMove') {
     FaxEvent._handleMovementyTopLevelEvent(topLevelEventType, nativeEvent, targ);
     return;

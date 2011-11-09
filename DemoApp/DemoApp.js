@@ -7,8 +7,8 @@ var F = require('Fax'), FaxUi = require('FaxUi'),
 
 /**
  * Allows declarative tail construction of all Components that are in the
- * exports of those modules: x = {innerHtml: 'dog'}.Div() as opposed to x =
- * FaxUi.Div({innerHtml: 'dog'})
+ * exports of those modules: x = {content: 'dog'}.Div() as opposed to x =
+ * FaxUi.Div({content: 'dog'})
  * Depending on the use case, one form or the other will be more readable, but
  * in either case the FaxOptimizer (server side code transformer) ensures that
  * this is transformed into high performance function calls. If 'using' without
@@ -79,10 +79,14 @@ DemoApp.DemoAppContent = {
    * allocated in order to make this happen. Just write pure javascript such as:
    * project: function() {
    *   return {
-   *      innerHtml: this.model.buttonText
+   *      content: this.model.buttonText
    *   }.Button();
    * }
    */
+  someHandler: function() {
+    this.projection.designerPanel.content.shapes.stupidShape.get().setProperties({x: 0, y: 1222});
+  },
+
   project : function() {
     var ths = this;
     return {
@@ -91,7 +95,7 @@ DemoApp.DemoAppContent = {
       designerPanel: {
         l: 30, t: 30, r: 250, b: 30,
         clssSet: {shadowy: true},
-        content: {
+        theContent: {
           onPaint: this.onPaint.bind(this),
           selectedTool: ths.model.selectedTool,
           shapes: ths.model.shapes,
@@ -106,7 +110,7 @@ DemoApp.DemoAppContent = {
       controlPanel: {
         clssSet: {shadowy: true},
         l: 'auto', r: 30, t: 30, w: 200, b: 30,
-        content: {
+        theContent: {
           onToolChange: function(newTool) {
             ths.updateModel({selectedTool: newTool});
           },
