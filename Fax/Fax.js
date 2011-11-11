@@ -13,6 +13,7 @@ var ERROR_MESSAGES = {
                         "That evokes what is really going on. dangerouslySetInnerHtml"
 };
 
+
 /**
  * Just so we can use this in declarative ternary expressions.
  */
@@ -818,8 +819,8 @@ _Fax.objSubset = function(obj, selectMap) {
 /**
  * Fax.objExclusion: Compliment to Fax.objSubset.
  */
-_Fax.objExclusion = function(obj, filterOutMap) {
-  var ret = {}, filterOutMap = filterOutMap || {}, aKey;
+_Fax.objExclusion = function(obj, filterOutMapParam) {
+  var ret = {}, filterOutMap = filterOutMapParam || {}, aKey;
   for (aKey in obj) {
     if (obj.hasOwnProperty(aKey) && !filterOutMap[aKey]) {
       ret[aKey] = obj[aKey];
@@ -1283,7 +1284,7 @@ _Fax.controlPhysicalDomByNodeOrId = function (elem,
       } else if (propKey === 'dangerouslySetInnerHtml') {
         elem.innerHTML = prop;
       } else if (propKey === 'innerHTML') {
-        throw ERROR_MESSAGES.CANNOT_SET_INNERHTML
+        throw ERROR_MESSAGES.CANNOT_SET_INNERHTML;
       }
     }
     if (cssText) {
@@ -1656,8 +1657,8 @@ function _makeDomContainerComponent(tag, optionalTagTextPar, pre, post, headText
     if (shouldGenMarkup) {
       return (cssText ?
           (header + tagAttrAccum + (cssText ? " style='" + cssText + "'" : '')) :
-          (header + tagAttrAccum + (cssText ? " style='" + cssText + "'" : '')) )
-        + headTextTagClose + childrenAccum + tagClose;
+          (header + tagAttrAccum + (cssText ? " style='" + cssText + "'" : '')) ) +
+          headTextTagClose + childrenAccum + tagClose;
     } else {
       return null;
     }
@@ -1770,8 +1771,8 @@ var _curryOnly = function(func, val, context) {
   }
   return function() {
     return func.call(context || null, val);
-  }
-}
+  };
+};
 
 
 
@@ -2294,12 +2295,12 @@ _Fax.map = function(arr, fun, context) {
     res[i] = fun.call(context || this, arr[i], i);
   }
   return res;
-}
+};
 
 /* should just use underscore */
 _Fax.reduce = function(arr, fun, init, context) {
   return arr.reduce(fun, init, context);
-}
+};
 
 /**
  * Fax.objMapFilter:
