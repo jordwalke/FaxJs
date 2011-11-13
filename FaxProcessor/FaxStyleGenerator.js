@@ -3,7 +3,6 @@
  * exports have a styleExports field.
  */
 var sys = require('sys'),
-    burrito = require('burrito'),
 		vm = require('vm'),
 		F = require('Fax');
 

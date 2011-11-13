@@ -4,11 +4,11 @@
 # Newest versions of node.js aren't supported with connect
 # We include a version that works for our purposes and manually inject into
 # the node_modules directory.
-sudo npm install burrito;
 
 mkdir -p ./node_modules
 unzip connect_for_modern_node.zip
 mv connect node_modules
+sudo npm install browserify;
 
 cd ./Fax;
 sudo npm link;
@@ -51,5 +51,7 @@ sudo npm link FaxUi;
 sudo npm link;
 
 cd ..;
+npm link Fax
+npm link FaxUi
 sudo npm link FaxProcessor;
 sudo npm link DemoApp;

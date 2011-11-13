@@ -2,7 +2,7 @@
 
 # only two dependencies Uncomment if you don't already have these
 sudo npm install connect;
-sudo npm install burrito;
+sudo npm install browserify;
 
 cd ./Fax;
 sudo npm link;
@@ -45,5 +45,7 @@ sudo npm link FaxUi;
 sudo npm link;
 
 cd ..;
+npm link Fax
+npm link FaxUi
 sudo npm link FaxProcessor;
 sudo npm link DemoApp;
