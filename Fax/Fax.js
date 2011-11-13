@@ -10,7 +10,17 @@ var ERROR_MESSAGES = {
   OWNED_NOT_FOUND: "Could not find an object owned by you, at that projection path",
   UPDATE_STATE_PRE_PROJECT: "Cannot update state before your done projecting!!",
   CANNOT_SET_INNERHTML: "YOU CANNOT EVER SET INNERHTML. You must use the name " +
-                        "That evokes what is really going on. dangerouslySetInnerHtml"
+                        "That evokes what is really going on. dangerouslySetInnerHtml",
+  NO_TOP_LEVEL_ID: "You must at least specify a top level id to mount at. The second " +
+                   "parameter of renderTopLevelComponentAt must either be a string (the " +
+                   "id to render at) or an object containing a mountAtId field",
+  FAILED_ASSERTION: "Assertion Failed - no error message given",
+  MUST_SPECIFY_TOP_COMP: "You must specify a top level constructor - or component " +
+                         "declarative creation specification - i.e. {something:x}.Div(). " +
+                         "What you specified appears to be null or not specified. If " +
+                         "specifying a declarative block - make sure you execute " +
+                         "Fax.using(moduleContainingTopmostComponent) in the file where " +
+                         "you render the top level component."
 };
 
 
@@ -29,7 +39,8 @@ function _throw(e) {
  */
 var _Fax = {
   componentCurrentlyProjectingLock: null,
-  beforeRendering: []
+  beforeRendering: [],
+  totalInstantiationTime: 0
 };
 
 _Fax.Fatal = function(str) {
@@ -307,9 +318,17 @@ _Fax.clearBeforeRenderingQueue = function() {
 
 _Fax.renderingStrategies = {
   standard: 'S',
-  twoPassIneractionOptimized: 'TPVO',
+  twoPassInteractionOptimized: 'TPVO',
   onlyInstantiate: 'OI',
   onlyMarkup: 'OM'
+};
+
+/**
+ * Merely used to create a nicer form of instantiation when querying an ast.
+ * Carries with it a definitative signal that this is a defered construction.
+ */
+_Fax._onlyGenMarkupOnProjection = function(projection, _rootDomId) {
+  return new (projection.maker)(projection.props).genMarkup(_rootDomId, true, false);
 };
 
 /**
@@ -325,6 +344,8 @@ _Fax.renderAt = function(projection, id, renderOptionsParam) {
       mountAt = document.getElementById(id),
       renderingStrategy = renderOptions.renderingStrategy ||
                           _Fax.renderingStrategies.standard;
+      
+
 
   if(!mountAt.parentNode || mountAt === document.body) {
     throw(ERROR_MESSAGES.INSUFFICIENT_DEPTH);
@@ -342,11 +363,11 @@ _Fax.renderAt = function(projection, id, renderOptionsParam) {
    * difference will be very small. But, this allows the rendering path to be
    * augmented with highly optimized versions of the rendering algorithm.
    */
+  var start = (new Date()).getTime();
   var nextSibling = mountAt.nextSibling,
       parent = mountAt.parentNode,
       componentInstance = (new (projection.maker)(
-          projection.props, projection.instantiator
-      )),
+          projection.props, projection.instantiator)),
       shouldGenMarkupFirstPass =
           renderingStrategy !== _Fax.renderingStrategies.onlyInstantiate,
       shouldRegHandlersFirstPass =
@@ -354,6 +375,8 @@ _Fax.renderAt = function(projection, id, renderOptionsParam) {
           renderingStrategy === _Fax.renderingStrategies.onlyInstantiate,
       markup = componentInstance.genMarkup(
           '.top', shouldGenMarkupFirstPass, shouldRegHandlersFirstPass);
+
+  _Fax.totalInstantiationTime += ((new Date()).getTime() - start);
 
   /*
    * In some browsers, you'd be better off *not* removing the element
@@ -377,8 +400,8 @@ _Fax.renderAt = function(projection, id, renderOptionsParam) {
    * complete content - and we wouldn't want to block that. No harm defering
    * either way.
    */
-  if (renderingStrategy === _Fax.renderingStrategies.twoPassIneractionOptimized) {
-    setTimeout(function() { componentInstance.genMarkup(false, true); } , 1);
+  if (renderingStrategy === _Fax.renderingStrategies.twoPassInteractionOptimized) {
+    setTimeout(function() { componentInstance.genMarkup('.top', false, true); }, 10);
   }
 
   return componentInstance;
@@ -411,23 +434,38 @@ _Fax.preRenderingAnything = function(mountAt, renderOptions) {
  * Careful not to read the viewport dims unless we know the window actually
  * changed, so as not to trigger a reflow needlessly.
  */
-_Fax.renderTopLevelComponentAt = function(TopLevelProjectingConstructor,
-                                          id,
+_Fax.renderTopLevelComponentAt = function(ProjectionOrProjectionConstructor,
                                           renderOptions) {
+  var mountAtId = renderOptions && (renderOptions.charAt ? renderOptions :
+                      renderOptions.mountAtId);
   var dims = FaxUtils.getViewportDims();
   var cookies = FaxUtils.readCookie() || {};
+  _assert(mountAtId, ERROR_MESSAGES.NO_TOP_LEVEL_ID);
+  _assert(ProjectionOrProjectionConstructor, ERROR_MESSAGES.MUST_SPECIFY_TOP_COMP);
 
-  var topLevelCreateData = {
-      chromeHeight : dims.viewportHeight,
-      chromeWidth : dims.viewportWidth,
+  var baseTopLevelProps = {
+    chromeHeight : dims.viewportHeight,
+    chromeWidth : dims.viewportWidth,
     cookies: cookies
   };
-  var topLevelProjection = TopLevelProjectingConstructor(topLevelCreateData);
-  if (renderOptions && renderOptions.appStyle) {
+
+  /* The caller did not actually call the projection constructor - they just gave
+   * us a reference to that projection constructor - we'll do it for them. */
+  var callerPassedInProjection = ProjectionOrProjectionConstructor.maker;
+  var topLevelCreateData = _Fax.mergeStuff(
+        baseTopLevelProps,
+        callerPassedInProjection ? ProjectionOrProjectionConstructor.props : {});
+      topLevelProjection =
+        (callerPassedInProjection ? ProjectionOrProjectionConstructor :
+         ProjectionOrProjectionConstructor(topLevelCreateData));
+
+  if (renderOptions &&
+      renderOptions.appStyle &&
+      document.body.className.indexOf('nover') === -1) {
     document.body.className += ' nover';
   }
   var renderedComponentInstance =
-      _Fax.renderAt(topLevelProjection, id, renderOptions);
+      _Fax.renderAt(topLevelProjection, mountAtId, renderOptions);
 
   /**
    * Refresher function that does a control on the rendered dom node whenever
@@ -438,13 +476,19 @@ _Fax.renderTopLevelComponentAt = function(TopLevelProjectingConstructor,
     FaxEvent.applicationResizeBatchTimeMs =
         renderOptions.applicationResizeBatchTimeMs;
   }
+
+  /**
+   * For all of these browser events - we need to gracefully merge in the properties
+   * that were already set (and merged in) by the top level.
+   */
   FaxEvent.applicationResizeListener = function() {
     var updateProps = {
       chromeHeight : FEnv.viewportHeight,
       chromeWidth : FEnv.viewportWidth,
       cookies: cookies
     };
-    renderedComponentInstance.doControl(updateProps);
+    renderedComponentInstance.doControl(
+        _Fax.mergeStuff(updateProps, renderedComponentInstance.props));
   };
 
   /**
@@ -457,7 +501,8 @@ _Fax.renderTopLevelComponentAt = function(TopLevelProjectingConstructor,
       chromeWidth: FEnv.viewportWidth,
       cookies: cookies
     };
-    renderedComponentInstance.doControl(updateProps);
+    renderedComponentInstance.doControl(
+      _Fax.mergeStuff(updateProps, renderedComponentInstance.props));
   };
 
   return renderedComponentInstance;
@@ -636,12 +681,14 @@ _Fax.universalPublicMixins = {
   },
 
   genMarkup: function(idTreeSoFar, gen, events) {
-    this._rootDomId = idTreeSoFar;
-    return !events && this._optimizedRender ?
-       this._optimizedRender(idTreeSoFar) :
-       this._allocateChildrenGenMarkup(idTreeSoFar, gen, events);
-   }
-
+    var ret;
+    if(!events && this._optimizedRender) {
+      return this._optimizedRender(idTreeSoFar);
+    } else {
+      this._rootDomId = idTreeSoFar;
+      return this._allocateChildrenGenMarkup(idTreeSoFar, gen, events);
+    }
+  }
 };
 
 _Fax.universalPrivateMixins = {
@@ -1163,8 +1210,8 @@ _Fax.multiDynamicComponentMixins = {
       _Fax.multiChildMixins._recomputeProjectionAndPropagate,
   _allocateChildrenGenMarkup: function(idSpaceSoFar, gen, events) {
     return '<div id="' + idSpaceSoFar + '" style="display:inherit">' +
-        _Fax.multiChildMixins._allocateChildrenGenChildMarkup
-            .call(this, idSpaceSoFar, gen, events) +
+        _Fax.multiChildMixins._allocateChildrenGenChildMarkup.
+             call(this, idSpaceSoFar, gen, events) +
         "</div>";
   },
 
@@ -1354,7 +1401,7 @@ function _makeDomContainerComponent(tag, optionalTagTextPar, pre, post, headText
 
   var NativeComponentConstructor = function(initProps) {
     this._rootDomId = null;
-    this._currentDomProps = initProps;
+    this.props = initProps;
     this.children = {};
   };
 
@@ -1451,8 +1498,8 @@ function _makeDomContainerComponent(tag, optionalTagTextPar, pre, post, headText
         this.parentDomNode,
         this._rootDomId,
         nextProps,
-        this._currentDomProps);
-    this._currentDomProps = nextProps;
+        this.props);
+    this.props = nextProps;
 
     if (nextProps.dynamicHandlers) {
       FaxEvent.registerHandlers(this._rootDomId, nextProps.dynamicHandlers);
@@ -1603,7 +1650,7 @@ function _makeDomContainerComponent(tag, optionalTagTextPar, pre, post, headText
   NativeComponentConstructor.prototype.genMarkup =
       function(idTreeSoFar, shouldGenMarkup, shouldRegHandlers) {
     var containedIdRoot, newComponent, propKey, prop, childrenAccum = '', tagAttrAccum = '',
-        currentDomProps = this._currentDomProps, containedComponents = this.children,
+        currentDomProps = this.props, containedComponents = this.children,
         cssText =  '', header = tagOpen + idTreeSoFar + "' ";
 
     this._rootDomId = idTreeSoFar;
@@ -1736,6 +1783,12 @@ var _sure = function(obj, propsArr) {
     throw "Properties not present:" + _ser(propsArr);
   }
 };
+
+function _assert(val, errorMsg) {
+  if(!val) {
+    throw errorMsg || ERROR_MESSAGES.FAILED_ASSERTION;
+  }
+}
 
 /**
  * Probably better than prototypical extension because we can reason about
@@ -2357,7 +2410,7 @@ if (typeof Fax === 'object') {
     module.exports = Fax;
 } else {
   Fax = {
-    _abstractEventHandlersById : FaxEvent.abstractEventHandlersById,
+    _abstractEventListenersById : FaxEvent.abstractEventListenersById,
     curryOne: _curryOne,
     curryOnly: _curryOnly,
     stringSwitch: _Fax.stringSwitch,
@@ -2426,7 +2479,9 @@ if (typeof Fax === 'object') {
     allNativeTagPropertiesIncludingHandlerNames: _allNativeTagPropertiesIncludingHandlerNames,
     escapeTextForBrowser: FaxUtils.escapeTextForBrowser,
     clearBeforeRenderingQueue: _Fax.clearBeforeRenderingQueue,
-    renderingStrategies: _Fax.renderingStrategies
+    renderingStrategies: _Fax.renderingStrategies,
+    _onlyGenMarkupOnProjection: _Fax._onlyGenMarkupOnProjection,
+    getTotalInstantiationTime: function() { return _Fax.totalInstantiationTime; }
   };
 
   module.exports = Fax;

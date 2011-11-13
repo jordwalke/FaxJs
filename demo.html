@@ -39,12 +39,14 @@
         var DemoApp = require('DemoApp'),
             start = (new Date()).getTime();
 
-        Fax.renderTopLevelComponentAt(DemoApp.MainDemoApp, 'eventMount', {
-          appStyle: true,
-          renderingStrategy: Fax.renderingStrategies.standard
-        });
+        Fax.renderTopLevelComponentAt(DemoApp.MainDemoApp,
+          { mountAtId: 'eventMount',
+            appStyle: true,
+            renderingStrategy: Fax.renderingStrategies.standard,
+          }
+        );
         var end = (new Date()).getTime();
-        alert('Total rendering and paint time:' + (end-start));
+        console.log('Total rendering and paint time:' + (end-start));
       };
     </script>
   </head>
