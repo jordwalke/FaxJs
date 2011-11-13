@@ -1651,7 +1651,6 @@ function _makeDomContainerComponent(tag, optionalTagTextPar, pre, post, headText
         newComponent = new (prop.maker)(prop.props, prop.instantiator);
         containedComponents[propKey] = newComponent;
         newComponent.genMarkup(containedIdRoot, shouldGenMarkup, shouldRegHandlers);
-        return null;
       }
     }
     if (shouldGenMarkup) {
