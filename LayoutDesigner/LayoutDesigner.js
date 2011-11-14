@@ -105,7 +105,7 @@ LayoutDesigner.OwnedDesignerBox = {
 
     return {
       overrides: this.props,
-      clssSet: {noSelect: true, designerBox: true, selected: props.selected },
+      classSet: {noSelect: true, designerBox: true, selected: props.selected },
       onClick: props.onBoxClick,
       onMouseIn: props.onBoxMouseIn,
       onMouseOut: props.onBoxMouseOut,
@@ -117,33 +117,33 @@ LayoutDesigner.OwnedDesignerBox = {
       },
       onDragDoneFirstHandler: props.onBoxDragComplete,
       nameLabel: {
-        clssSet: {noSelect: true},
+        classSet: {noSelect: true},
         l: 3, t: 3,
         content: props.label
       }.ViewDiv(),
       rightDragger: {
-        clss: 'noSelect designerBoxRightDragger',
+        className: 'noSelect designerBoxRightDragger',
         onQuantizeDrag: function(absE) {
           props.onBoxResizeSignal({right: absE.data.globalX - absE.data.startX});
         },
         onDragDone: props.onBoxResizeComplete
       }.Div(),
       topDragger: {
-        clss: 'noSelect designerBoxTopDragger',
+        className: 'noSelect designerBoxTopDragger',
         onQuantizeDrag: function(absE) {
           props.onBoxResizeSignal({top: absE.data.globalY - absE.data.startY});
         },
         onDragDone: ths.props.onBoxResizeComplete
       }.Div(),
       leftDragger: {
-        clss: 'noSelect designerBoxLeftDragger',
+        className: 'noSelect designerBoxLeftDragger',
         onQuantizeDrag: function(absE) {
           props.onBoxResizeSignal({left: absE.data.globalX - absE.data.startX});
         },
         onDragDone: ths.props.onBoxResizeComplete
       }.Div(),
       bottomDragger: {
-        clss: 'noSelect designerBoxBottomDragger',
+        className: 'noSelect designerBoxBottomDragger',
         onQuantizeDrag: function(absE) {
           props.onBoxResizeSignal({bottom: absE.data.globalY - absE.data.startY});
         },

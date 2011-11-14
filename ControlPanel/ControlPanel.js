@@ -17,7 +17,7 @@ ControlPanel.ToolBox = {
   project : function() {
     var props = this.props, ths = this, selectedShape = ths.props.selectedShape;
     return {
-      clss: 'noSelect',
+      className: 'noSelect',
       pointerToolButton: {
         l: 9, t: 9, h: 22, w: 22,
         highlighted: props.selectedTool === 'pointerTool',
@@ -25,7 +25,7 @@ ControlPanel.ToolBox = {
           props.onToolChange('pointerTool');
         },
         iconImage: {
-          clss: 'buttonIcon',
+          className: 'buttonIcon',
           src: "./images/pointer_icon.png"
         }.Img()
       }.MaterialButton(),
@@ -36,12 +36,12 @@ ControlPanel.ToolBox = {
           props.onToolChange('painterTool');
         },
         iconImage: {
-          clss: 'buttonIcon',
+          className: 'buttonIcon',
           src: "./images/plus_icon.png"
         }.Img()
       }.MaterialButton(),
       toolBoxEditorPanel: {
-        clssSet: {toolBoxEditorPanel: true},
+        classSet: {toolBoxEditorPanel: true},
         toolBoxRows: !selectedShape ? null : {
           nameRow: {
             value: selectedShape.name,
@@ -85,7 +85,7 @@ ControlPanel.ToolBoxRow = {
       overrides: F.objExclusion(this.props, {
         isNumeric: true, label: true, value: true, attributeName: true
       }),
-      clssSet: { abs: true },
+      classSet: { abs: true },
 
       leftLabel: {
         style: {left: 0, width: 50},
@@ -94,7 +94,7 @@ ControlPanel.ToolBoxRow = {
 
       rightInput: {
         l: 50, r: 0, t: 0, b: 0, h: 22,
-        additionalClssSet: { toolBoxRowInput: true },
+        additionalClassSet: { toolBoxRowInput: true },
         value: this.props.value,
         entryType: this.props.entryType,
         onBlur: function(newVal) {

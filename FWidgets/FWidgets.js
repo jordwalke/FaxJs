@@ -102,12 +102,12 @@ FWidgets.FInputView = {
         (intendedText !== null && intendedText !== null) ? intendedText : '';
     return {
       overrides: {
-        clssSet: this.props.additionalClssSet,
+        classSet: this.props.additionalClassSet,
         posInfo: F.extractPosInfo(this.props)
       },
-      clssSet: {
+      classSet: {
         FInput: true, FInputSuper: !!props.superMode,
-        FInputPlaceheld: !!placeHeld, userSuppliedClass: props.clss
+        FInputPlaceheld: !!placeHeld, userSuppliedClass: props.className
       },
       type: !props.secure || placeHeld ? 'text' : 'password',
       value: textToShow,
@@ -127,12 +127,12 @@ FWidgets.FInputView = {
  * positionings. 2. fixed offsets from parent container edges.  So here, we have
  * an input that delegates positioning to an abs positioned conainer element.
  * WARNING: Destroys the properties Properties are everything that a
- * FWidgets.FInput has plus containerClss - class added to the absolutely
+ * FWidgets.FInput has plus containerClass - class added to the absolutely
  * positioned container
  */
 (FWidgets.FAbsInput = {}).project = function() {
   return {
-    clssSet: {abs: true},
+    classSet: {abs: true},
     style: {padding: '2px'}, // because the textbox itself likely has borders
     overrides: F.objSubset(this.props, F.POS_KEYS),
     contained: {
@@ -148,7 +148,7 @@ FWidgets.FInputView = {
 (FWidgets.FButton = {}).project = function() {
   return {
     overrides: this.props,
-    clssSet: {FButton: true}
+    classSet: {FButton: true}
   }.ViewA();
 };
 

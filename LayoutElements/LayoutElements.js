@@ -14,13 +14,13 @@ LayoutElements.MaterialView = {
   project : function() {
     return {
       overrides: F.merge(this.props, this.props.overrides),
-      clssSet: {
+      classSet: {
         texturedObject: true,
         texturedObjectLargeCorners: !!this.props.largeMode,
         texturedObjectSmallCorners: !this.props.largeMode
       },
       lighting: {
-        clssSet: {
+        classSet: {
           texturedObjectLighting: true,
           texturedObjectHighlightLighting: !!this.props.highlighted,
           texturedObjectStandardLighting: !this.props.highlighted,
@@ -59,7 +59,7 @@ LayoutElements.MaterialEmbedding = {
         this.props.largeMode;
     return {
       overrides: this.props,
-      clssSet: {
+      classSet: {
         largeEmbedding: shouldUseLarge,
         smallEmbedding: !shouldUseLarge
       }
@@ -77,13 +77,13 @@ LayoutElements.PhysicalButton = {
       onClick: function(abstractEvent) {
         abstractEvent.preventDefault();
       },
-      clssSet: {buttonAnchor: true, texturedObject: true,
+      classSet: {buttonAnchor: true, texturedObject: true,
         smallerTexturedObject: true},
       overrides: F.objExclusion(this.props, {text: true}),
       href: 'http://www.facebook.com',
       physicalObject: {
         lighting: {
-          clss: 'abs texturedObjectLighting smallerTexturedObjectLighting'
+          className: 'abs texturedObjectLighting smallerTexturedObjectLighting'
         }.Div(),
         buttonText: {
           content: this.props.text
@@ -95,7 +95,7 @@ LayoutElements.PhysicalButton = {
 
 
 /**
- * LayoutElements.EmbeddedBorderView: Positioning and clssSet applies to the
+ * LayoutElements.EmbeddedBorderView: Positioning and classSet applies to the
  * outermost view. Everything else (ideally only children), get passed to the
  * embedded material view.
  */
@@ -103,12 +103,12 @@ LayoutElements.EmbeddedBorderView = {
   project : function() {
     return {
       t: this.props.t, r: this.props.r, b: this.props.b, w: this.props.w,
-      l: this.props.l, clssSet: this.props.clssSet,
+      l: this.props.l, classSet: this.props.classSet,
       largeMode: true,
       embedding: { t: 8, l: 8, b: 8, r: 8,
         embeddedObject: {
           highlighted: true,
-          overrides: F.objExclusion(this.props, F.POS_CLSS_KEYS)
+          overrides: F.objExclusion(this.props, F.POS_CLASS_KEYS)
         }.MaterialView()
       }.MaterialEmbedding()
     }.MaterialView();

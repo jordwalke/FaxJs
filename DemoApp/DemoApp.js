@@ -91,10 +91,10 @@ DemoApp.DemoAppContent = {
     var ths = this;
     return {
       l: 0, t: 0, b: 0, r: 0,
-      clssSet: {noSelect: true, appContent: true},
+      classSet: {noSelect: true, appContent: true},
       designerPanel: {
         l: 30, t: 30, r: 250, b: 30,
-        clssSet: {shadowy: true},
+        classSet: {shadowy: true},
         theContent: {
           onPaint: this.onPaint.bind(this),
           selectedTool: ths.model.selectedTool,
@@ -108,7 +108,7 @@ DemoApp.DemoAppContent = {
         }.Designer()
       }.EmbeddedBorderView(),
       controlPanel: {
-        clssSet: {shadowy: true},
+        classSet: {shadowy: true},
         l: 'auto', r: 30, t: 30, w: 200, b: 30,
         theContent: {
           onToolChange: function(newTool) {

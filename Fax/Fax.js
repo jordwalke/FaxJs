@@ -174,23 +174,29 @@ var logicalStyleAttrNamesMap = {
  * tag header and may be controlled after they are rendered. This not only can
  * be usd to check if an attribute is controllable but also determine the
  * appropriate name that we control the attribute with (sometimes they are
- * different (clss->class))
+ * different (className->class))
  */
 var _controlUsingSetAttrDomAttrsMap = {
   margin: 'margin', marginRight: 'margin-right', marginLeft: 'margin-left',
   marginTop: 'margin-top', marginBottom: 'margin-bottom', padding: 'padding',
   paddingRight: 'padding-right', paddingLeft: 'padding-left',
   paddingTop: 'padding-top', paddingBottom: 'padding-bottom', width: 'width',
-  height: 'height', clss: 'class', href: 'href', src: 'src'
+  height: 'height', className: 'class', href: 'href', src: 'src'
 };
 
+/**
+ * Many of these are 'create' time only, meaning for performance reasons we
+ * won't see if their values have changed and apply updates. Ones that will
+ * be checked for changes are dangerouslySetInnerHtml,
+ * content, value, className, classSet, checked(todo).
+ */
 var _allNativeTagAttributes = {
   // Using setattribute
   margin: 'margin', marginRight: 'margin-right', marginLeft: 'margin-left',
   marginTop: 'margin-top', marginBottom: 'margin-bottom', padding: 'padding',
   paddingRight: 'padding-right', paddingLeft: 'padding-left',
   paddingTop: 'padding-top', paddingBottom: 'padding-bottom', width: 'width',
-  height: 'height', clss: 'class', href: 'href', src: 'src',
+  height: 'height', className: 'class', href: 'href', src: 'src',
   // controlDirectlyDomAttrsMap
   value: 'value', scrollTop: 'scrollTop', scrollLeft: 'scrollLeft',
   // controlDirectlyDomAttrsMapNoEscape
@@ -223,7 +229,7 @@ var _markupDomTagAttrsMap = {
   paddingRight: 'padding-right', paddingLeft: 'padding-left',
   paddingTop: 'padding-top', paddingBottom: 'padding-bottom',
   value: 'value', width: 'width', height: 'height',
-  clss: 'class', type: 'type', href: 'href', src: 'src'
+  className: 'class', type: 'type', href: 'href', src: 'src'
 };
 
 /**
@@ -275,22 +281,6 @@ function _tagDomAttrMarkupFragment(tagAttrName, tagAttrVal) {
  * values in the style object are completely ignored. That makes declarative
  * programming easier.
  */
-function _tagStyleAttrFragment(styleObj) {
-  var styleAccum = '', logStyleAttrName, styleAttrVal;
-
-  for (logStyleAttrName in styleObj) {
-    if (!styleObj.hasOwnProperty(logStyleAttrName)) {
-      continue;
-    }
-    styleAttrVal = styleObj[logStyleAttrName];
-    if (styleAttrVal !== undefined) {
-      styleAccum += _styleAttrNameForLogicalName(logStyleAttrName) + ":" +
-          _styleValue(logStyleAttrName, styleObj[logStyleAttrName]) + ";";
-    }
-  }
-  return styleAccum;
-}
-
 var _serializeInlineStyle = function (styleObj) {
   var accum = '', logStyleAttrName, styleAttrVal;
   for (logStyleAttrName in styleObj) {
@@ -1276,16 +1266,31 @@ _Fax.ComponentizeAll = function(obj) {
  * dom node, otherwise we return null. The main reason for that odd return
  * behavior is for performance - we lazilly cache dom nodes when they're
  * updated, and only when they're updated.
+ *
+ * It seems (at least when objects are "equal", but not the same memory reference),
+ * it's faster to do a JSON.stringify. When objects are memory reference equal, or
+ * are not 'equal' it's probably faster to do _.isEqual because the operation can
+ * abort quickly when it finds that they are the exact same memory reference or
+ * as soon as it finds a difference. In the overprojecting case, we need to optimize
+ * for the case where they are different memory references, yet 'equal', as that
+ * will be the most comonly encountered case, hence use of JSON.stringify.
+ *
+ * http://jsperf.com/isequal-vs-json-stringify.
+ * Note: I've found at least one case where the best thing to do is just check
+ * individual fields, when you know them ahead of time and there aren't that many
+ * fields to check: http://jsperf.com/positioninfoequal (We should also try the
+ * same thing on other fields besides position - when we know the fields)
  */
 _Fax.controlPhysicalDomByNodeOrId = function (elem,
                                               elemId,
                                               nextProps,
                                               lastProps) {
 
-  var cssText = '', styleAttr, styleAttrVal, nextPropsStyleAttrVal,
-      logStyleAttrName, style = nextProps.style;
+  var cssText = '', style = nextProps.style,
+      styleAttr, styleAttrVal, nextPropsStyleAttrVal, logStyleAttrName,
+      nextPosInfo, lastPosInfo, nextClassSet, lastClassSet;
 
-  /* here's an interesting optimization. Saves about 20% in many cases
+  /* here's an interesting optimization. Saves 20% render time in many cases
    * when overprojecting, will hurt the cases where we don't overproject,
    * however those cases aren't of concern.
    * This doesn't check all the attributes, only the most likely to change
@@ -1297,7 +1302,10 @@ _Fax.controlPhysicalDomByNodeOrId = function (elem,
    */
   nextProps = nextProps || {};
   lastProps = lastProps || {};
-  var nextPosInfo = nextProps.posInfo || {}, lastPosInfo = lastProps.posInfo || {};
+  nextPosInfo = nextProps.posInfo || {};
+  lastPosInfo = lastProps.posInfo || {};
+  nextClassSet = nextProps.classSet;
+  lastClassSet = nextProps.classSet;
   if ((nextPosInfo &&
         (nextPosInfo.l !== lastPosInfo.l || nextPosInfo.t !== lastPosInfo.t ||
         nextPosInfo.w !== lastPosInfo.w || nextPosInfo.h !== lastPosInfo.h ||
@@ -1306,7 +1314,9 @@ _Fax.controlPhysicalDomByNodeOrId = function (elem,
             JSON.stringify(nextProps.style) !== JSON.stringify(lastProps.style)) ||
       nextProps.dangerouslySetInnerHtml !== lastProps.dangerouslySetInnerHtml ||
       nextProps.content !== lastProps.content ||
-      nextProps.clss !== lastProps.clss || nextProps.value !== lastProps.value) {
+      /* Todo: check for 'checked' */
+      nextProps.className !== lastProps.className || nextProps.value !== lastProps.value ||
+      JSON.stringify(nextClassSet) !== JSON.stringify(lastClassSet)) {
 
     /* At this point, we know something was changed, may as well invest in
      * fetching the element now. */
@@ -1363,7 +1373,7 @@ _Fax.controlPhysicalDomByNodeOrId = function (elem,
  * standard FWidgets text box that solves that inconsistency at a higher level:
  *   width:       create/controlled tag attribute
  *   height:      create/controlled tag attribute
- *   clss:        create/controlled tag attribute
+ *   className:        create/controlled tag attribute
  *   value:       only   controlled tag attribute
  *   (many more):   see controlUsingSetAttrDomAttrsMap/markupDomTagAttrsMap
  *
@@ -1373,7 +1383,7 @@ _Fax.controlPhysicalDomByNodeOrId = function (elem,
  * All native tag components can contain any amount of child components. The
  * parent of the native tag component should just drop children in under any
  * name they wish in the properties, right along side style and event handlers,
- * so long as that name does not conflict with width/clss/onClick etc..  We also
+ * so long as that name does not conflict with width/className/onClick etc..  We also
  * allow for a native component to be created with lifeless markup that is
  * always injected into various places in the markup tree. In the past, we've
  * used a convention of requiring that children be dropped in a 'contained'
@@ -1670,7 +1680,7 @@ function _makeDomContainerComponent(tag, optionalTagTextPar, pre, post, headText
         if (_markupDomTagAttrsMap[propKey]) {
           tagAttrAccum += _tagDomAttrMarkupFragment(propKey, prop);
         } else if (propKey === 'style') {
-          cssText += _tagStyleAttrFragment(prop);
+          cssText += _serializeInlineStyle(prop);
         } else if (propKey === 'posInfo') {
           cssText += _extractAndSealPosInfoInlineImpl(prop);
         } else if (prop.maker) {
@@ -1833,16 +1843,16 @@ var _curryOnly = function(func, val, context) {
  * for use as a dom elements 'class' property.  Slow because it needs to
  * concatenate spaces. Leaves a space at the end of the class string so it is
  * easy to append to. If prototypes are crufty due to extending
- * Object.prototype, use fastClssMap.
+ * Object.prototype, use fastclassName.
  */
-var _clssMap = function(map) {
+var _classMap = function(map) {
   var accum = '';
-  for (var clssName in map) {
-    if (!map.hasOwnProperty(clssName)) {
+  for (var className in map) {
+    if (!map.hasOwnProperty(className)) {
       continue;
     }
-    if (map[clssName]) {
-      accum += clssName + ' ';
+    if (map[className]) {
+      accum += className + ' ';
     }
   }
   return accum;
@@ -1853,15 +1863,15 @@ var _clssMap = function(map) {
  * together to form a single class string. Maintains a trailing space at the end
  * so you can easily add additional classes. A nice way to string together class
  * strings when there are several things that determine what should be included.
- * var clssString =
- *  Fax.clssSet({
+ * var classString =
+ *  Fax.classSet({
  *    ClassOne: true,                  // Will append 'ClassOne'
- *    userProvidedClss: this.userClss, // Appends this.userClss if it's truthy
+ *    userProvidedClass: this.userClass, // Appends this.userClass if it's truthy
  *    disabled: !!this.shouldDisable   // appends 'disabled' iff this.shouldDisable
  *    enabled: !this.shouldDisable     // appends 'enabled' iff !this.shouldDisable
  *  });
  */
-_Fax.clssSet = function(namedSet) {
+_Fax.renderClassSet = function(namedSet) {
   var accum = '';
   for (var nameOfClass in namedSet) {
     if (!namedSet.hasOwnProperty(nameOfClass)) {
@@ -1881,15 +1891,15 @@ _Fax.clssSet = function(namedSet) {
 /**
  * Constructs a single class string suitable for dom object property, skipping
  * over undefined and null references, so that it can be used as a convenient
- * class constructor.  var clssString = Fax.clssList([obj.one,
+ * class constructor.  var classString = Fax.classList([obj.one,
  * another.dontKnowIfThisIsDefined]);
  */
-var _clssList = function (clssList) {
+var _classList = function (classList) {
   var accum = '';
-  for (jj = clssList.length - 1; jj >= 0; jj--) {
+  for (jj = classList.length - 1; jj >= 0; jj--) {
     // Don't skip over the number zero.
-    if (clssList[jj] !== undefined && clssList[jj] !== null) {
-      accum += clssList[jj] + ' ';
+    if (classList[jj] !== undefined && classList[jj] !== null) {
+      accum += classList[jj] + ' ';
     }
   }
   return accum;
@@ -1900,28 +1910,28 @@ var _clssList = function (clssList) {
  * inspection. Helpful when Object.prototype has several things appended to it
  * and iterating/checking own object is slow.  Also, it allows you to construct
  * the map once and slice off different classes onto different dom nodes
- * easilly. Just use clssMap if code compiled with FaxOptimizer - no prototype
+ * easilly. Just use classMap if code compiled with FaxOptimizer - no prototype
  * cruft.
- * Fax.fastClssMap([' hdn', ' bigThing'], {
+ * Fax.fastClassMap([' hdn', ' bigThing'], {
  *    hdn: true,
  *    bigThing: !!this.x
  * });
  */
-var _fastClssMap = function(thing1, thing2) {
-  var map, clssList, jj, accum = '';
+var _fastClassMap = function(thing1, thing2) {
+  var map, classList, jj, accum = '';
   if (thing1 && !thing2) {
     map = thing1;
-    clssList = null;
+    classList = null;
   } else {
     map = thing2;
-    clssList = thing1;
+    classList = thing1;
   }
-  if (!clssList) {
-    return _clssMap(map);
+  if (!classList) {
+    return _classMap(map);
   } else {
-    for (jj = clssList.length - 1; jj >= 0; jj--) {
-      if (map[clssList[jj]]) {
-        accum += clssList[jj] + ' ';
+    for (jj = classList.length - 1; jj >= 0; jj--) {
+      if (map[classList[jj]]) {
+        accum += classList[jj] + ' ';
       }
     }
     return accum.substr(0, accum.length - 1);
@@ -2455,10 +2465,10 @@ if (typeof Fax === 'object') {
     appendNode: _appendNode,
     insertNodeBeforeNode: _insertNodeBeforeNode,
     insertNodeAfterNode: _insertNodeAfterNode,
-    clssMap: _clssMap,
-    clssSet: _Fax.clssSet,
-    fastClssMap: _fastClssMap,
-    clssList: _clssList,
+    classMap: _classMap,
+    renderClassSet: _Fax.renderClassSet,
+    fastClassMap: _fastClassMap,
+    classList: _classList,
     merge: _Fax.merge,
     mergeThree: _Fax.mergeThree,
     mergeDeep: _Fax.mergeDeep,
@@ -2474,7 +2484,7 @@ if (typeof Fax === 'object') {
     serializeInlineStyle: _serializeInlineStyle,
     clone: _clone,
     POS_KEYS: {l:true, h:true, w:true, r:true, b:true, t:true },
-    POS_CLSS_KEYS: {l:true, h:true, w:true, r:true, b:true, t:true, clssSet: true },
+    POS_CLASS_KEYS: {l:true, h:true, w:true, r:true, b:true, t:true, classSet: true },
     allNativeTagAtrributes: _allNativeTagAttributes,
     allNativeTagPropertiesIncludingHandlerNames: _allNativeTagPropertiesIncludingHandlerNames,
     escapeTextForBrowser: FaxUtils.escapeTextForBrowser,

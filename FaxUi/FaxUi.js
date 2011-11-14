@@ -45,12 +45,12 @@ FaxUi.MakeTagView = function(NativeTagProjectingConstructor) {
       var props = this.props;
       var nativeTagProps;
       var overrides = props.overrides || {};
-      var tagClssSet = {tagClss:'abs nover hVStretch block ' };
-      if (props.clssSet || overrides.clssSet) {
-        tagClssSet = F.mergeThree(
-            tagClssSet,
-            props.clssSet,
-            overrides.clssSet);
+      var tagClassSet = {tagClass:'abs nover hVStretch block ' };
+      if (props.classSet || overrides.classSet) {
+        tagClassSet = F.mergeThree(
+            tagClassSet,
+            props.classSet,
+            overrides.classSet);
       }
       /**
        * Style as specified by the discouraged style property, then override with
@@ -64,13 +64,13 @@ FaxUi.MakeTagView = function(NativeTagProjectingConstructor) {
             F.extractPosInfo(overrides));
 
       nativeTagProps = F.mergeThree(props, overrides, {
-        clss: F.clssSet(tagClssSet),
+        className: F.renderClassSet(tagClassSet),
         style: nativeTagStyle,
         posInfo: nativeTagPosInfo
       });
 
       delete nativeTagProps.overrides;
-      delete nativeTagProps.clssSet;
+      delete nativeTagProps.classSet;
       // Could also delete position info
       return NativeTagProjectingConstructor(nativeTagProps);
     }
