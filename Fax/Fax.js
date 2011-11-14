@@ -153,6 +153,7 @@ _Fax.controlDirectlyDomAttrsMapDoEscape = {
   content: 'innerHTML-ButFirstEscape-Not-A-Real-Property'
 };
 
+
 var logicalStyleAttrNamesMap = {
   boxSizing: 'box-sizing', boxShadow: 'box-shadow',
   paddingRight: 'padding-right', paddingLeft: 'padding-left',
@@ -174,7 +175,8 @@ var logicalStyleAttrNamesMap = {
  * tag header and may be controlled after they are rendered. This not only can
  * be usd to check if an attribute is controllable but also determine the
  * appropriate name that we control the attribute with (sometimes they are
- * different (className->class))
+ * different (className->class)). classSet belong here as well - but since it needs
+ * to be transformed it is dealt with specially.
  */
 var _controlUsingSetAttrDomAttrsMap = {
   margin: 'margin', marginRight: 'margin-right', marginLeft: 'margin-left',
@@ -182,6 +184,14 @@ var _controlUsingSetAttrDomAttrsMap = {
   paddingRight: 'padding-right', paddingLeft: 'padding-left',
   paddingTop: 'padding-top', paddingBottom: 'padding-bottom', width: 'width',
   height: 'height', className: 'class', href: 'href', src: 'src'
+  /*, classSet: 'class-ButFirstCallFax.renderClassSet'*/
+};
+
+/**
+ * We don't even do a lookup in this map for perf reasons.
+ */
+_Fax.controlUsingSetAttrDomAttrsMapButNormalizeFirst = {
+  classSet: 'class-ButFirstCallFax.renderClassSet'
 };
 
 /**
@@ -204,7 +214,9 @@ var _allNativeTagAttributes = {
   // controlDirectlyDomAttrsMapDoEscape
   content: 'innerHTML-ButFirstEscape-Not-A-Real-Property',
   // cannotEverControl
-  type: 'type'
+  type: 'type',
+  // controlUsingSetAttrDomAttrsMapButNormalizeFirst
+  classSet: 'class-ButFirstCallFax.renderClassSet'
 };
 
 /**
@@ -219,9 +231,11 @@ _Fax.cannotEverControl = {
  * Fax.markupDomTagAttrsMap: properties of the dom node that we can render in
  * the string markup. Usually, these can be controlled by executing
  * elem.setAttribute(fieldName, x), with a couple exceptions (type which can
- * never be controlled and value which must be set as a property). innerHTML is
- * an exception to all rules, so we don't talk much about it here - it's special
- * cased in the rendering code.
+ * never be controlled and value which must be set as a property).
+ * content/dangerouslySetInnerHtml are exceptions to all rules, so we don't
+ * talk much about it here - it's special cased in the rendering code.
+ * classSet should belong here as well, but it needs to be normalized a special
+ * way so it is not included here.
  */
 var _markupDomTagAttrsMap = {
   margin: 'margin', marginRight: 'margin-right', marginLeft: 'margin-left',
@@ -229,7 +243,8 @@ var _markupDomTagAttrsMap = {
   paddingRight: 'padding-right', paddingLeft: 'padding-left',
   paddingTop: 'padding-top', paddingBottom: 'padding-bottom',
   value: 'value', width: 'width', height: 'height',
-  className: 'class', type: 'type', href: 'href', src: 'src'
+  className: 'class', /*classSet: 'class-ButFirstCallFax.renderClassSet', */
+  type: 'type', href: 'href', src: 'src'
 };
 
 /**
@@ -1329,6 +1344,8 @@ _Fax.controlPhysicalDomByNodeOrId = function (elem,
       if (_controlUsingSetAttrDomAttrsMap[propKey]) {
         elem.setAttribute(_controlUsingSetAttrDomAttrsMap[propKey],
             FaxUtils.escapeTextForBrowser(prop));
+      } else if(propKey === 'classSet') {
+        elem.setAttribute('className', FaxUtis.escapeTextForBrowser(_Fax.renderClassSet(prop)));
       } else if (_Fax.controlDirectlyDomAttrsMap[propKey]) {
         elem[_Fax.controlDirectlyDomAttrsMap[propKey]] =
             FaxUtils.escapeTextForBrowser(prop);
@@ -1679,6 +1696,8 @@ function _makeDomContainerComponent(tag, optionalTagTextPar, pre, post, headText
       if (shouldGenMarkup && prop) {
         if (_markupDomTagAttrsMap[propKey]) {
           tagAttrAccum += _tagDomAttrMarkupFragment(propKey, prop);
+        } else if(propKey === 'classSet') {
+          tagAttrAccum += "class='" + _Fax.renderClassSet(prop) + "'";
         } else if (propKey === 'style') {
           cssText += _serializeInlineStyle(prop);
         } else if (propKey === 'posInfo') {
