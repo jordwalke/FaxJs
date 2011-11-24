@@ -38,6 +38,7 @@ FaxUi.Td = F.makeDomContainerComponent('td');
  * compatibility, but experience a slight performance hit. Eventually each tag
  * view can be implemented specifically for performance, while not needing to
  * change any users of tag views.
+ * @deprecated
  */
 FaxUi.MakeTagView = function(NativeTagProjectingConstructor) {
   return {
@@ -154,6 +155,12 @@ FaxUi.MultiDynamic = function(propsParam) {
 
 
 module.exports = F.ComponentizeAll(FaxUi);
+var nonSelectableMixin = {
+  '-moz-user-select': '-moz-none',
+  '-webkit-user-select': 'none',
+  '-khtml-user-select': 'none',
+  'user-select': 'none'
+};
 module.exports.styleExports = {
 	hdn: { display: 'none' },
 	ib: { display: 'inline-block' },
@@ -183,12 +190,10 @@ module.exports.styleExports = {
    * http://help.dottoro.com/lcrlukea.php #todoIe: unselectable="on" is tag attr
    * #todoie: Inject that into the tags by default for FView base.
 	 */
-	noSelect: {
-		'-moz-user-select': '-moz-none',
-		'-webkit-user-select': 'none',
-    '-khtml-user-select': 'none',
-    'user-select': 'none'
-	},
+	noSelect: nonSelectableMixin,
+
+  material: F.merge(nonSelectableMixin),
+
   '.noSelect::selection': {
     'background-color': 'transparent'
   }

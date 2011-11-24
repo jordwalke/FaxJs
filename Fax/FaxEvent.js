@@ -37,7 +37,7 @@ function _constructAbstractEventDirectlyFromTopLevel(topLevelEventType,
     case 'topLevelMouseWheel':
       data = FaxEvent._normalizeAbstractMouseWheelEventData(nativeEvent, target);
       break;
-    case 'topLevelMouseScroll':
+    case 'topLevelScroll':
       data = FaxEvent._normalizeAbstractScrollEventData(nativeEvent, target);
       break;
     case 'topLevelClick':
@@ -223,7 +223,7 @@ var FaxEvent = {
   topLevelEventTypesDirectlyMappedToAbstractListenerName: {
     topLevelClick: 'onClick',
     topLevelMouseWheel: 'onMouseWheel',
-    topLevelMouseScroll: 'onMouseScroll',
+    topLevelScroll: 'onScroll',
     topLevelKeyUp: 'onKeyUp',
     topLevelKeyDown: 'onKeyDown',
     topLevelKeyPress: 'onKeyPress',
@@ -335,7 +335,14 @@ var FaxEvent = {
         abstractEvent =
             new AbstractEvent('onTouchTap', topLevelEventType, targ, nativeEvent, {});
       }
-    } else if (FaxEvent.topLevelEventTypeHasCorrespondingAbstractType(topLevelEventType)) {
+    }
+
+    /*
+     * We may have needed to register drag listeners, or infer touchTaps, but we still
+     * might need those same top level event types that we used to call handlers that
+     * are 'directly mapped' to those topLevelEventTypes. (such as onTouchStart etc).
+     */
+    if (FaxEvent.topLevelEventTypeHasCorrespondingAbstractType(topLevelEventType)) {
       /**
        * Some abstract events are just simple one-one corresponding event types
        * with top level events.
@@ -710,9 +717,9 @@ var FaxEvent = {
  */
 var _eventModes = ['', 'Direct', 'FirstHandler' ];
 var _abstractHandlerBaseNames =
-['onTouchTap', 'onTouchEnd', 'onTouchMove', 'onTouchStart', 'onQuantizeTouchDrag',
+['onScroll', 'onTouchTap', 'onTouchEnd', 'onTouchMove', 'onTouchStart', 'onQuantizeTouchDrag',
  'onTouchDragDone', 'onClick', 'onDragDone', 'onQuantizeDrag', 'onMouseWheel',
- 'onMouseScroll', 'onKeyUp', 'onKeyDown', 'onKeyPress', 'onFocus', 'onBlur',
+ 'onScroll', 'onKeyUp', 'onKeyDown', 'onKeyPress', 'onFocus', 'onBlur',
  'onMouseIn', 'onMouseOut', 'onMouseDown', 'onMouseUp'];
 
 
@@ -790,7 +797,9 @@ FaxEvent.registerIeOnSelectStartListener = function() {
   var previousOnSelectStart = document.onselectstart;
   document.onselectstart = function(nativeEvent) {
     var targ = FaxEvent._getTarget(nativeEvent);
-    if (targ.className && targ.className.search(/noSelect/) !== -1) {
+    if (targ.className &&
+        (targ.className.search(/noSelect/) !== -1 ||
+        targ.className.search(/material/) !== -1)) {
       (nativeEvent || window.event).returnValue = false;
     }
     if (previousOnSelectStart) {
@@ -834,11 +843,12 @@ FaxEvent.registerTopLevelListeners = function(mountAt, touchInsteadOfMouse) {
     FaxEvent.__trapBubbledEvent('topLevelClick', 'onclick', mountAt || document);
     FaxEvent.__trapBubbledEvent('topLevelMouseWheel', 'onmousewheel', mountAt || document);
   } else {
-    FaxEvent.__trapCapturedEvent('topLevelTouchStart', 'touchstart', mountAt || document);
-    FaxEvent.__trapCapturedEvent('topLevelTouchEnd', 'touchend', mountAt || document);
-    FaxEvent.__trapCapturedEvent('topLevelTouchMove', 'touchmove', mountAt || document);
+    FaxEvent.__trapBubbledEvent('topLevelTouchStart', 'ontouchstart', document);
+    FaxEvent.__trapBubbledEvent('topLevelTouchEnd', 'ontouchend', document);
+    FaxEvent.__trapBubbledEvent('topLevelTouchMove', 'ontouchmove', document);
     // We don't allow clients to handle touch cancel but the system needs it.
-    FaxEvent.__trapCapturedEvent('topLevelTouchCancel', 'touchcancel', mountAt || document);
+    FaxEvent.__trapBubbledEvent('topLevelTouchCancel', 'ontouchcancel', document);
+
   }
 
   /**
@@ -865,9 +875,9 @@ FaxEvent.registerTopLevelListeners = function(mountAt, touchInsteadOfMouse) {
 
 
   /** http://www.quirksmode.org/dom/events/tests/scroll.html (Firefox needs to
-   * capture a diff mouse scroll); */
+   * capture a diff mouse scroll); No browser captures both simultaneously so we're good */
   FaxEvent.__trapCapturedEvent('topLevelMouseWheel', 'DOMMouseScroll', mountAt || document);
-  FaxEvent.__trapCapturedEvent('topLevelMouseScroll', 'scroll', mountAt || document);
+  FaxEvent.__trapCapturedEvent('topLevelScroll', 'scroll', mountAt || document);
 };
 
 

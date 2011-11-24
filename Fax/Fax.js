@@ -2,11 +2,63 @@ var FaxUtils = require('./FaxUtils'),
     FaxEvent = require('./FaxEvent'),
     FEnv = require('./FEnv');
 
+/**
+  * A note about touch events:  See:
+  * http://www.quirksmode.org/blog/archives/2010/09/click_event_del.html
+  * http://www.quirksmode.org/blog/archives/2010/09/click_event_del.html
+  * Clicks likely require mounting the event listener somewhere deep in
+  * the dom tree (not at doc/window). Though we don't care much about
+  * clicks because they have a 300 ms delay anyways and we roll our own
+  * clicks.  What is supported, is actually very complicated and varies
+  * by version of iOS - please populate and complete this table as you
+  * find more information. On IOS5 overflow:touch-scroll divs, rumor has
+  * it, that if you can listen to bubbled touch events somewhere deep in
+  * the dom (document/one level deep?), if you stop bubbling, you can
+  * prevent the rubber band.
+  *
+  * IOS5:
+  * Using event bubbling - listening on dom element one level deep (away from body):
+  *   Could not get any touch events.
+  * Using event bubbling - listening on dom element two level deep (away from body):
+  *   Could not get any touch events.
+  * Using event bubbling - listening on document:
+  *   Could get touch events, and could prevent default on the touch move.
+  * Using event bubbling - listening on window:
+  *   Could get touch events, and could prevent default on the touch move.
+  *
+  * Trap capture - listening on two deep from body
+  *   Could NOT get touch events, and could NOT prevent default on the touch move.
+  * Trap capture - listening on one deep from body
+  *   Could NOT get touch events, and could NOT prevent default on the touch move.
+  * Trap capture - listening on document
+  *   Could get touch events, and could prevent default on the touch move.
+  * Trap capture - listening on window
+  *   Could get touch events, and could prevent default on the touch move.
+  *
+  * IOS4:
+  * Using event bubbling - listening on dom element one level deep (away from body):
+  *   Could get touch events, and could prevent default on the touch move.
+  * Using event bubbling - listening on dom element two level deep (away from body):
+  *   Could get touch events, and could prevent default on the touch move.
+  * Using event bubbling - listening on document:
+  *   Could get touch events, and could prevent default on the touch move.
+  * Using event bubbling - listening on window:
+  *   Could get touch events, and could prevent default on the touch move.
+  *
+  * Trap capture - listening on two deep from body
+  *   Could get touch events, and could prevent default on the touch move.
+  * Trap capture - listening on one deep from body
+  *   Could get touch events, and could prevent default on the touch move.
+  * Trap capture - listening on document
+  *   Could get touch events, and could prevent default on the touch move.
+  * Trap capture - listening on window
+  *   Could NOT get touch events, and could NOT prevent default on the touch move.
+  *
+  * At least for the iOS world, it seems listening for bubbled touch
+  * events on the document object is actualy the best for compatibility.
+  * 
+  */
 var ERROR_MESSAGES = {
-  INSUFFICIENT_DEPTH: "You need to mount your application at least one " +
-      "node deeper than the document body itself. I know, it's stupid but " + 
-      " that's what some browsers require in order to catch bubbled events " +
-      "reliably.",
   OWNED_NOT_FOUND: "Could not find an object owned by you, at that projection path",
   UPDATE_STATE_PRE_PROJECT: "Cannot update state before your done projecting!!",
   CANNOT_SET_INNERHTML: "YOU CANNOT EVER SET INNERHTML. You must use the name " +
@@ -83,7 +135,7 @@ function _appendMarkup(elem, newMarkup) {
   var elemIdx, div = document.createElement('div');
   div.innerHTML = newMarkup;
   var elements = div.childNodes;
-  for (elemIdx = elements.length - 1; elemIdx >= 0; elemIdx--){
+  for (elemIdx = elements.length - 1; elemIdx >= 0; elemIdx--) {
     elem.appendChild(elements[elemIdx]);
   }
 }
@@ -286,8 +338,10 @@ var _styleValue = function (logicalStyleAttrName, attrVal) {
  * placed in the opening tag - for this single attribute.
  */
 function _tagDomAttrMarkupFragment(tagAttrName, tagAttrVal) {
-  return _markupDomTagAttrsMap[tagAttrName] +
-      "='" + FaxUtils.escapeTextForBrowser(tagAttrVal) + "'";
+  var accum = _markupDomTagAttrsMap[tagAttrName];
+  accum += "='";
+  accum += FaxUtils.escapeTextForBrowser(tagAttrVal);
+  accum += "'";
 }
 
 /**
@@ -304,8 +358,10 @@ var _serializeInlineStyle = function (styleObj) {
     }
     styleAttrVal = styleObj[logStyleAttrName];
     if (styleAttrVal !== undefined) {
-      accum += _styleAttrNameForLogicalName(logStyleAttrName) +
-        ":" + _styleValue(logStyleAttrName, styleAttrVal) + ";";
+      accum += logicalStyleAttrNamesMap[logStyleAttrName] || logStyleAttrName;
+      accum += ":";
+      accum += _styleValue(logStyleAttrName, styleAttrVal);
+      accum += ";";
     }
   }
   return accum;
@@ -350,12 +406,6 @@ _Fax.renderAt = function(projection, id, renderOptionsParam) {
       renderingStrategy = renderOptions.renderingStrategy ||
                           _Fax.renderingStrategies.standard;
       
-
-
-  if(!mountAt.parentNode || mountAt === document.body) {
-    throw(ERROR_MESSAGES.INSUFFICIENT_DEPTH);
-  }
-
   _Fax.clearBeforeRenderingQueue();
   _Fax.preRenderingAnything(mountAt, renderOptions);
 
@@ -826,8 +876,8 @@ _Fax.objMapToArray = function(obj, mapper) {
  * in the ret will be made.  It must not return null.
  */
 _Fax.arrayMapToObj = function(arr, mapper) {
-  var ret = {}, res, i;
-  for (i = arr.length - 1; i >= 0; i--) {
+  var ret = {}, res, i, len = arr.length;
+  for(i=0; i < len; i++) {
     res = mapper(arr[i], i);
     ret[res.key] = res.value;
   }
@@ -898,7 +948,9 @@ _Fax.shallowClone = function(obj) {
 };
 
 /**
- * Fax.multiComponentMixins
+ * Fax.multiComponentMixins - useless in most cases since it does not deallocate
+ * children no longer in the properties - may be used when we know the set
+ * will not change - may delete this.
  */
 _Fax.multiComponentMixins = {
   _recomputeProjectionAndPropagate: function() {
@@ -919,7 +971,7 @@ _Fax.multiComponentMixins = {
     this.children = {};
     projection = this.props;   // the projection is the props!
     for (childKey in projection) {
-      if (!this.projection.hasOwnProperty(childKey)) { continue; }
+      if (!projection.hasOwnProperty(childKey)) { continue; }
       childProjection = projection[childKey];
       newChild = new childProjection.maker(
           childProjection.props,
@@ -952,12 +1004,14 @@ _Fax.standardComponentMixins = {
         projection.instantiator);
     return this.child.genMarkup(idSpaceSoFar, gen, events);
   },
+
   _getProjection: function() {
     _Fax.componentCurrentlyProjectingLock = this;
     var projection = this.project();
     _Fax.componentCurrentlyProjectingLock = null;
     return projection;
   },
+
   _controlDomNode: function (path, domAttrs) {
     var normalized = path.replace('projection', '');
     _Fax.controlPhysicalDomByNodeOrId(
@@ -992,6 +1046,7 @@ _Fax.orderedComponentMixins = {
     var child, childToReconcile, newChild, projection, newMarkup,
         jj, ii, kk, domNodeToRemove,
         projectionToReconcile = this.props,
+        rootDomIdDot = this._rootDomId + '.',
         numAlreadyExistingThatShouldRemain =
             Math.min(this.children.length, projectionToReconcile.length);
     for (jj = 0; jj < numAlreadyExistingThatShouldRemain; jj++) {
@@ -1003,7 +1058,7 @@ _Fax.orderedComponentMixins = {
      * Delete all material that that has been lost.
      */
     for (ii = projectionToReconcile.length; ii < this.children.length; ii++) {
-      domNodeToRemove = document.getElementById(this._rootDomId + '.' + ii);
+      domNodeToRemove = document.getElementById(rootDomIdDot + ii);
       if (!domNodeToRemove) {
         _Fax.Error("No DOM node to hide!");
       }
@@ -1019,7 +1074,7 @@ _Fax.orderedComponentMixins = {
       childToReconcile = projectionToReconcile[kk];
       newChild = new (childToReconcile.maker)(
         childToReconcile.props, childToReconcile.instantiator);
-      newMarkup = newChild.genMarkup(this._rootDomId + ('.' + kk), true, true);
+      newMarkup = newChild.genMarkup(rootDomIdDot + kk, true, true);
       this.children[kk] = newChild;
       _appendMarkup(document.getElementById(this._rootDomId), newMarkup);
     }
@@ -1045,7 +1100,9 @@ _Fax.orderedComponentMixins = {
    */
   _allocateChildrenGenMarkup: function(idSpaceSoFar, gen, events) {
     var jj, projection, childKey, childProjection, markupAccum, newChild;
-    markupAccum = '<div id="' + idSpaceSoFar + '" style="display:inherit">';
+    markupAccum = '<div id="';
+    markupAccum += idSpaceSoFar;
+    markupAccum += '" style="display:inherit">';
     projection = this.props;   // the projection is the props!
     this.children = [];
     for (jj = 0; jj < projection.length; jj++) {
@@ -1105,6 +1162,7 @@ _Fax.multiChildMixins = {
     var keepChildrenInstances = {};
     var projectionToReconcile = this.props;
     var newMarkup, childComponents = this.children;
+    var rootDomIdDot = this._rootDomId + '.';
 
     for (var currentChildKey in childComponents) {
       if (!childComponents.hasOwnProperty(currentChildKey)) { continue; }
@@ -1155,7 +1213,7 @@ _Fax.multiChildMixins = {
        * when these children actually do become real components. */
       if(deallocateChild && deallocateChild.doControl) {
         var domNodeToRemove =
-            document.getElementById(this._rootDomId + '.' + deallocateChildKey);
+            document.getElementById(rootDomIdDot + deallocateChildKey);
         domNodeToRemove.parentNode.removeChild(domNodeToRemove);
         delete childComponents[deallocateChildKey];
       }
@@ -1172,21 +1230,21 @@ _Fax.multiChildMixins = {
       if (childComponents[projectionKey]) {
         // Else there is already a child, it may have a dom element associated
         // with it so let's try to set our last iterated.
-        lastIteratedDomNodeId = (this._rootDomId + '.' + projectionKey);
+        lastIteratedDomNodeId = (rootDomIdDot + projectionKey);
       } else {
         if (projectionForKey && projectionForKey.maker) {
           // If there's not yet a child and we want to allocate a component
           newChild = new (projectionForKey.maker)(
               projectionForKey.props,
               projectionKey.instantiator);
-          newChildId = this._rootDomId + ('.' + projectionKey);
+          newChildId = rootDomIdDot + projectionKey;
           newMarkup = newChild.genMarkup(newChildId, true, true);
           childComponents[projectionKey] = newChild;
           var newDomNode = Fax.singleDomNodeFromMarkup(newMarkup);
-          this.parentDomNode = this.parentDomNode ||
+          this.rootDomNode = this.rootDomNode ||
               document.getElementById(this._rootDomId);
           Fax.insertNodeAfterNode(
-              this.parentDomNode,
+              this.rootDomNode,
               newDomNode,
               document.getElementById(lastIteratedDomNodeId));
           lastIteratedDomNodeId = newChildId;
@@ -1214,10 +1272,13 @@ _Fax.multiDynamicComponentMixins = {
   _recomputeProjectionAndPropagate:
       _Fax.multiChildMixins._recomputeProjectionAndPropagate,
   _allocateChildrenGenMarkup: function(idSpaceSoFar, gen, events) {
-    return '<div id="' + idSpaceSoFar + '" style="display:inherit">' +
-        _Fax.multiChildMixins._allocateChildrenGenChildMarkup.
-             call(this, idSpaceSoFar, gen, events) +
-        "</div>";
+    var ret = '<div id="';
+    ret += idSpaceSoFar;
+    ret += '" style="display:inherit">';
+    ret += _Fax.multiChildMixins._allocateChildrenGenChildMarkup.
+             call(this, idSpaceSoFar, gen, events);
+    ret += "</div>";
+    return ret;
   },
 
   project: function() {
@@ -1295,6 +1356,35 @@ _Fax.ComponentizeAll = function(obj) {
  * individual fields, when you know them ahead of time and there aren't that many
  * fields to check: http://jsperf.com/positioninfoequal (We should also try the
  * same thing on other fields besides position - when we know the fields)
+ *
+ * A good post: http://www.phpied.com/the-new-game-show-will-it-reflow/
+ *
+ * Optimal strategy using textContent. Look for changes in the data. Never
+ * access the dom nodes yet.
+ * 1. Just queue up their id's and the changes needed to be made on them.
+ * 2. Clone the entire update tree, swap the real tree with the clone.
+ * 3. Now you work with the clone in memory, working your way through the queue
+ *    of work to do. The copy you're working on was not clone, so it likely
+ *    still has a working .querySelector('#id') engine you can use to retrieve
+ *    the dom nodes. If not, before swapping the clone into the dom (step 2)
+ *    quickly create a lookup map from the work queue using document.getEle..
+ *    After swapping those references will now point to the nodes in the in-
+ *    memory copy.
+ * 4. Work your way through the queue, making updates as needed in memory.
+ *    (use textContent).
+ * 5. Swap again.
+ *
+ * Notes: Step one is actually more complicated - because we need to 'let the
+ *  system reach steady state.' Each event handler could perform its own update
+ *  then trigger many callbacks - each causing their own updates.
+ *  We should begin step two when we've gone through as many cycles as needed.
+ * I really hope we can get references to the in memory copy without swapping.
+ * Ideally - we'd clone and work on the clone in memory as opposed to
+ * performing two swaps.
+ * 
+ * This should be configurable on a per component basis, because the cost of
+ * cloning will only be worth investing in, if we prevent several costly
+ * reflows.
  */
 _Fax.controlPhysicalDomByNodeOrId = function (elem,
                                               elemId,
@@ -1345,7 +1435,7 @@ _Fax.controlPhysicalDomByNodeOrId = function (elem,
         elem.setAttribute(_controlUsingSetAttrDomAttrsMap[propKey],
             FaxUtils.escapeTextForBrowser(prop));
       } else if(propKey === 'classSet') {
-        elem.setAttribute('className', FaxUtis.escapeTextForBrowser(_Fax.renderClassSet(prop)));
+        elem.className = FaxUtils.escapeTextForBrowser(_Fax.renderClassSet(prop));
       } else if (_Fax.controlDirectlyDomAttrsMap[propKey]) {
         elem[_Fax.controlDirectlyDomAttrsMap[propKey]] =
             FaxUtils.escapeTextForBrowser(prop);
@@ -1354,7 +1444,15 @@ _Fax.controlPhysicalDomByNodeOrId = function (elem,
       } else if(propKey === 'posInfo') {
         cssText += _extractAndSealPosInfoInlineImpl(prop);
       } else if (propKey === 'content') {
-        elem.innerHTML = FaxUtils.escapeTextForBrowser(prop);
+        /* http://jsperf.com/setting-node-text :
+         * An interesting perf test. However, hopefully never in the propagation
+         * of updates do we ever trigger a reflow, so it's not really the best
+         * test. I think we just need to do what we observe best for each platform:
+         * Some of the optimal strategy is dependent on the nature of the type of
+         * updates and reflows on a per component basis. Offline textContent seems
+         * to be the clear winner, though. I'll settle for online textContent.
+         * The perf test doesn't even account for escaping though. */
+        elem.textContent = prop;
       } else if (propKey === 'dangerouslySetInnerHtml') {
         elem.innerHTML = prop;
       } else if (propKey === 'innerHTML') {
@@ -1514,15 +1612,16 @@ function _makeDomContainerComponent(tag, optionalTagTextPar, pre, post, headText
     var keepChildrenInstances = {};
     var projectionToReconcile = nextProps;
     var newMarkup, childComponents = this.children;
+    var rootDomIdDot = this._rootDomId + '.';
 
     /* #differentThanMultiChildMixins - control parent, props, registerHandlers
-     * Lazilly store a refernce to the parentDomNode. We won't even take the
+     * Lazilly store a reference to the rootDomNode. We won't even take the
      * time to store the reference in the constructor. We only ever store it
      * when we apply our first change to the dom - which may be never - hence
      * the laziness. When we control a dom node by id, it will return the dom
      * node iff it actually applied a change. We'll save it for next time. */
-    this.parentDomNode = _Fax.controlPhysicalDomByNodeOrId(
-        this.parentDomNode,
+    this.rootDomNode = _Fax.controlPhysicalDomByNodeOrId(
+        this.rootDomNode,
         this._rootDomId,
         nextProps,
         this.props);
@@ -1584,7 +1683,7 @@ function _makeDomContainerComponent(tag, optionalTagTextPar, pre, post, headText
        * when these children actually do become real components. */
       if(deallocateChild && deallocateChild.doControl) {
         var domNodeToRemove =
-            document.getElementById(this._rootDomId + '.' + deallocateChildKey);
+            document.getElementById(rootDomIdDot + deallocateChildKey);
         domNodeToRemove.parentNode.removeChild(domNodeToRemove);
         delete childComponents[deallocateChildKey];
         /**
@@ -1623,21 +1722,21 @@ function _makeDomContainerComponent(tag, optionalTagTextPar, pre, post, headText
       } else if (childComponents[projectionKey]) {
         // Else there is already a child, it may have a dom element associated
         // with it so let's try to set our last iterated.
-        lastIteratedDomNodeId = (this._rootDomId + '.' + projectionKey);
+        lastIteratedDomNodeId = (rootDomIdDot + projectionKey);
       } else {
         if (projectionForKey && projectionForKey.maker) {
           // If there's not yet a child and we want to allocate a component
-          newChildId = this._rootDomId + ('.' + projectionKey);
+          newChildId = rootDomIdDot + projectionKey;
           newChild = new (projectionForKey.maker)(
               projectionForKey.props,
               projectionForKey.instantiator);
           newMarkup = newChild.genMarkup(newChildId, true, true);
           childComponents[projectionKey] = newChild;
           var newDomNode = Fax.singleDomNodeFromMarkup(newMarkup);
-          this.parentDomNode = this.parentDomNode ||
+          this.rootDomNode = this.rootDomNode ||
               document.getElementById(this._rootDomId);
           Fax.insertNodeAfterNode(
-            this.parentDomNode,
+            this.rootDomNode,
             newDomNode,
             document.getElementById(lastIteratedDomNodeId));
           lastIteratedDomNodeId = newChildId;
@@ -1677,8 +1776,12 @@ function _makeDomContainerComponent(tag, optionalTagTextPar, pre, post, headText
   NativeComponentConstructor.prototype.genMarkup =
       function(idTreeSoFar, shouldGenMarkup, shouldRegHandlers) {
     var containedIdRoot, newComponent, propKey, prop, childrenAccum = '', tagAttrAccum = '',
-        currentDomProps = this.props, containedComponents = this.children,
-        cssText =  '', header = tagOpen + idTreeSoFar + "' ";
+        currentDomProps = this.props, containedComponents = this.children, finalRet = '',
+        cssText =  '', header;
+        
+    header = tagOpen;
+    header += idTreeSoFar;
+    header += "' ";
 
     this._rootDomId = idTreeSoFar;
 
@@ -1697,13 +1800,17 @@ function _makeDomContainerComponent(tag, optionalTagTextPar, pre, post, headText
         if (_markupDomTagAttrsMap[propKey]) {
           tagAttrAccum += _tagDomAttrMarkupFragment(propKey, prop);
         } else if(propKey === 'classSet') {
-          tagAttrAccum += "class='" + _Fax.renderClassSet(prop) + "'";
+          tagAttrAccum += "class='";
+          tagAttrAccum += _Fax.renderClassSet(prop);
+          tagAttrAccum += "'";
         } else if (propKey === 'style') {
           cssText += _serializeInlineStyle(prop);
         } else if (propKey === 'posInfo') {
           cssText += _extractAndSealPosInfoInlineImpl(prop);
         } else if (prop.maker) {
-          containedIdRoot = idTreeSoFar + '.' + propKey;
+          containedIdRoot = idTreeSoFar;
+          containedIdRoot += '.';
+          containedIdRoot += propKey;
           newComponent = new (prop.maker)(prop.props, prop.instantiator);
           containedComponents[propKey] = newComponent;
           childrenAccum += newComponent.genMarkup(
@@ -1723,17 +1830,26 @@ function _makeDomContainerComponent(tag, optionalTagTextPar, pre, post, headText
            * supported, if it is convenient - or could be an event handler*/
         }
       } else if (prop && prop.maker) {
-        containedIdRoot = idTreeSoFar + '.' + propKey;
+        containedIdRoot = idTreeSoFar;
+        containedIdRoot += '.';
+        containedIdRoot += propKey;
         newComponent = new (prop.maker)(prop.props, prop.instantiator);
         containedComponents[propKey] = newComponent;
         newComponent.genMarkup(containedIdRoot, shouldGenMarkup, shouldRegHandlers);
       }
     }
     if (shouldGenMarkup) {
-      return (cssText ?
-          (header + tagAttrAccum + (cssText ? " style='" + cssText + "'" : '')) :
-          (header + tagAttrAccum + (cssText ? " style='" + cssText + "'" : '')) ) +
-          headTextTagClose + childrenAccum + tagClose;
+      finalRet += header;
+      finalRet += tagAttrAccum;
+      if (cssText) {
+        finalRet += " style='";
+        finalRet += cssText;
+        finalRet += "'";
+      }
+      finalRet += headTextTagClose;
+      finalRet += childrenAccum;
+      finalRet += tagClose;
+      return finalRet;
     } else {
       return null;
     }
@@ -1898,7 +2014,8 @@ _Fax.renderClassSet = function(namedSet) {
     }
     var val = namedSet[nameOfClass];
     if(val === true || val === 1) {
-      accum += nameOfClass + ' ';
+      accum += nameOfClass;
+      accum += ' ';
     } else if(nameOfClass && val) {
       accum += val;
     }
@@ -2121,22 +2238,44 @@ _extractAndSealPosInfoInlineUsingTranslateWebkit = function(obj) {
   }
 
   if (w === 0 || w) {
-    ret += 'width:' + (w.charAt ? (w + ';') : (w + 'px;'));
+    ret += 'width:';
+    ret += w;
+    if (w.charAt) {
+      ret += ';';
+    } else {
+      ret += 'px;'
+    }
   }
   if (h === 0 || h) {
-    ret += 'height:' + (h.charAt ? (h + ';') : (h + 'px;'));
+    ret += 'height:';
+    ret += h;
+    if (h.charAt) {
+      ret += ';';
+    } else {
+      ret += 'px;';
+    }
   }
   // Updates if the browser supports transforms are so much faster
   // than merely absolute positioning.
   if (l === 0 || l || t === 0 || t) {
     ret += 'left:0px; top:0px; -webkit-transform: translate3d(';
     if (l === 0 || l) {
-      ret += (l.charAt ? l + ',' : (l + 'px,'));
+      ret += l;
+      if(l.charAt) {
+        ret += ',';
+      } else {
+        ret += 'px,'
+      }
     } else {
       ret+= '0px,';
     }
     if (t === 0 || t) {
-      ret += (t.charAt ? t + ', 0);' : (t + 'px, 0);'));
+      ret += t;
+      if(t.charAt) {
+        ret += ', 0);';
+      } else {
+        ret += 'px, 0);';
+      }
     } else {
       ret+= '0px, 0);';
     }
@@ -2149,20 +2288,48 @@ _extractAndSealPosInfoInlineUsingTranslateWebkit = function(obj) {
    */
   if (b === 0 || b) {
     if (t === 0 || (t && !t.charAt)) {
-      ret += 'bottom:' + (b.charAt ? (b + ';') : ((b + t) + 'px;'));
+      ret += 'bottom:';
+      if(b.charAt) {
+        ret += b;
+        ret += ';';
+      } else {
+        ret += (b + t);
+        ret += 'px;';
+      }
     } else {
-      ret += 'bottom:' + (b.charAt ? (b + ';') : (b + 'px;'));
+      ret += 'bottom:';
+      ret += b;
+      if(b.charAt) {
+        ret += ';';
+      } else {
+        ret += 'px;';
+      }
     }
   }
   if (r === 0 || r) {
     if (l === 0 || (l && !l.charAt)) {
-      ret += 'right:' + (r.charAt ? (r + ';') : ((r + l) + 'px;'));
+      ret += 'right:';
+      if(r.charAt) {
+        ret += r;
+        ret += ';';
+      } else {
+        ret += (r+l);
+        ret += 'px;';
+      }
     } else {
-      ret += 'right:' + (r.charAt ? (r + ';') : (r + 'px;'));
+      ret += 'right:';
+      ret += r;
+      if(r.charAt) {
+        ret += ';';
+      } else {
+        ret += 'px;';
+      }
     }
   }
   if (z === 0 || z) {
-    ret += 'z-index:' + z + ';';
+    ret += 'z-index:';
+    ret += z;
+    ret += ';';
   }
   return ret;
 };
@@ -2378,6 +2545,43 @@ _Fax.map = function(arr, fun, context) {
   return res;
 };
 
+_Fax.arrToObj = function(arr, keyPrefixParam) {
+  var i, ret = {}, keyPrefix = keyPrefixParam || 'key';
+  if(!arr) {
+    return arr;
+  }
+  for(i=0; i < arr.length; i++) {
+    ret['' + keyPrefix + i] = arr[i];
+  }
+  return ret;
+};
+
+_Fax.mapSlice = function(arr, fun, start, length, context) {
+  var i, res = [], end = start + length - 1, arrLen = arr && arr.length;
+  if (!arr) {
+    return arr;
+  }
+  for (i = start; i <= end && i < arrLen; i = i + 1) {
+    res[i-start] = fun.call(context || this, arr[i], i - start);
+  }
+  return res;
+};
+
+/**
+ * Like mapSlice, but informs the callback of each elements position in the
+ * original array (as opposed to its position in the slice)
+ */
+_Fax.mapRange = function(arr, fun, start, length, context) {
+  var i, res = [], end = start + length - 1, arrLen = arr && arr.length;
+  if (!arr) {
+    return arr;
+  }
+  for (i = start; i <= end && i < arrLen; i = i + 1) {
+    res[i-start] = fun.call(context || this, arr[i], i);
+  }
+  return res;
+};
+
 /* should just use underscore */
 _Fax.reduce = function(arr, fun, init, context) {
   return arr.reduce(fun, init, context);
@@ -2464,6 +2668,9 @@ if (typeof Fax === 'object') {
     arrPull: _arrPull,
     arrPullJoin: _arrPullJoin,
     map: _Fax.map,
+    mapRange: _Fax.mapRange,
+    mapSlice: _Fax.mapSlice,
+    arrToObj: _Fax.arrToObj,
     reduce: _Fax.reduce,
     objMapToArray: _Fax.objMapToArray,
     objMapFilter: _objMapFilter,
