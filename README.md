@@ -17,14 +17,14 @@ The project that it creates, is self contained, and will include a simple server
 
 <br>
 ##Demo App:
-Here is a simple <a href='http://jordow.github.com/FaxJs/'>Demo App</a>.
+Here is a simple <a href='http://jordow.github.com/FaxJs/'>Demo App</a> built with FaxJs.
 You can drag and resize the shapes on that layout designer interactively. There
 are two tools in the upper right hand of the tool box, a pointer/sizer and a
 painter with which you can drop shapes onto the designer panel. (Though FaxJs is designed for
 all browsers, this particular app doesn't work well in IE. Try it in Chrome/Safari/FF.
 
 <a href='http://jordow.github.com/FaxJs/'>
-![Some Image](https://www.github.com/jordow/FaxJs/raw/master/demo_screenshot.png)
+![Demo Image](https://github.com/jordow/FaxJs/raw/998154f91ad6dd5d8c43bb596b58c4c413345157/demo_screenshot.png)
 </a>
 
 <br>
