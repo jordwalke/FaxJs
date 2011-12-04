@@ -23,6 +23,8 @@
 <br>
 ### Get Started Now:
 
+Get node.js using <a href='https://sites.google.com/site/nodejsmacosx/'>the OSX Installer</a>
+    
 **1. Clone or download FaxJs: Save it anywhere you like.**
 
         git clone git://github.com/jordow/FaxJs.git ~/Desktop/FaxJs
