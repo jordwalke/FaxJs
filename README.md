@@ -41,7 +41,7 @@
       <img src="https://github.com/jordow/FaxJs/raw/gh-pages/images/newProjectScreenshot.png" />
     </td>
     <td border-style=none border-width=0>
-        <p> The project that you created is completely self contained. It contains all of the Fax toolkit libraries, build scripts, and test server to run your app. The original download/clone of FaxJs is only needed to create new projects because the project creator script copies all Fax libraries into your new project every time. </p>
+        <p> The project that you created is completely self contained. It contains all of the Fax toolkit libraries, build scripts, and test server to run your app. The original download/clone of FaxJs is only needed to create new projects. When a new project is created, everything important is copied into that new project directory. </p>
 
     </td>
   </tr>
