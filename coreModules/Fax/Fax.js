@@ -690,22 +690,22 @@ var MixinExcluded = function(constructor, methodBag, blackList) {
 };
 _Fax.MakeComponentClass = function(spec, addtlMixins) {
   var specKey = null, mixinKey = null;
-  var prototypeBlackList = {initModel: true};
+  var prototypeBlackList = {initState: true};
   var j;
   var ComponentClass = function(initProps, instantiator) {
     this.props = initProps || {};
 
     this._strigifiedProps = null;
-    this.model = {};
-    if (spec.initModel) {
-      if (typeof spec.initModel === 'function') {
-        this.model = spec.initModel.call(this, initProps);
+    this.state = {};
+    if (spec.initState) {
+      if (typeof spec.initState === 'function') {
+        this.state = spec.initState.call(this, initProps);
       } else {
-        /* A literal data blob, which we clone because we mutate the model, and
-         * the initModel object is shared amongst all instances. This is a
+        /* A literal data blob, which we clone because we mutate the state, and
+         * the initState object is shared amongst all instances. This is a
          * bottle neck for rendering! It would be better to have a functions
-         * initModel() */
-        this.model = _clone(spec.initModel);
+         * initState() */
+        this.state = _clone(spec.initState);
       }
     }
   };
@@ -715,7 +715,7 @@ _Fax.MakeComponentClass = function(spec, addtlMixins) {
   for (j=0; j < addtlMixins.length; j++) {
     Mixin(ComponentClass, addtlMixins[j]);
   }
-  if (!ComponentClass.prototype._allocateChildrenGenMarkup ||
+  if (!ComponentClass.prototype._genMarkupImpl ||
    !ComponentClass.prototype.project) {
     _Fax.Error("Class does not implement required functions!");
   }
@@ -726,13 +726,13 @@ _Fax.MakeComponentClass = function(spec, addtlMixins) {
 _Fax.universalPublicMixins = {
   doControl: function(props) {
     if (this._propertyTrigger) {
-      var nextModelFragment = this._propertyTrigger(props);
-      if (nextModelFragment) {
-        this.justUpdateModel(nextModelFragment);
+      var nextStateFragment = this._propertyTrigger(props);
+      if (nextStateFragment) {
+        this.justUpdateState(nextStateFragment);
       }
     }
     this.props = props;
-    this._recomputeProjectionAndPropagate();
+    this._doControlImpl();
   },
 
   genMarkup: function(idTreeSoFar, gen, events) {
@@ -741,25 +741,25 @@ _Fax.universalPublicMixins = {
       return this._optimizedRender(idTreeSoFar);
     } else {
       this._rootDomId = idTreeSoFar;
-      return this._allocateChildrenGenMarkup(idTreeSoFar, gen, events);
+      return this._genMarkupImpl(idTreeSoFar, gen, events);
     }
   }
 };
 
 _Fax.universalPrivateMixins = {
   /**
-   * Just updates the model without automatically reprojecting.
+   * Just updates the state without automatically reprojecting.
    */
-  justUpdateModel: function(nextModelFragment) {
-    _Fax.mergeStuff(this.model, nextModelFragment);
+  justUpdateState: function(nextStateFragment) {
+    _Fax.mergeStuff(this.state, nextStateFragment);
   },
-  justUpdateModelDeep: function(nextModelFragment) {
-    this.model = _Fax.mergeDeep(this.model, nextModelFragment);
+  justUpdateStateDeep: function(nextStateFragment) {
+    this.state = _Fax.mergeDeep(this.state, nextStateFragment);
   },
 
   /**
    * Nice way to define a function literal, that when invoked, updates the
-   * model, causing a reprojection.
+   * state, causing a reprojection.
    * var button = {
    *   onClick: this.updater( {hasButtonBeenClicked: true} )
    * }.Button();
@@ -767,7 +767,7 @@ _Fax.universalPrivateMixins = {
   updater: function(fragLiteral) {
     var that = this;
     return function() {
-      that.updateModel(fragLiteral);
+      that.updateState(fragLiteral);
     };
   },
 
@@ -781,26 +781,26 @@ _Fax.universalPrivateMixins = {
    * todo: queueing of pushings, deterministic ordering, need to think about
    * that.
    */
-  updateModel: function(nextModelFragment) {
+  updateState: function(nextStateFragment) {
     if (this.componentCurrentlyProjectingLock) {
       throw ERROR_MESSAGES.UPDATE_STATE_PRE_PROJECT;
     }
-    this.justUpdateModel(nextModelFragment);
-    this._recomputeProjectionAndPropagate();
+    this.justUpdateState(nextStateFragment);
+    this._doControlImpl();
     return true;
   },
 
-  updateModelDeep: function(nextModelFragment) {
+  updateStateDeep: function(nextStateFragment) {
     if (this.componentCurrentlyProjectingLock) {
       throw ERROR_MESSAGES.UPDATE_STATE_PRE_PROJECT;
     }
-    this.justUpdateModelDeep(nextModelFragment);
-    this._recomputeProjectionAndPropagate();
+    this.justUpdateStateDeep(nextStateFragment);
+    this._doControlImpl();
     return true;
   },
 
   _reproject: function() {
-    this._recomputeProjectionAndPropagate();
+    this._doControlImpl();
   },
 
   /**
@@ -953,7 +953,7 @@ _Fax.shallowClone = function(obj) {
  * will not change - may delete this.
  */
 _Fax.multiComponentMixins = {
-  _recomputeProjectionAndPropagate: function() {
+  _doControlImpl: function() {
     var childKey, child, projection;
     projection = this.props;
     for (childKey in this.children) {
@@ -965,7 +965,7 @@ _Fax.multiComponentMixins = {
       child.doControl(projection[childKey].props);
     }
   },
-  _allocateChildrenGenMarkup: function(idSpaceSoFar, gen, events) {
+  _genMarkupImpl: function(idSpaceSoFar, gen, events) {
     var projection, childKey, childProjection, markupAccum, newChild;
     markupAccum = '';
     this.children = {};
@@ -994,10 +994,10 @@ _Fax.multiComponentMixins = {
  * has a single child.
  */
 _Fax.standardComponentMixins = {
-  _recomputeProjectionAndPropagate: function() {
+  _doControlImpl: function() {
     this.child.doControl(this._getProjection().props);
   },
-  _allocateChildrenGenMarkup: function(idSpaceSoFar, gen, events) {
+  _genMarkupImpl: function(idSpaceSoFar, gen, events) {
     var projection = this._getProjection();
     this.child = new projection.maker(
         projection.props,
@@ -1042,7 +1042,7 @@ _Fax.orderedComponentMixins = {
    * children, but props is the new properties.  TODO: get this to work with
    * i.e. table elements
    */
-  _recomputeProjectionAndPropagate: function() {
+  _doControlImpl: function() {
     var child, childToReconcile, newChild, projection, newMarkup,
         jj, ii, kk, domNodeToRemove,
         projectionToReconcile = this.props,
@@ -1098,7 +1098,7 @@ _Fax.orderedComponentMixins = {
    * something that keeps track of identity *and* order, native javascript
    * objects being the perfect solution - use MultiDynamic which accomplishes this.
    */
-  _allocateChildrenGenMarkup: function(idSpaceSoFar, gen, events) {
+  _genMarkupImpl: function(idSpaceSoFar, gen, events) {
     var jj, projection, childKey, childProjection, markupAccum, newChild;
     markupAccum = '<div id="';
     markupAccum += idSpaceSoFar;
@@ -1157,7 +1157,7 @@ _Fax.multiChildMixins = {
     }
     return markupAccum;
   },
-  _recomputeProjectionAndPropagate: function() {
+  _doControlImpl: function() {
     var deallocateChildren = {};
     var keepChildrenInstances = {};
     var projectionToReconcile = this.props;
@@ -1269,9 +1269,8 @@ _Fax.multiChildMixins = {
  * multiChildMixins, but that could change soon.
  */
 _Fax.multiDynamicComponentMixins = {
-  _recomputeProjectionAndPropagate:
-      _Fax.multiChildMixins._recomputeProjectionAndPropagate,
-  _allocateChildrenGenMarkup: function(idSpaceSoFar, gen, events) {
+  _doControlImpl: _Fax.multiChildMixins._doControlImpl,
+  _genMarkupImpl: function(idSpaceSoFar, gen, events) {
     var ret = '<div id="';
     ret += idSpaceSoFar;
     ret += '" style="display:inherit">';
@@ -1537,18 +1536,18 @@ function _makeDomContainerComponent(tag, optionalTagTextPar, pre, post, headText
    * target and a method to invoke from prototype). The reason why we always
    * reregister the handlers, is that someone may have specified a handler that
    * traps some intermediate variable in it's closure and data is out of sync:
-   * var stateMember = this.model.stateMember;
+   * var stateMember = this.state.stateMember;
    * var b = {
    *   onClick: function() { alert(stateMember); }
    * }.Button()
-   * In the projecting api, if someone updates this.model.stateMember, the only
+   * In the projecting api, if someone updates this.state.stateMember, the only
    * way for that handler to always alert the real stateMember is to reproject
    * and retrap the latest value in it's closure. Requiring class method handles
    * gets around this because object (as in OO) are really just 'well
    * understood' closures and can accomplish redirection that is never stale
    * through the 'this' keyword (because that's your only option).
    *
-   * #todocontrol: when a updateModel happens we refresh everything under the
+   * #todocontrol: when a updateState happens we refresh everything under the
    * component that reprojects. I've experimented with various ways of detecting
    * which parts of the component tree are dirty and traversing only those
    * paths, but each of those solutions works well in a subset of the cases. The
