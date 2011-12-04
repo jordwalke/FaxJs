@@ -1,34 +1,154 @@
-# FaxJs - Javascript Ui Framework
+# FaxJs - Javascript User Interface Toolkit
 
-##  FaxJs is a javascript Ui framework that focuses on:
-* **Declarative** - The code *looks* like the UI itself. Just tell FaxJs what you want, and it figures out the details. (using a JSON style description).
-* **Componentization** - Defining reusable ui components
-* **Small Code Size** - Quick downloads and rapid development.
-* **Rendering performance:** FaxJs uses string concatenation to generate markup, and top level event delegation to handle events - but you don't have to worry about any of that. You just tell the FaxJs what you want to construct and it figures out the details.
-* **Pure Javascript Api:** You describe the interface, how to perform updates, even the stylesheets in **javascript**.
-* **Markup generation completely separated from Event system** - FaxJs can render your app on the server. That means you can take advantage of very fast server rendering. But you won't have to rewrite your code to make it happen. It's all behind the scenes - you just write the widgets.
+
+<table cellspacing=0 cellpadding=0 border-style=none border-width=0>
+
+<tr>
+<td border-style=none border-width=0>
+<img style="float:right;" src="https://github.com/jordow/FaxJs/raw/gh-pages/images/FaxJsLogo.png"/>
+</td>
+<td>
+</ul>
+
+<ul>
+  <li> <h3>Seamless Client Server Rendering</h3><ul><li>Write once, render anywhere - client or server</li></ul></li>
+  <li> <h3>Reactive</h3><ul><li>Views are automatically updated on state changes - no bindings necessary </li></ul></li>
+  <li> <h3>Performant</h3><ul><li>Fast rendering using string concatenation, small code size </li></ul></li>
+  <li> <h3>Structural</h3><ul><li>High level components, functionally defined, declarative views</li></ul></li>
+</ul>
+</td>
+</tr>
+
+</table>
 <br>
+### Get Started Now:
+
+**1. Clone or download FaxJs: Save it anywhere you like.**
+
+        git clone git://github.com/jordow/FaxJs.git ~/Desktop/FaxJs
+        
+**2. Create a new project: Make a directory with the name of your project ("TestProject"). Execute createNewProjectInCurrentDir.sh from within it.**
+
+        mkdir ~/TestProject && cd ~/TestProject && ~/Desktop/FaxJs/createNewProjectInCurrentDir.sh
+        
+**3. Simply start the web server. See your web app in the browser.**
+
+        ./runBuild.sh        # now visit http://localhost:8080/
+
+<table cellspacing=0 cellpadding=0 border-style=none border-width=0>
+  <tr>
+    <td width=50%>
+      <img src="https://github.com/jordow/FaxJs/raw/gh-pages/images/newProjectScreenshot.png" />
+    </td>
+    <td border-style=none border-width=0>
+        <p> The project that you created is completely self contained. It contains all of the Fax toolkit libraries, build scripts, and test server to run your app. The original download/clone of FaxJs is only needed to create new projects because the project creator script copies all Fax libraries into your new project every time. </p>
+
+    </td>
+  </tr>
+</table>
+
+### Let's Start Hacking!
+
+Open up `./lib/TestProjectMain/TestProjectMain.js` and we'll discover how to create Ui modules.
+
+<b>First let's take a look at `MainComponent`.</b>
+
+```javascript
+TestProjectMain.MainComponent = {
+  project : function() {
+    return {
+      firstPerson: {
+        name: 'Joe Johnson', age: 31,
+        interests: 'hacking, eating, sleeping'
+      }.PersonDisplayer(),
+
+      secondPerson: {
+        name: 'Sally Smith', age: 29,
+        interests: 'biking, cooking swiming'
+      }.PersonDisplayer(),
+
+      thirdPerson: {
+        name: 'Greg Winston', age: 25,
+        interests: 'design and technology'
+      }.PersonDisplayer()
+    }.Div();
+  }
+};
+```
+
+`TestProjectMain.MainComponent` is the entry point of our app (because index.html says so). `TestProjectMain.MainComponent` has a single method inside of it called `project`. `project` (as in "projector") describes the structure of your component. `project` is expected to be very inteligent. The system expects that `project` will *always* be able to answer the question: "Hey component, what do you look like *right now* ?" In this case, our component is *always* composed of three PersonDisplayer components with hard-coded names, ages, and interests. Thre three PersonDisplayer components are contained within a div, and each PersonDisplayer instance is given properties name/age/interests.
+An interesting thing to note, is that each PersonDisplayer instance inside of the div is given a key (firstPerson,secondPerson,thirdPerson). They aren't used yet, but for now they help readability.
+Also, the PersonDisplayer is described by a *tail constructor*. (Tail constructors are enabled by a call to Fax.using()).
+But what *is* a PersonDisplayer? We haven't yet seen the definition.
+<br>
+<b>Look further down in the file and you can see where `PersonDisplayer` is defined.</b>
+
+```javascript
+TestProjectMain.PersonDisplayer = {
+  project : function() {
+    return {
+      classSet: { personDisplayerContainer: true},
+
+      titleDiv: {
+        classSet: { personNameTitle: true },
+        content: this.props.name
+      }.Div(),
+
+      nestedAgeDiv: {
+        content: 'Interests: ' + this.props.interests
+      }.Div(),
+
+      ageDiv: {
+        content: 'Age: ' + this.props.age
+      }.Div()
+    }.Div();
+  }
+};
+```
+
+Just like with our main component, a `PersonDisplayer` has that super important method called `project`. But there's a couple of new concepts here that we haven't yet seen.
+
+1. The outer most div has a `classSet` property. This is just a way to describe a set of css classes.
+2. You'll notice references to `this.props`. You'll also notice that the things inside of `this.props` (name/interests/age) look very much like the things set on each instance of `PersonDisplayer` inside of our `MainComponent`.
+When someone instantiates a component, the properties set on it become `this.props` inside of the instantiated component's `project` method.
 
 <br>
-# Project Manager:
-Now included is a project manager that will create an entire FaxJs project by running a single script. Your new project will be completely self contained, contain all dependencies and won't rely on any other libraries being installed (except node.js of course).
-The project that it creates, is self contained, and will include a simple server to run your project. You can easily post your project on github or share it, and users will be able to fire up your project by running a single script 'runBuild.sh'.
+So far you've seen how components can instantiate other components and provide properties to each other. The only two things left to cover is how a component can be statefull, instead of just reacting to properties set on it, and how a component cna respond to user events. These will be covered further down in this README. For now, let's take a look at the project structure.
+
+<br>
+### Project Structure:
+Look at `ProjectConfig.js` in your project, and you'll see the set of project modules in your project:
+
+```javascript
+projectModules: {
+  TestProjectMain: {    // The name of this object key must match the folder name in ./lib
+    description: "Main module for project TestProject",
+    main: "./TestProjectMain.js"
+  },
+  FaxUi: {
+    description : "FaxUi Toolkit Core",
+    main        : "./FaxUi.js"
+  },
+  Fax: {
+    description : "Fax Toolkit Core",
+    main        : "./Fax.js"
+  }
+}
+```
+
+Your new app has three modules. Your main project module, `Fax` and `FaxUi`. For every module in the `ProjectConfig` there must be a module in `./lib` in a folder by the same name. If you look in `./lib` you'll see that your project is valid because it has a folder for `Fax`, `FaxUi`, and `TestProjectMain`.
+The way you add new modules to your project is by adding a new entry in the ProjectConfig and creating new folders in `./lib` matching the naming conventions of the others. (Ignore any package.json files - you won't need to worry about those)
+
+<br>
+### Building:
+When you execute `./runBuild` the FaxJs project build system uses the project config in conjunction with <a href='https://github.com/tobie/modulr-node'>modulr</a> to build all of your libraries. It starts with the `projectMainModule` from `ProjectConfig.js` and uses modulr to determine the entire set of dependencies from the ProjectConfig. Modulr packages all of them into a single monolithic js file that `index.html` includes. But before we delegate to modulr, the FaxJs build system performs some AST code transformations on the javascript to make it more performant and automatically generate css from javascript files.
+In addition to all of this, `runBuild.sh` continuously performs this process when it detects changes to files in the project. Meanwhile, it runs a web server on port 8080 that servers the most recently built set of files.
+
+<b>The important thing to remember, is to execute `runBuild.sh` and it will continuously package and optimize your code and serve it on port 8080.<b>
 
 
 <br>
-##Demo App:
-Here is a simple <a href='http://jordow.github.com/FaxJs/'>Demo App</a> built with FaxJs.
-You can drag and resize the shapes on that layout designer interactively. There
-are two tools in the upper right hand of the tool box, a pointer/sizer and a
-painter with which you can drop shapes onto the designer panel. (Though FaxJs is designed for
-all browsers, this particular app doesn't work well in IE. Try it in Chrome/Safari/FF.
-
-<a href='http://jordow.github.com/FaxJs/'>
-![Demo Image](https://github.com/jordow/FaxJs/raw/998154f91ad6dd5d8c43bb596b58c4c413345157/demo_screenshot.png)
-</a>
-
-<br>
-## A very simple example:
+## A simple example of statefullness and events in a component:
 We'll make a button wrapped inside of a containing div. The button will stretch to the size of it's container. When we click the inner button, we'll make the outer container change width. The button will, of course, stretch to fit it's container.
 
 ```javascript
@@ -38,7 +158,7 @@ var F = require('Fax'),
     Demo = {};
 
 
-// Allow use of Divs/Spans/etc.
+// Allow use of Divs/Spans/etc tail constructor
 F.using(FaxUi);
 
 Demo.StretchyButton = {
@@ -59,7 +179,7 @@ Demo.StretchyButton = {
         width: this.model.theContainerWidth
       },
       innerButton: {
-        clss: 'someClassFromCss',
+        classSet: {someClassFromCss: true},
         onClick: this.stretchyButtonClicked.bind(this)
       }.Button()
     }.Div();
@@ -90,54 +210,21 @@ What you get by calling F.ComponentizeAll(Demo):
 * No need to declare getters and setters for attributes - it's all just Plain 'Ol Javascript.
 
 
+
 <br>
-<br>
-## Get started  (One click install):
+##Demo App:
+Here is a simple <a href='http://jordow.github.com/FaxJs/'>Demo App</a> built with FaxJs.
+You can drag and resize the shapes on that layout designer interactively. There
+are two tools in the upper right hand of the tool box, a pointer/sizer and a
+painter with which you can drop shapes onto the designer panel. (Though FaxJs is designed for
+all browsers, this particular app doesn't work well in IE. Try it in Chrome/Safari/FF.
 
-If you just want to get a feel for the toolkit and try a couple examples, this should be enough for you to play around.
-
-#### 1. Simply download the <a href='https://github.com/jordow/FaxJs/blob/gh-pages/EasySetup_JustOpenMeAndStartHacking.zip?raw=true'>One Click Install</a>
-
-#### 2. index.html runs the demo app. Start coding in the script tag.
-
-#### 3. Try creating your own component and mount it "as a top level" component as is done with the demo app, replacing the demo app with your own!
+<a href='http://jordow.github.com/FaxJs/'>
+![Demo Image](https://github.com/jordow/FaxJs/raw/998154f91ad6dd5d8c43bb596b58c4c413345157/demo_screenshot.png)
+</a>
 
 
-## Get started  (nodejs auto builder, optimizer, and development server):
-
-#### 1. Make sure you have node.js and npm installed and can run node/npm by
-executing:
-         node someFile.js
-         npm list
-         
-
-#### 2. Download FaxJs and extract anywhere.
-
-        unzip whatverFileYouNamedThisProjectAs.zip
-        
-#### 3. Execute the setup script which will setup the npm links between all the
-packages in FaxJs, using purely npm.
-
-  If you have node <= .5
-
-        ./setupEnvironment.sh
-        
-  If you have node > .5
-
-        ./setupEnvironmentIfNodeLaterThanFive.sh
-        
-
-#### 4. Run the server and point your browser at localhost:8080/demo.html
-
-        ./runServer.sh
-        
-This starts up a development server that serves static files directly off of your
-disk. This is only for development purposes. When you deploy, copy over the built
-files into your standard static file deployment method. The server provided in
-FaxJs is not meant to be ran as a public server.
-        
-
-## Additional features:
+## FaxJs Additional features:
 
 ### Optional server side rendering:
 The reason why FaxJs uses top level event delegation for the eventing system, is so
