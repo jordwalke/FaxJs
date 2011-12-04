@@ -10,6 +10,12 @@
 <br>
 
 <br>
+# Project Manager:
+Now included is a project manager that will create an entire FaxJs project by running a single script. Your new project will be completely self contained, contain all dependencies and won't rely on any other libraries being installed (except node.js of course).
+The project that it creates, is self contained, and will include a simple server to run your project. You can easily post your project on github or share it, and users will be able to fire up your project by running a single script 'runBuild.sh'.
+
+
+<br>
 ##Demo App:
 Here is a simple <a href='http://jordow.github.com/FaxJs/'>Demo App</a>.
 You can drag and resize the shapes on that layout designer interactively. There
