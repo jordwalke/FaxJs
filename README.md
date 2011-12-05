@@ -143,15 +143,23 @@ The way you add new modules to your project is by adding a new entry in the Proj
 
 <br>
 ### Building:
-When you execute `./runBuild` the FaxJs project build system uses the project config in conjunction with <a href='https://github.com/tobie/modulr-node'>modulr</a> to build all of your libraries. It starts with the `projectMainModule` from `ProjectConfig.js` and uses modulr to determine the entire set of dependencies from the ProjectConfig. Modulr packages all of them into a single monolithic js file that `index.html` includes. But before we delegate to modulr, the FaxJs build system performs some AST code transformations on the javascript to make it more performant and automatically generate css from javascript files.
-In addition to all of this, `runBuild.sh` continuously performs this process when it detects changes to files in the project. Meanwhile, it runs a web server on port 8080 that servers the most recently built set of files.
+<b>Just execute `runBuild.sh` and it will continually do the following:</b>
 
-<b>The important thing to remember, is to execute `runBuild.sh` and it will continuously package and optimize your code and serve it on port 8080.<b>
+1. Continually package and optimize your javascript and serve it on port 8080.
+2. Generate css files from FaxJs javascript modules that have `styleExports`
+
+<br>
+When you execute `./runBuild` the FaxJs project build system uses the project config in conjunction with <a href='https://github.com/tobie/modulr-node'>modulr</a> to build all of your libraries. It starts with the `projectMainModule` from `ProjectConfig.js` and uses modulr to determine the entire set of dependencies from the ProjectConfig. Modulr packages all of them into a single monolithic js file that `index.html` includes. But before `runServer.sh` tells modulr to package your files, **behind the scenes** it calls the FaxJs build and optimization system to perform some AST code transformations on the javascript, and automatically generates css from your javascript files.
+`runBuild.sh` also watches for changes and repeats the process for you as often as needed, always serving the most recent build on port 8080.
 
 
 <br>
 ## A simple example of statefullness and events in a component:
+
 We'll make a button wrapped inside of a containing div. The button will stretch to the size of it's container. When we click the inner button, we'll make the outer container change width. The button will, of course, stretch to fit it's container.
+
+        ./lib/StretchyButton/StretchyButton.js   // Also make sure to add an entry in ProjectConfig.js
+        
 
 ```javascript
 // Just set up our environment a bit.
@@ -165,20 +173,23 @@ F.using(FaxUi);
 
 Demo.StretchyButton = {
   // Initialize state for this component.
-  initModel: {
+  initState: {
     theContainerWidth: '200px'
   },
 
   // Will be used to handle an event.
   stretchyButtonClicked: function() {
-    this.updateModel({theContainerWidth: '500px'});
+    this.updateState({
+      theContainerWidth: '500px'
+    });
   },
 
-  // Returns the view as a function of state - an invariant FaxJs upholds
+  // Returns the view as a function of state/properties. Remember, your job is to define
+  // a function that answers the question: "What do you look like right <i> now </i>
   project : function() {
     return {
       style: {
-        width: this.model.theContainerWidth
+        width: this.state.theContainerWidth
       },
       innerButton: {
         classSet: {someClassFromCss: true},
@@ -188,23 +199,21 @@ Demo.StretchyButton = {
   }
 };
 
-// Turns all members of Demo (1) into components
+// Turns all (one) members of Demo into reusable components
 module.exports = F.ComponentizeAll(Demo);
 
 ```
 
 ##Explanation of example:
 
-* The **initModel** method describes the component's initial state.
-* The **project** method defines how the view should be projected from an arbitrary model.
-  The 'project' method describes an invariant that the system upholds. You don't need
-  separate creation/updating methods. Just tell the system what your component *is*,
-  and that will be enforced automatically. Think of your your view, as a function of
-  your model, and the project method being what defines that mapping.
-* The Button's **onClick** method executes an update to this component's model. The
-  containing Div's width will automatically be changed, because the invariant 
-  *project()* states that the outer container's width should always be equal to what is
-  stored in the model.
+* The `initState` method describes the component's initial state.
+* The `project` method answers the question: "What do you look like right *now*?". In other words, you describe the structure of your component for an *arbitrary* state/property combination.
+* You don't need separate methods for creation/updating. Just tell FaxJs what your component *always is* and FaxJs take care of creating/updating the DOM when we detect changes.
+* FaxJs will ensure that your component **reacts** to changes in properties/state, by asking your component again: "What do you look like *now*?"
+* The Button's `onClick` method executes an update to this component's state. The
+  containing `Div`'s width will automatically be changed, because the invariant 
+  `project()` states that the outer container's width should always be equal to what is
+  stored in `this.state.theContainerWidth`.
  
 What you get by calling F.ComponentizeAll(Demo):
 
@@ -222,7 +231,7 @@ painter with which you can drop shapes onto the designer panel. (Though FaxJs is
 all browsers, this particular app doesn't work well in IE. Try it in Chrome/Safari/FF.
 
 <a href='http://jordow.github.com/FaxJs/'>
-![Demo Image](https://github.com/jordow/FaxJs/raw/998154f91ad6dd5d8c43bb596b58c4c413345157/demo_screenshot.png)
+![Demo Image](https://github.com/jordow/FaxJs/raw/gh-pages/images/DemoScreenshot.png)
 </a>
 
 
