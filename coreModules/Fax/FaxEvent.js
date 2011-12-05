@@ -1,6 +1,8 @@
 var FEnv = require('./FEnv'),
     FaxUtils = require('./FaxUtils');
 
+// Forward Declaration
+var FaxEvent;
 
 
 /**
@@ -110,8 +112,46 @@ var FaxEvent = {
    * modules from a local cache. */
   abstractEventListenersById : {},
 
-  /* To be populated */
-  abstractHandlerNames : typeof FaxEvent === 'object' ? FaxEvent.abstractHandlerNames : {},
+  /**
+   * These are constructed this way so that extreme key compression can occur.
+   * Each handler takes the form handlerBaseNameMode where Mode is one of:
+   * 'EmptyString': The default - events bubble, children have no way to stop
+   * them. 'Direct': Only if the handler belong to the deepest element in the
+   * managed id space that is being interacted with.  'FirstHandler': Only if no
+   * deeper element has handled this event.  You may notice that the abstract
+   * event types overlap with the top level event types. An abstract event is an
+   * occurrence of interest which may or may not correspond to a top level
+   * event. We may accept a top level event and potentially extract from it an
+   * abstract event. There may be some top level event types which have no
+   * corresponding abstract event type.
+   */
+  abstractHandlerNames : {
+    onScroll: 1, onTouchTap: 1, onTouchEnd: 1, onTouchMove: 1, onTouchStart: 1,
+    onQuantizeTouchDrag: 1, onTouchDragDone: 1, onClick: 1, onDragDone: 1,
+    onQuantizeDrag: 1, onMouseWheel: 1, onKeyUp: 1, onKeyDown: 1, onKeyPress: 1,
+    onFocus: 1, onBlur: 1, onMouseIn: 1, onMouseOut: 1, onMouseDown: 1,
+    onMouseUp: 1,
+
+    /* Direct handlers */
+    onScrollDirect: 1, onTouchTapDirect: 1, onTouchEndDirect: 1,
+    onTouchMoveDirect: 1, onTouchStartDirect: 1, onQuantizeTouchDragDirect: 1,
+    onTouchDragDoneDirect: 1, onClickDirect: 1, onDragDoneDirect: 1,
+    onQuantizeDragDirect: 1, onMouseWheelDirect: 1, onKeyUpDirect: 1,
+    onKeyDownDirect: 1, onKeyPressDirect: 1, onFocusDirect: 1, onBlurDirect: 1,
+    onMouseInDirect: 1, onMouseOutDirect: 1, onMouseDownDirect: 1,
+    onMouseUpDirect: 1,
+
+    /* First handlers */
+    onScrollFirstHandler: 1, onTouchTapFirstHandler: 1,
+    onTouchEndFirstHandler: 1, onTouchMoveFirstHandler: 1,
+    onTouchStartFirstHandler: 1, onQuantizeTouchDragFirstHandler: 1,
+    onTouchDragDoneFirstHandler: 1, onClickFirstHandler: 1,
+    onDragDoneFirstHandler: 1, onQuantizeDragFirstHandler: 1,
+    onMouseWheelFirstHandler: 1, onKeyUpFirstHandler: 1,
+    onKeyDownFirstHandler: 1, onKeyPressFirstHandler: 1, onFocusFirstHandler: 1,
+    onBlurFirstHandler: 1, onMouseInFirstHandler: 1, onMouseOutFirstHandler: 1,
+    onMouseDownFirstHandler: 1, onMouseUpFirstHandler: 1
+  },
 
   /**
    * The top level method that kicks off rendering to the dom should call this.
@@ -703,34 +743,6 @@ var FaxEvent = {
     FaxEvent.lastTouchedDownAtY = 0;
   }
 };
-
-/**
- * empty string: Default - events bubble, children have no way to stop them.
- * 'Direct': Only if the handler belong to the deepest element in the managed id
- *           space that is being interacted with.
- * 'FirstHandler': Only if no deeper element has handled this event.
- * You may notice that the abstract event types overlap with the top level
- * event types. An abstract event is an occurrence of interest which may or may
- * not correspond to a top level event. We may accept a top level event and
- * potentially extract from it an abstract event. There may be some top level
- * event types which have no corresponding abstract event type.
- */
-var _eventModes = ['', 'Direct', 'FirstHandler' ];
-var _abstractHandlerBaseNames =
-['onScroll', 'onTouchTap', 'onTouchEnd', 'onTouchMove', 'onTouchStart', 'onQuantizeTouchDrag',
- 'onTouchDragDone', 'onClick', 'onDragDone', 'onQuantizeDrag', 'onMouseWheel',
- 'onScroll', 'onKeyUp', 'onKeyDown', 'onKeyPress', 'onFocus', 'onBlur',
- 'onMouseIn', 'onMouseOut', 'onMouseDown', 'onMouseUp'];
-
-
-var ei, hi;
-for (ei = 0; ei < _eventModes.length; ei++) {
-  for (hi = 0; hi < _abstractHandlerBaseNames.length; hi++) {
-    FaxEvent.abstractHandlerNames[
-      _abstractHandlerBaseNames[hi] + _eventModes[ei]] = true;
-  }
-}
-
 
 
 /**
