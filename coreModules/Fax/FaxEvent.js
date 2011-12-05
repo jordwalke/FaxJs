@@ -8,7 +8,16 @@ var FaxEvent;
 /**
  * Helper class. Provides a nicer api for a conceptual 'event'. Eliminates some
  * cross-browser inconsistencies. In the future, continue to place x-browser
- * event normalization here if possible, and it applies to all events.
+ * event normalization here if possible, and it applies to all events. Gradually
+ * expand this out to become a very useful normalized object.
+ * Note, an abstract event should probably always just have an abstractEventType
+ * that is a base type (not include any 'Direct' or 'FirstHandler' concept.)
+ * That makes this a bit awkward to reason about, as there's nothing in the apis
+ * that will enforce that. Just something to think about.
+ * It's clear that an "Abstract" event is different than an abstract handler
+ * type. An abstract handler type describes which abstract events to listen for,
+ * and under which contexts those abstract events apply to the listener (which
+ * mode, that is (Direct etc.)
  */
 function AbstractEvent(abstractEventType,
                        originatingTopLevelEventType,
@@ -55,7 +64,7 @@ function _constructAbstractEventDirectlyFromTopLevel(topLevelEventType,
   }
 
   return new AbstractEvent(
-      FaxEvent.topLevelEventTypesDirectlyMappedToAbstractListenerName[
+      FaxEvent.topLevelEventTypesUsableAsAbstractHandlerType[
         topLevelEventType],
       topLevelEventType,
       target,
@@ -63,6 +72,35 @@ function _constructAbstractEventDirectlyFromTopLevel(topLevelEventType,
       data);
 }
 
+var abstractHandlerTypes = {
+  onScroll: 1, onTouchTap: 2, onTouchEnd: 3, onTouchMove: 4, onTouchStart: 5,
+  onQuantizeTouchDrag: 6, onTouchDragDone: 7, onClick: 8, onDragDone: 9,
+  onQuantizeDrag: 10, onMouseWheel: 11, onKeyUp: 12, onKeyDown: 13,
+  onKeyPress: 14, onFocus: 15, onBlur: 16, onMouseIn: 17, onMouseOut: 18,
+  onMouseDown: 19, onMouseUp: 20,
+
+  /* Direct handlers */
+  onScrollDirect: 101, onTouchTapDirect: 102, onTouchEndDirect: 103,
+  onTouchMoveDirect: 104, onTouchStartDirect: 105,
+  onQuantizeTouchDragDirect: 106, onTouchDragDoneDirect: 107,
+  onClickDirect: 108, onDragDoneDirect: 109, onQuantizeDragDirect: 110,
+  onMouseWheelDirect: 111, onKeyUpDirect: 112, onKeyDownDirect: 113,
+  onKeyPressDirect: 114, onFocusDirect: 115, onBlurDirect: 116,
+  onMouseInDirect: 117, onMouseOutDirect: 118, onMouseDownDirect: 119,
+  onMouseUpDirect: 120,
+
+  /* First handlers */
+  onScrollFirstHandler: 201, onTouchTapFirstHandler: 202,
+  onTouchEndFirstHandler: 203, onTouchMoveFirstHandler: 204,
+  onTouchStartFirstHandler: 205, onQuantizeTouchDragFirstHandler: 206,
+  onTouchDragDoneFirstHandler: 207, onClickFirstHandler: 208,
+  onDragDoneFirstHandler: 209, onQuantizeDragFirstHandler: 210,
+  onMouseWheelFirstHandler: 211, onKeyUpFirstHandler: 212,
+  onKeyDownFirstHandler: 213, onKeyPressFirstHandler: 214,
+  onFocusFirstHandler: 215, onBlurFirstHandler: 216,
+  onMouseInFirstHandler: 217, onMouseOutFirstHandler: 218,
+  onMouseDownFirstHandler: 219, onMouseUpFirstHandler: 220
+};
 
 
 
@@ -113,44 +151,29 @@ var FaxEvent = {
   abstractEventListenersById : {},
 
   /**
-   * These are constructed this way so that extreme key compression can occur.
-   * Each handler takes the form handlerBaseNameMode where Mode is one of:
-   * 'EmptyString': The default - events bubble, children have no way to stop
-   * them. 'Direct': Only if the handler belong to the deepest element in the
-   * managed id space that is being interacted with.  'FirstHandler': Only if no
-   * deeper element has handled this event.  You may notice that the abstract
-   * event types overlap with the top level event types. An abstract event is an
-   * occurrence of interest which may or may not correspond to a top level
-   * event. We may accept a top level event and potentially extract from it an
-   * abstract event. There may be some top level event types which have no
-   * corresponding abstract event type.
+   * Key compression friendly event handler types. You can refer by key name,
+   * and that will get minified. But we need a predictable schema to refer to
+   * them at the system level because of the way the code is designed. It takes
+   * a base name and needs to dynamically infer the associated Direct/First
+   * Handler version as well. The way we'll do it for now, is give each base
+   * type a number between 1-99 and add a "hundreds offset" for each "mode" of
+   * handler (Direct/First Handler).
+   * Long term solution make an algorithm intrinsically resilient to key
+   * compression.
+   *
+   * Keys will be minified, values are identities of those event handlers and
+   * will not be minified. We can make assumptions about the values and use
+   * *those* as the actual types.
    */
-  abstractHandlerNames : {
-    onScroll: 1, onTouchTap: 1, onTouchEnd: 1, onTouchMove: 1, onTouchStart: 1,
-    onQuantizeTouchDrag: 1, onTouchDragDone: 1, onClick: 1, onDragDone: 1,
-    onQuantizeDrag: 1, onMouseWheel: 1, onKeyUp: 1, onKeyDown: 1, onKeyPress: 1,
-    onFocus: 1, onBlur: 1, onMouseIn: 1, onMouseOut: 1, onMouseDown: 1,
-    onMouseUp: 1,
+  abstractHandlerTypes : abstractHandlerTypes,
 
-    /* Direct handlers */
-    onScrollDirect: 1, onTouchTapDirect: 1, onTouchEndDirect: 1,
-    onTouchMoveDirect: 1, onTouchStartDirect: 1, onQuantizeTouchDragDirect: 1,
-    onTouchDragDoneDirect: 1, onClickDirect: 1, onDragDoneDirect: 1,
-    onQuantizeDragDirect: 1, onMouseWheelDirect: 1, onKeyUpDirect: 1,
-    onKeyDownDirect: 1, onKeyPressDirect: 1, onFocusDirect: 1, onBlurDirect: 1,
-    onMouseInDirect: 1, onMouseOutDirect: 1, onMouseDownDirect: 1,
-    onMouseUpDirect: 1,
-
-    /* First handlers */
-    onScrollFirstHandler: 1, onTouchTapFirstHandler: 1,
-    onTouchEndFirstHandler: 1, onTouchMoveFirstHandler: 1,
-    onTouchStartFirstHandler: 1, onQuantizeTouchDragFirstHandler: 1,
-    onTouchDragDoneFirstHandler: 1, onClickFirstHandler: 1,
-    onDragDoneFirstHandler: 1, onQuantizeDragFirstHandler: 1,
-    onMouseWheelFirstHandler: 1, onKeyUpFirstHandler: 1,
-    onKeyDownFirstHandler: 1, onKeyPressFirstHandler: 1, onFocusFirstHandler: 1,
-    onBlurFirstHandler: 1, onMouseInFirstHandler: 1, onMouseOutFirstHandler: 1,
-    onMouseDownFirstHandler: 1, onMouseUpFirstHandler: 1
+  /**
+   * The various event modes and their respective offsets.
+   */
+  EventModes: {
+    Default: 0,
+    Direct: 100,
+    FirstHandler: 200
   },
 
   /**
@@ -166,16 +189,16 @@ var FaxEvent = {
   /** Puts a particular event listener on the queue.  */
   enqueueEventReg : function (id, listener) {
     FaxEvent.abstractEventListenersById[
-        id + "@" + listener.listenForAbstractHandlerName] = listener;
+        id + "@" + listener.listenForAbstractHandlerType] = listener;
   },
 
   /**
    * Also performs the mapping from handler name to abstract event name.
    */
   registerHandlerByName : function(domNodeId, propName, handler) {
-    if(FaxEvent.abstractHandlerNames[propName]) {
+    if(FaxEvent.abstractHandlerTypes[propName]) {
       FaxEvent.enqueueEventReg(domNodeId, {
-        listenForAbstractHandlerName: propName,
+        listenForAbstractHandlerType: FaxEvent.abstractHandlerTypes[propName],
         callThis: handler
       });
     }
@@ -186,14 +209,14 @@ var FaxEvent = {
    */
   registerHandlers : function(domNodeId, props) {
     var handlerName;
-    for (handlerName in FaxEvent.abstractHandlerNames) {
-      if (!FaxEvent.abstractHandlerNames.hasOwnProperty(handlerName)) {
+    for (handlerName in FaxEvent.abstractHandlerTypes) {
+      if (!FaxEvent.abstractHandlerTypes.hasOwnProperty(handlerName)) {
         continue;
       }
       var handler = props[handlerName];
       if(handler) {
         FaxEvent.enqueueEventReg(domNodeId, {
-            listenForAbstractHandlerName: handlerName,
+            listenForAbstractHandlerType: FaxEvent.abstractHandlerTypes[handlerName],
             callThis: handler
         });
       }
@@ -260,25 +283,41 @@ var FaxEvent = {
   /**
    * In terms of event base names (not including 'Direct' etc.)
    */
-  topLevelEventTypesDirectlyMappedToAbstractListenerName: {
-    topLevelClick: 'onClick',
-    topLevelMouseWheel: 'onMouseWheel',
-    topLevelScroll: 'onScroll',
-    topLevelKeyUp: 'onKeyUp',
-    topLevelKeyDown: 'onKeyDown',
-    topLevelKeyPress: 'onKeyPress',
-    topLevelFocus: 'onFocus',
-    topLevelBlur: 'onBlur',
-    topLevelMouseDown: 'onMouseDown',
-    topLevelTouchStart: 'onTouchStart',
-    topLevelTouchEnd: 'onTouchEnd',
-    topLevelTouchMove: 'onTouchMove',
-    topLevelMouseUp: 'onMouseUp'
+  topLevelEventTypesUsableAsAbstractHandlerType: {
+    topLevelClick: abstractHandlerTypes.onClick,
+    topLevelMouseWheel: abstractHandlerTypes.onMouseWheel,
+    topLevelScroll: abstractHandlerTypes.onScroll,
+    topLevelKeyUp: abstractHandlerTypes.onKeyUp,
+    topLevelKeyDown: abstractHandlerTypes.onKeyDown,
+    topLevelKeyPress: abstractHandlerTypes.onKeyPress,
+    topLevelFocus: abstractHandlerTypes.onFocus,
+    topLevelBlur: abstractHandlerTypes.onBlur,
+    topLevelMouseDown: abstractHandlerTypes.onMouseDown,
+    topLevelTouchStart: abstractHandlerTypes.onTouchStart,
+    topLevelTouchEnd: abstractHandlerTypes.onTouchEnd,
+    topLevelTouchMove: abstractHandlerTypes.onTouchMove,
+    topLevelMouseUp: abstractHandlerTypes.onMouseUp
   },
 
-  topLevelEventTypeHasCorrespondingAbstractType: function(topLevelEventType) {
-    return !!FaxEvent.topLevelEventTypesDirectlyMappedToAbstractListenerName[
+  topLevelEventTypeIsUsableAsAbstract: function(topLevelEventType) {
+    return !!FaxEvent.topLevelEventTypesUsableAsAbstractHandlerType[
           topLevelEventType];
+  },
+
+  dispatchAllAbstractEventsToListeners: function (id, mode, abstractEvents) {
+    var i, foundOne = false, maybeEventListener = null, abstractEvent,
+        abstractEventListenersById = FaxEvent.abstractEventListenersById;
+    for (i=0; i < abstractEvents.length; i=i+1) {
+      abstractEvent = abstractEvents[i];
+      maybeEventListener = abstractEventListenersById[
+        id + '@' + (abstractEvent.abstractEventType + mode)
+      ];
+      if (maybeEventListener) {
+        maybeEventListener.callThis(abstractEvent, abstractEvent.nativeEvent);
+        foundOne = true;
+      }
+    }
+    return foundOne;
   },
 
   /**
@@ -307,11 +346,13 @@ var FaxEvent = {
                                       nativeEvent,
                                       targ) {
   
-    var abstractEventListenersById = FaxEvent.abstractEventListenersById,
-        mouseDownDragDesc = nextId + '@onQuantizeDrag' + mode,
-        touchStartDragDesc = nextId + '@onQuantizeTouchDrag' + mode,
-        mouseDownDragDoneDesc = nextId + '@onDragDone' + mode,
-        touchStartDragDoneDesc = nextId + '@onTouchDragDone' + mode,
+    var nextIdAt = nextId + '@',
+        abstractHandlerTypes = FaxEvent.abstractHandlerTypes,      
+        abstractEventListenersById = FaxEvent.abstractEventListenersById,
+        mouseDownDragDesc = nextIdAt + (abstractHandlerTypes.onQuantizeDrag + mode),
+        touchStartDragDesc = nextIdAt + (abstractHandlerTypes.onQuantizeTouchDrag + mode),
+        mouseDownDragDoneDesc = nextIdAt + (abstractHandlerTypes.onDragDone + mode),
+        touchStartDragDoneDesc = nextIdAt + (abstractHandlerTypes.onTouchDragDone + mode),
         dragDesc = topLevelEventType === 'topLevelMouseDown' ? mouseDownDragDesc :
                    topLevelEventType === 'topLevelTouchStart' ? touchStartDragDesc :
                    false, // in this case you won't be using it anyways.
@@ -322,7 +363,11 @@ var FaxEvent = {
     var handledLowLevelEventByRegisteringDragListeners,
         handledLowLevelEventByFindingRelevantListeners = false;
     /** Lazily defined when we first need it. */
-    var abstractEvent, globalX, globalY;
+    var abstractEvents = [],
+        newAbstractEvent,
+        globalX,
+        globalY;
+
     if (topLevelEventType === 'topLevelMouseDown' ||
         topLevelEventType === 'topLevelTouchStart') {
 
@@ -333,15 +378,16 @@ var FaxEvent = {
       FaxEvent.lastTouchedDownAtY = globalY;
 
       if (abstractEventListenersById[dragDesc]) {
-        abstractEvent = _constructAbstractEventDirectlyFromTopLevel(
+        newAbstractEvent = _constructAbstractEventDirectlyFromTopLevel(
             topLevelEventType, nativeEvent, targ);
+        abstractEvents.push(newAbstractEvent);
 
         /* even if nothing handles the mouse down, and something handles the
-         * click, we say that anything above this in the dom tree will not be the
-         * first handler, whether or not they're listening for clicks/drags. We
-         * can eventually change that to care about what exactly was handled, but
-         * this is kind of convenient.*/
-        if(!abstractEvent.data.rightMouseButton) {
+         * click, we say that anything above this in the dom tree will not be
+         * the first handler, whether or not they're listening for clicks vs.
+         * drags. We can eventually change that to care about what exactly was
+         * handled, but this is kind of convenient.*/
+        if(!newAbstractEvent.data.rightMouseButton) {
           handledLowLevelEventByRegisteringDragListeners = true;
           FaxEvent.activeDragListenersByListenerDesc[dragDesc] =
               abstractEventListenersById[dragDesc];
@@ -372,8 +418,13 @@ var FaxEvent = {
       if (totalDistanceSinceLastTouchedDown < FaxEvent.TAP_MOVEMENT_THRESHOLD) {
         /* Code below will search for handlers that are interested in this
          * abstract event. */
-        abstractEvent =
-            new AbstractEvent('onTouchTap', topLevelEventType, targ, nativeEvent, {});
+        abstractEvents.push(new AbstractEvent(
+            abstractHandlerTypes.onTouchTap,
+            topLevelEventType,
+            targ,
+            nativeEvent,
+            {})
+        );
       }
     }
 
@@ -382,26 +433,19 @@ var FaxEvent = {
      * might need those same top level event types that we used to call handlers that
      * are 'directly mapped' to those topLevelEventTypes. (such as onTouchStart etc).
      */
-    if (FaxEvent.topLevelEventTypeHasCorrespondingAbstractType(topLevelEventType)) {
+    if (FaxEvent.topLevelEventTypeIsUsableAsAbstract(topLevelEventType)) {
       /**
        * Some abstract events are just simple one-one corresponding event types
        * with top level events.
        */
-      abstractEvent = _constructAbstractEventDirectlyFromTopLevel(
-          topLevelEventType, nativeEvent, targ); 
+      abstractEvents.push(_constructAbstractEventDirectlyFromTopLevel(
+          topLevelEventType, nativeEvent, targ));
     }
 
-    /* We'll take abstractEvent being set to something as a signal that we
-     * should even try to search for handlers of the event. */
-    if (typeof abstractEvent !== 'undefined') {
-      var maybeEventListener = abstractEventListenersById[
-              nextId + "@" + abstractEvent.abstractEventType + mode];
-      if (maybeEventListener) {
-        maybeEventListener.callThis(abstractEvent, nativeEvent);
-        // Also, this may have already been set to true
-        handledLowLevelEventByFindingRelevantListeners = true;
-      }
-    }
+    handledLowLevelEventByFindingRelevantListeners =
+        FaxEvent.dispatchAllAbstractEventsToListeners(
+          nextId, mode, abstractEvents);
+
     return handledLowLevelEventByFindingRelevantListeners ||
            handledLowLevelEventByRegisteringDragListeners;
   },
@@ -575,11 +619,15 @@ var FaxEvent = {
     if (from) {
       i = 0;
       while (traverseId !== commonAncestorId) {
-        maybeEventListener = abstractEventListenersById[traverseId + "@onMouseOut"];
+        maybeEventListener = abstractEventListenersById[
+            traverseId + '@' + FaxEvent.abstractHandlerTypes.onMouseOut
+        ];
         if (maybeEventListener) {
           maybeEventListener.callThis(
-              new AbstractEvent('onMouseOut', topLevelEventType, targ, nativeEvent, {}),
-              targ, nativeEvent);
+            new AbstractEvent(
+                FaxEvent.abstractHandlerTypes.onMouseOut,
+                topLevelEventType, targ, nativeEvent, {}),
+                targ, nativeEvent);
         }
         var oldtrav = traverseId;
         traverseId = traverseId.substr(0, traverseId.lastIndexOf('.'));
@@ -599,10 +647,12 @@ var FaxEvent = {
         traverseId = toId.indexOf('.', traverseId.length +1) === -1 ?
           toId :
           toId.substr(0, (toId.indexOf('.', traverseId.length+1)));
-        maybeEventListener = abstractEventListenersById[traverseId + "@onMouseIn"];
+        maybeEventListener = abstractEventListenersById[
+            traverseId + '@' + FaxEvent.abstractHandlerTypes.onMouseIn];
         if (maybeEventListener) {
           maybeEventListener.callThis(
-              new AbstractEvent('onMouseIn', topLevelEventType, nativeEvent, {}),
+              new AbstractEvent(
+                FaxEvent.abstractHandlerTypes.onMouseIn, topLevelEventType, nativeEvent, {}),
               targ, nativeEvent);
         }
         i++;
@@ -617,7 +667,7 @@ var FaxEvent = {
 
   /**
    * Handles events that are 'movementy', meaning mouse and touch drags, not mouse
-   * in or out events which are more instantaneous in nature occuring at element
+   * in or out events which are more instantaneous in nature occurring at element
    * boundries and thus don't need the same quantization as movementy events.
    * From these top level movementy events we can infer (currently) two higher
    * level events (both drag events) (onQuantizeTouchDrag and onQuantizeDrag)
@@ -664,8 +714,9 @@ var FaxEvent = {
             listener = FaxEvent.activeDragListenersByListenerDesc[dragDesc];
 
         var abstractEvent = new AbstractEvent(
-          topLevelEventType ===
-              'onTouchMove' ? 'onQuantizeTouchDrag' : 'onQuantizeDrag',
+          topLevelEventType === 'topLevelTouchMove' ?
+              abstractHandlerTypes.onQuantizeTouchDrag :
+              abstractHandlerTypes.onQuantizeDrag,
           topLevelEventType,
           targ, nativeEvent, abstractEventData);
         listener.callThis.call(listener.context || null, abstractEvent, nativeEvent);
@@ -710,7 +761,9 @@ var FaxEvent = {
           activeDragDoneListenerForDragDesc =
               FaxEvent.activeDragDoneListenersByListenerDesc[dragDoneDesc];
           var abstractEvent = new AbstractEvent(
-              (topLevelEventType === 'onMouseUp' ? 'onDragDone' : 'onTouchDragDone'),
+              topLevelEventType === 'topLevelMouseUp' ?
+                  abstractHandlerTypes.onDragDone :
+                  abstractHandlerTypes.onTouchDragDone,
               topLevelEventType, targ, nativeEvent, {});
 
           // Todo: pass an abstract event nicely normalized
@@ -897,10 +950,26 @@ FaxEvent.registerTopLevelListeners = function(mountAt, touchInsteadOfMouse) {
  * We test for the most time sensitive events first to get them out of the way
  * (we don't need any additional slow down when dispatching scroll/mousemove
  * events.
+ * There's a couple different ways to handle the events, and we try to get the
+ * most time sensitive out of the way first. The overall approach is that for
+ * any given low level (top level) event type, the system may need to accumulate
+ * state, and/or construct an array of "abstract" event types (which are the
+ * type of events that components can actually listen to.) Some of the time
+ * sensitive handlers (_handleMovementyTopLevelEvent) only try to construct a
+ * single abstractEvent and find a listener for it, but I'd like the entire
+ * process to become unified. It is the way it is now, mostly because it's
+ * relatively fast to do. A really solid abstract event extraction system is
+ * difficult but should look like the following:
+ * Low level events =>
+ *  (plugins defining a query on low level event stream, in addition to
+ *    being able to store/clear global accumulated state)
+ *  => construct an array of inferred abstract events
+ *  => call listeners
+ *  The main problem with this, is that certain events like mouse in/outs need
+ *  (or at least I saw the need for) a unique bubbling process.
  */
 function _handleTopLevel(topLevelEventType, nativeEvent, targ) {
-  var abstractEventListenersById =
-      FaxEvent.abstractEventListenersById, nextId = targ.id;
+  var nextId = targ.id;
   if (topLevelEventType === 'topLevelMouseMove') {
     FaxEvent._handleMovementyTopLevelEvent(topLevelEventType, nativeEvent, targ);
     return;
@@ -942,7 +1011,7 @@ function _handleTopLevel(topLevelEventType, nativeEvent, targ) {
     handledYet = FaxEvent.standardBubblingIteration(
         nextId,
         topLevelEventType,
-        'Direct',
+        FaxEvent.EventModes.Direct,
         nativeEvent,
         targ);
   }
@@ -958,15 +1027,16 @@ function _handleTopLevel(topLevelEventType, nativeEvent, targ) {
       handledYet = FaxEvent.standardBubblingIteration(
           nextId,
           topLevelEventType,
-          'FirstHandler',
+          FaxEvent.EventModes.FirstHandler,
           nativeEvent,
           targ);
     }
     handledYet = FaxEvent.standardBubblingIteration(
       nextId,
       topLevelEventType,
-      '', nativeEvent,
-      targ) || handledYet;
+      FaxEvent.EventModes.Default,
+      nativeEvent,
+      targ) || handledYet; // Important that this || be on the end, not beg
     var lastIndexDot = nextId.lastIndexOf(".");
     // still works even if lastIndexDot is -1
     nextId = nextId.substr(0, lastIndexDot);
@@ -984,7 +1054,8 @@ function _handleTopLevel(topLevelEventType, nativeEvent, targ) {
     FaxEvent._handleLetUppyTopLevelEvent(topLevelEventType, nativeEvent, targ);
     /* We don't return here because the mouse up event might need to be handled
      * in it's own right - _handleLetUppyTopLevelEvent only is used to infer
-     * high level events. But we'll still allow the low level ones as well.*/
+     * very high level events that involve accumulated state(such as drags etc)
+     * but we'll still allow the low level ones as well.*/
   }
 
 }

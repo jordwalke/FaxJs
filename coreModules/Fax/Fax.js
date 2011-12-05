@@ -114,6 +114,12 @@ _Fax.Info = function(str) {
   }
 };
 
+function _assert(val, errorMsg) {
+  if(!val) {
+    throw errorMsg || ERROR_MESSAGES.FAILED_ASSERTION;
+  }
+}
+
 
 function _clone(o) {
  return JSON.parse(JSON.stringify(o));
@@ -509,7 +515,7 @@ _Fax.renderTopLevelComponentAt = function(ProjectionOrProjectionConstructor,
   var callerPassedInProjection = ProjectionOrProjectionConstructor.maker;
   var topLevelCreateData = _Fax.mergeStuff(
         baseTopLevelProps,
-        callerPassedInProjection ? ProjectionOrProjectionConstructor.props : {});
+        callerPassedInProjection ? ProjectionOrProjectionConstructor.props : {}),
       topLevelProjection =
         (callerPassedInProjection ? ProjectionOrProjectionConstructor :
          ProjectionOrProjectionConstructor(topLevelCreateData));
@@ -605,7 +611,7 @@ _Fax.merge = function(one, two) {
  * something supported by the dom, as opposed to a child member.
  */
 var _allNativeTagPropertiesIncludingHandlerNames =
-    _Fax.merge(_allNativeTagAttributes, FaxEvent.abstractHandlerNames);
+    _Fax.merge(_allNativeTagAttributes, FaxEvent.abstractHandlerTypes);
 
 _Fax.mergeThree = function(one, two, three) {
   var ret = {}, aKey, first = one || {}, second = two || {}, third = three || {};
@@ -1797,7 +1803,7 @@ function _makeDomContainerComponent(tag, optionalTagTextPar, pre, post, headText
 
       prop = currentDomProps[propKey];
       if (shouldRegHandlers) {
-        if (FaxEvent.abstractHandlerNames[propKey] && prop) {
+        if (FaxEvent.abstractHandlerTypes[propKey] && prop) {
           FaxEvent.registerHandlerByName(idTreeSoFar, propKey, prop);
         } else if (propKey === 'dynamicHandlers' && prop) {
           FaxEvent.registerHandlers(idTreeSoFar, prop);
@@ -1936,11 +1942,6 @@ var _sure = function(obj, propsArr) {
   }
 };
 
-function _assert(val, errorMsg) {
-  if(!val) {
-    throw errorMsg || ERROR_MESSAGES.FAILED_ASSERTION;
-  }
-}
 
 /**
  * Probably better than prototypical extension because we can reason about
