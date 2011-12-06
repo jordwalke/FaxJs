@@ -120,7 +120,6 @@ function _assert(val, errorMsg) {
   }
 }
 
-
 function _clone(o) {
  return JSON.parse(JSON.stringify(o));
 }
