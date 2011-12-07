@@ -154,7 +154,7 @@ When you execute `./runBuild` the FaxJs project build system uses the project co
 
 
 <br>
-## A simple example of statefullness and events in a component:
+## Simple example of statefullness, reactivity and events in a component:
 
 We'll make a button wrapped inside of a containing div. The button will stretch to the size of it's container. When we click the inner button, we'll make the outer container change width. The button will, of course, stretch to fit it's container.
 
@@ -189,7 +189,7 @@ Demo.StretchyButton = {
   project : function() {
     return {
       style: {
-        width: this.state.theContainerWidth
+        width: this.state.theContainerWidth  // Automatically updated when theContainerWidth is updated
       },
       innerButton: {
         classSet: {someClassFromCss: true},
