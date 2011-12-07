@@ -31,7 +31,7 @@ Get node.js using <a href='https://sites.google.com/site/nodejsmacosx/'>the OSX 
         
 **2. Create a new project: Make a directory with the name of your project ("TestProject"). Execute createNewProjectInCurrentDir.sh from within it.**
 
-        mkdir ~/TestProject && cd ~/TestProject && ~/Desktop/FaxJs/createNewProjectInCurrentDir.sh
+        mkdir ~/TestProject && cd ~/TestProject && ~/Desktop/FaxJs/newProjectInCurrentDir.sh
         
 **3. Simply start the web server. See your web app in the browser.**
 
