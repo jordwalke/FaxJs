@@ -347,6 +347,7 @@ function _tagDomAttrMarkupFragment(tagAttrName, tagAttrVal) {
   accum += "='";
   accum += FaxUtils.escapeTextForBrowser(tagAttrVal);
   accum += "'";
+  return accum;
 }
 
 /**
