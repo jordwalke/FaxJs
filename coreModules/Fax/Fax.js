@@ -72,8 +72,64 @@ var ERROR_MESSAGES = {
                          "What you specified appears to be null or not specified. If " +
                          "specifying a declarative block - make sure you execute " +
                          "Fax.using(moduleContainingTopmostComponent) in the file where " +
-                         "you render the top level component."
+                         "you render the top level component.",
+  CLASS_NOT_COMPLETE: "Class does not implement required functions!",
+  NO_DOM_TO_HIDE: "No DOM node to hide!",
+  CONTROL_WITHOUT_BACKING_DOM: "Trying to control a native dom element " +
+                               "without a backing id",
+  NAMESPACE_FALSEY: "Namespace is falsey wtf!",
+  PROPERTIES_NOT_THERE: "Properties not present:",
+  UNEXPECTED_PREINIT: "Unexpected pre-initialization",
+  COULD_NOT_CREATE_SINGLE_DOM: "Could not create single dom node",
+  MERGE_DEEP_ARRAYS: "mergeDeep not intended for merging arrays"
 };
+
+
+/**
+ * Allows extraction of a minified key. Let's the build system minify keys
+ * without loosing the ability to dynamically use key strings as values
+ * themselves. Pass in an object with a single key/val pair and it will return
+ * you the string key of that single record. Let's say you want to grab the
+ * value for a key 'className' inside of an object. Key/val minification may
+ * have aliased that key to be 'xa12'. keyOf({className: null}) will return
+ * 'xa12' in that case. Resolve keys you want to use once at startup time, then
+ * reuse those resolutions.
+ */
+function keyOf(oneKeyObj) {
+  var key;
+  for (key in oneKeyObj) {
+    if (!oneKeyObj.hasOwnProperty(key)) {
+      continue;
+    }
+    return key;
+  }
+  return null;
+}
+
+/**
+ * keyTest(someKey, {className: true}) => true/false Minification tolerant key
+ * test. The minifiedKey *must* be minified. Q: How do you know it's minified?
+ * A: It must have come from a key that was specified in javascript object, not
+ * from any string anywhere. This is nowhere near as fast as comparing a string
+ * key to a precomputed result of keyOf. Don't use unless you're just going for
+ * readability.
+ */
+function minifiedKeyTest(minifiedKey, objWithKey) {
+  return objWithKey(minifiedKey);
+}
+
+
+/**
+ * Resolved key names. (See keyOf).
+ */
+var CLASS_SET_KEY = keyOf({ classSet: null });
+var CLASSNAME_KEY = keyOf({ className: null });
+var STYLE_KEY = keyOf({ style: null });
+var POS_INFO_KEY = keyOf({ posInfo: null });
+var CONTENT_KEY = keyOf({ content: null });
+var DANGEROUSLY_SET_INNER_HTML_KEY = keyOf({ dangerouslySetInnerHtml: null });
+var INNER_HTML_KEY = keyOf({ innerHtml: null });
+var DYNAMIC_HANDLERS_KEY = keyOf({ dynamicHandlers: true });
 
 
 /**
@@ -123,13 +179,15 @@ function _assert(val, errorMsg) {
 function _clone(o) {
  return JSON.parse(JSON.stringify(o));
 }
+
 function _ser(o) {
  return JSON.stringify(o);
 }
 
+
 if (typeof Fax === 'object') {
   if (Fax.keys(Fax._eventsById).length) {
-    _Fax.Error("Unexpected pre-initialization");
+    _Fax.Error(ERROR_MESSAGES.UNEXPECTED_PREINIT);
   }
 }
 
@@ -155,7 +213,7 @@ var _singleDomNodeFromMarkup = function (newMarkup) {
   for (elemIdx = elements.length - 1; elemIdx >= 0; elemIdx--){
     return elements[elemIdx];
   }
-  throw "Could not create single dom node";
+  throw ERROR_MESSAGES.COULD_NOT_CREATE_SINGLE_DOM;
 };
 
 var _appendNode = function (elem, node) {
@@ -646,7 +704,7 @@ _Fax.mergeThree = function(one, two, three) {
 _Fax.mergeDeep = function(obj1, obj2) {
   var obj2Key;
   if(obj1 instanceof Array || obj2 instanceof Array) {
-    throw "mergeDeep not intended for merging arrays";
+    throw ERROR_MESSAGES.MERGE_DEEP_ARRAYS;
   }
   var obj2Terminal =
     obj2 === undefined || obj2 === null || typeof obj2 === 'string' ||
@@ -723,7 +781,7 @@ _Fax.MakeComponentClass = function(spec, addtlMixins) {
   }
   if (!ComponentClass.prototype._genMarkupImpl ||
    !ComponentClass.prototype.project) {
-    _Fax.Error("Class does not implement required functions!");
+    _Fax.Error(ERROR_MESSAGES.CLASS_NOT_COMPLETE);
   }
 
   return ComponentClass;
@@ -1066,7 +1124,7 @@ _Fax.orderedComponentMixins = {
     for (ii = projectionToReconcile.length; ii < this.children.length; ii++) {
       domNodeToRemove = document.getElementById(rootDomIdDot + ii);
       if (!domNodeToRemove) {
-        _Fax.Error("No DOM node to hide!");
+        _Fax.Error(ERROR_MESSAGES.NO_DOM_TO_HIDE);
       }
       domNodeToRemove.parentNode.removeChild(domNodeToRemove);
     }
@@ -1439,16 +1497,16 @@ _Fax.controlPhysicalDomByNodeOrId = function (elem,
       if (_controlUsingSetAttrDomAttrsMap[propKey]) {
         elem.setAttribute(_controlUsingSetAttrDomAttrsMap[propKey],
             FaxUtils.escapeTextForBrowser(prop));
-      } else if(propKey === 'classSet') {
+      } else if(propKey === CLASS_SET_KEY) {
         elem.className = FaxUtils.escapeTextForBrowser(_Fax.renderClassSet(prop));
       } else if (_Fax.controlDirectlyDomAttrsMap[propKey]) {
         elem[_Fax.controlDirectlyDomAttrsMap[propKey]] =
             FaxUtils.escapeTextForBrowser(prop);
-      } else if(propKey === 'style') {
+      } else if(propKey === STYLE_KEY) {
         cssText += _serializeInlineStyle(prop);
-      } else if(propKey === 'posInfo') {
+      } else if(propKey === POS_INFO_KEY) {
         cssText += _extractAndSealPosInfoInlineImpl(prop);
-      } else if (propKey === 'content') {
+      } else if (propKey === CONTENT_KEY) {
         /* http://jsperf.com/setting-node-text :
          * An interesting perf test. However, hopefully never in the propagation
          * of updates do we ever trigger a reflow, so it's not really the best
@@ -1458,9 +1516,9 @@ _Fax.controlPhysicalDomByNodeOrId = function (elem,
          * to be the clear winner, though. I'll settle for online textContent.
          * The perf test doesn't even account for escaping though. */
         elem.textContent = prop;
-      } else if (propKey === 'dangerouslySetInnerHtml') {
+      } else if (propKey === DANGEROUSLY_SET_INNER_HTML_KEY) {
         elem.innerHTML = prop;
-      } else if (propKey === 'innerHTML') {
+      } else if (propKey === INNER_HTML_KEY) {
         throw ERROR_MESSAGES.CANNOT_SET_INNERHTML;
       }
     }
@@ -1517,7 +1575,7 @@ _Fax.controlPhysicalDomByNodeOrId = function (elem,
  * {$post}
  */
 function _makeDomContainerComponent(tag, optionalTagTextPar, pre, post, headText, footText) {
-  var optionalTagText = optionalTagTextPar ? + optionalTagText : '',
+  var optionalTagText =  optionalTagTextPar || '',
       tagOpen = (pre || '') + "<" + tag + optionalTagText + " id='",
       tagClose = (footText || '') + "</" + tag + ">" + (post || ''),
       headTextTagClose = ">" + (headText || '');
@@ -1608,7 +1666,7 @@ function _makeDomContainerComponent(tag, optionalTagTextPar, pre, post, headText
    * whereas the api exposed to the system, is absolute and has no restrictions.
    */
   NativeComponentConstructor.prototype.doControl = function(nextProps) {
-    if (!this._rootDomId) { throw "Trying to control a native dom element without a backing id"; }
+    if (!this._rootDomId) { throw ERROR_MESSAGES.CONTROL_WITHOUT_BACKING_DOM; }
 
     /**In the context of a native dom component - the instance of this child and
      * it's associated dom resources should be deallocated before possible being
@@ -1697,7 +1755,9 @@ function _makeDomContainerComponent(tag, optionalTagTextPar, pre, post, headText
        * when these children actually do become real components. */
       if(deallocateChild && deallocateChild.doControl) {
         var domNodeToRemove =
-            deallocateChild.rootDomNode || document.getElementById(rootDomIdDot + deallocateChildKey);
+            deallocateChild.rootDomNode ||
+            document.getElementById(rootDomIdDot + deallocateChildKey);
+
         domNodeToRemove.parentNode.removeChild(domNodeToRemove);
         delete childComponents[deallocateChildKey];
         /**
@@ -1805,20 +1865,20 @@ function _makeDomContainerComponent(tag, optionalTagTextPar, pre, post, headText
       if (shouldRegHandlers) {
         if (FaxEvent.abstractHandlerTypes[propKey] && prop) {
           FaxEvent.registerHandlerByName(idTreeSoFar, propKey, prop);
-        } else if (propKey === 'dynamicHandlers' && prop) {
+        } else if (propKey === DYNAMIC_HANDLERS_KEY && prop) {
           FaxEvent.registerHandlers(idTreeSoFar, prop);
         }
       }
       if (shouldGenMarkup && prop) {
         if (_markupDomTagAttrsMap[propKey]) {
           tagAttrAccum += _tagDomAttrMarkupFragment(propKey, prop);
-        } else if(propKey === 'classSet') {
+        } else if(propKey === CLASS_SET_KEY) {
           tagAttrAccum += "class='";
           tagAttrAccum += _Fax.renderClassSet(prop);
           tagAttrAccum += "'";
-        } else if (propKey === 'style') {
+        } else if (propKey === STYLE_KEY) {
           cssText += _serializeInlineStyle(prop);
-        } else if (propKey === 'posInfo') {
+        } else if (propKey === POS_INFO_KEY) {
           cssText += _extractAndSealPosInfoInlineImpl(prop);
         } else if (prop.maker) {
           containedIdRoot = idTreeSoFar;
@@ -1833,9 +1893,9 @@ function _makeDomContainerComponent(tag, optionalTagTextPar, pre, post, headText
            * later decide to have something here. This allows clients to
            * conditionally include children but decide their placement. */
           containedComponents[propKey] = null;
-        } else if (propKey === 'content') {
+        } else if (propKey === CONTENT_KEY) {
           childrenAccum += FaxUtils.escapeTextForBrowser(prop);
-        } else if (propKey === 'dangerouslySetInnerHtml') {
+        } else if (propKey === DANGEROUSLY_SET_INNER_HTML_KEY) {
           childrenAccum += prop;
         } else {
           /* Probably something that was just included due to mixing in.
@@ -1879,7 +1939,7 @@ function _makeDomContainerComponent(tag, optionalTagTextPar, pre, post, headText
  */
 var _usingInImpl = function(namespace, uiPackages) {
   if (!namespace) {
-    _Fax.Error("Namespace is falsey wtf!");
+    _Fax.Error(ERROR_MESSAGES.NAMESPACE_FALSEY);
   }
   var _appendAll = function() {
     for (var i=0; i < uiPackages.length; i++) {
@@ -1938,7 +1998,7 @@ var _sure = function(obj, propsArr) {
     }
   }
   if (doesntHave.length !== 0) {
-    throw "Properties not present:" + _ser(propsArr);
+    throw ERROR_MESSAGES.PROPERTIES_NOT_THERE + _ser(propsArr);
   }
 };
 
@@ -1988,28 +2048,6 @@ var _curryOnly = function(func, val, context) {
   };
 };
 
-
-
-/**
- * Little helper, takes a map from class name to boolean and returns a string
- * for use as a dom elements 'class' property.  Slow because it needs to
- * concatenate spaces. Leaves a space at the end of the class string so it is
- * easy to append to. If prototypes are crufty due to extending
- * Object.prototype, use fastclassName.
- */
-var _classMap = function(map) {
-  var accum = '';
-  for (var className in map) {
-    if (!map.hasOwnProperty(className)) {
-      continue;
-    }
-    if (map[className]) {
-      accum += className + ' ';
-    }
-  }
-  return accum;
-};
-
 /**
  * Takes a set of classes in map form, concatenating the truthy class values
  * together to form a single class string. Maintains a trailing space at the end
@@ -2035,24 +2073,6 @@ _Fax.renderClassSet = function(namedSet) {
       accum += ' ';
     } else if(nameOfClass && val) {
       accum += val;
-    }
-  }
-  return accum;
-};
-
-
-/**
- * Constructs a single class string suitable for dom object property, skipping
- * over undefined and null references, so that it can be used as a convenient
- * class constructor.  var classString = Fax.classList([obj.one,
- * another.dontKnowIfThisIsDefined]);
- */
-var _classList = function (classList) {
-  var accum = '';
-  for (jj = classList.length - 1; jj >= 0; jj--) {
-    // Don't skip over the number zero.
-    if (classList[jj] !== undefined && classList[jj] !== null) {
-      accum += classList[jj] + ' ';
     }
   }
   return accum;
@@ -2190,7 +2210,7 @@ _Fax.extractAndSealPosInfo = function(obj) {
  * inline style attributes. Should make a version for when we know the
  * values are numeric.
  */
-_extractAndSealPosInfoInline = function(obj) {
+var _extractAndSealPosInfoInline = function(obj) {
   if(!obj) { return ''; }
   var ret = '', w = obj.w, h = obj.h, l = obj.l,
       t = obj.t, b = obj.b, r = obj.r, z = obj.z;
@@ -2224,7 +2244,7 @@ _extractAndSealPosInfoInline = function(obj) {
  * To have this be overridden with an optimal implementation, call
  * setBrowserOptimalPositionComputation.
  */
-_extractAndSealPosInfoInlineImpl = _extractAndSealPosInfoInline;
+var _extractAndSealPosInfoInlineImpl = _extractAndSealPosInfoInline;
 
 /**
  * Optimized for css engines that support translations. An absolutely positioned
@@ -2240,7 +2260,7 @@ _extractAndSealPosInfoInlineImpl = _extractAndSealPosInfoInline;
  * We need to trick certain webkit implementations into kicking the computations
  * to the GPU by using a 3d transform even though this is only a 2d operation.
  */
-_extractAndSealPosInfoInlineUsingTranslateWebkit = function(obj) {
+var _extractAndSealPosInfoInlineUsingTranslateWebkit = function(obj) {
   if(!obj) { return ''; }
   var ret = '', w = obj.w, h = obj.h, l = obj.l,
       t = obj.t, b = obj.b, r = obj.r, z = obj.z;
@@ -2361,7 +2381,7 @@ _extractAndSealPosInfoInlineUsingTranslateWebkit = function(obj) {
  * applied css class adjusted the starting point in Firefox but not Chrome. I
  * think FF would be correct here.
  */
-_extractAndSealPosInfoInlineUsingTranslateMoz = function(obj) {
+var _extractAndSealPosInfoInlineUsingTranslateMoz = function(obj) {
   if(!obj) { return ''; }
   var ret = '', w = obj.w, h = obj.h, l = obj.l,
       t = obj.t, b = obj.b, r = obj.r, z = obj.z;
@@ -2427,7 +2447,7 @@ _extractAndSealPosInfoInlineUsingTranslateMoz = function(obj) {
 /**
  * Again, see note above on code duplication.
  */
-_extractAndSealPosInfoInlineUsingTranslateIe = function(obj) {
+var _extractAndSealPosInfoInlineUsingTranslateIe = function(obj) {
   if(!obj) { return ''; }
   var ret = '', w = obj.w, h = obj.h, l = obj.l,
       t = obj.t, b = obj.b, r = obj.r, z = obj.z;
@@ -2691,15 +2711,12 @@ if (typeof Fax === 'object') {
     curryOne: _curryOne,
     bindNoArgs: _bindNoArgs,
     curryOnly: _curryOnly,
-    stringSwitch: _Fax.stringSwitch,
     MakeComponentClass: _Fax.MakeComponentClass,
-    MakeDeepFreezeComponent: _Fax.MakeDeepFreezeComponent,
     Componentize: _Fax.Componentize,
     ComponentizeAll: _Fax.ComponentizeAll,
     forceClientRendering: true,
     renderAt: _Fax.renderAt,
     renderTopLevelComponentAt: _Fax.renderTopLevelComponentAt,
-    registerTopLevelListener: _Fax.registerTopLevelListener,
     maybeInvoke: _Fax.maybeInvoke,
     makeDomContainerComponent: _makeDomContainerComponent,
     allTruthy: _Fax.allTruthy,
@@ -2725,7 +2742,6 @@ if (typeof Fax === 'object') {
     keys: _Fax.keys,
     keyCount: _Fax.keyCount,
     objSubset: _Fax.objSubset,
-    exclusion: _Fax.exclusion,
     objExclusion: _Fax.objExclusion,
     using: _Fax.using,
     populateNamespace: null,
@@ -2738,20 +2754,15 @@ if (typeof Fax === 'object') {
     appendNode: _appendNode,
     insertNodeBeforeNode: _insertNodeBeforeNode,
     insertNodeAfterNode: _insertNodeAfterNode,
-    classMap: _classMap,
     renderClassSet: _Fax.renderClassSet,
     fastClassMap: _fastClassMap,
-    classList: _classList,
     merge: _Fax.merge,
     mergeThree: _Fax.mergeThree,
     mergeDeep: _Fax.mergeDeep,
     mergeStuff: _Fax.mergeStuff,
-    mergeThis: _Fax.mergeThis,
-    mergeReturn: _Fax.mergeReturn,
     multiComponentMixins: _Fax.multiComponentMixins,
     orderedComponentMixins: _Fax.orderedComponentMixins,
     multiDynamicComponentMixins: _Fax.multiDynamicComponentMixins,
-    implicitChildrenRect: _Fax.implicitChildrenRect,
     getViewportDims: FaxUtils.getViewportDims,
     styleAttrNameForLogicalName: _styleAttrNameForLogicalName,
     serializeInlineStyle: _serializeInlineStyle,
@@ -2764,7 +2775,9 @@ if (typeof Fax === 'object') {
     clearBeforeRenderingQueue: _Fax.clearBeforeRenderingQueue,
     renderingStrategies: _Fax.renderingStrategies,
     _onlyGenMarkupOnProjection: _Fax._onlyGenMarkupOnProjection,
-    getTotalInstantiationTime: function() { return _Fax.totalInstantiationTime; }
+    getTotalInstantiationTime: function() { return _Fax.totalInstantiationTime; },
+    keyOf: keyOf,
+    minifiedKeyTest: minifiedKeyTest
   };
 
   module.exports = Fax;

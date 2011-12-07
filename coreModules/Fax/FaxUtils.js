@@ -11,10 +11,10 @@ var browserDetection = null;
 function initializeAndReturnBrowserDetection() {
   var BrowserDetect = {
     init: function () {
-      this.browser = this.searchString(this.dataBrowser) || "An unknown browser";
+      this.browser = this.searchString(this.dataBrowser) || "An unknown platform";
       this.version = this.searchVersion(navigator.userAgent) ||
-                     this.searchVersion(navigator.appVersion) || "an unknown version";
-      this.OS = this.searchString(this.dataOS) || "an unknown OS";
+                     this.searchVersion(navigator.appVersion) || "An unknown platform";
+      this.OS = this.searchString(this.dataOS) || "An unknown platform";
     },
     searchString: function (data) {
       var i;
@@ -39,16 +39,15 @@ function initializeAndReturnBrowserDetection() {
       }
       return parseFloat(dataString.substring(index+this.versionSearchString.length+1));
     },
+
+    /* Taking obscure browsers out of here to reduce gzipped size. You can
+     * easily add them back in (see the main quirksmode site for the complete
+     * list. */
     dataBrowser: [
       {
         string: navigator.userAgent,
         subString: "Chrome",
         identity: "Chrome"
-      },
-      { string: navigator.userAgent,
-        subString: "OmniWeb",
-        versionSearch: "OmniWeb/",
-        identity: "OmniWeb"
       },
       { string: navigator.vendor,
         subString: "Apple",
@@ -63,22 +62,9 @@ function initializeAndReturnBrowserDetection() {
         subString: "iCab",
         identity: "iCab"
       },
-      { string: navigator.vendor,
-        subString: "KDE",
-        identity: "Konqueror"
-      },
       { string: navigator.userAgent,
         subString: "Firefox",
         identity: "Firefox"
-      },
-      { string: navigator.vendor,
-        subString: "Camino",
-        identity: "Camino"
-      },
-      { // for newer Netscapes (6+)
-        string: navigator.userAgent,
-        subString: "Netscape",
-        identity: "Netscape"
       },
       { string: navigator.userAgent,
         subString: "MSIE",
@@ -89,12 +75,6 @@ function initializeAndReturnBrowserDetection() {
         subString: "Gecko",
         identity: "Mozilla",
         versionSearch: "rv"
-      },
-      {     // for older Netscapes (4-)
-        string: navigator.userAgent,
-        subString: "Mozilla",
-        identity: "Netscape",
-        versionSearch: "Mozilla"
       }
     ],
     dataOS : [
@@ -174,7 +154,7 @@ module.exports = {
 
   /** Cookie code from quirks mode. */
   createCookie: function(value,days) {
-    var expires, name="appCookie";
+    var expires, name="c";
     if (days) {
       var date = new Date();
       date.setTime(date.getTime()+(days*24*60*60*1000));
@@ -188,7 +168,7 @@ module.exports = {
     }
   },
   readCookie: function() {
-    var name = "appCookie", nameEQ = name + "=", ca = document.cookie.split(';'), i;
+    var name = "c", nameEQ = name + "=", ca = document.cookie.split(';'), i;
     for (i=0; i < ca.length; i++) {
       var c = ca[i];
       while (c.charAt(0) === ' ') {
@@ -201,7 +181,7 @@ module.exports = {
     return null;
   },
   eraseCookie: function() {
-    this.createCookie("appCookie","",-1);
+    this.createCookie("c","",-1);
   },
   _onCookieChange: null
 };

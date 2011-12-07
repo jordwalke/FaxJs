@@ -127,7 +127,7 @@ function _constructAbstractEventDirectlyFromTopLevel(topLevelEventType,
 /**
  * Fax events module.
  */
-var FaxEvent = {
+FaxEvent = {
   /**
    * The event system keeps track of some global state, in order to infer
    * abstract events that occur over a sequence of more than one top level
