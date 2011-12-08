@@ -888,11 +888,19 @@ _Fax.universalPrivateMixins = {
   _childAt: function(s) {
   },
 
-  stateUpdater: function (func) {
+  stateUpdater: function (funcOrFragment) {
     var ths = this;
-    return func && function(/*arguments*/) {
-      ths.updateState(func.apply(ths, arguments));
-    };
+    if (!funcOrFragment) {
+      return funcOrFragment;
+    }
+    return (typeof funcOrFragment === 'function') ?
+        function(/*arguments*/) {
+          ths.updateState(funcOrFragment.apply(ths, arguments));
+        } :
+        function(/*arguments*/) {
+          ths.updateState(funcOrFragment);
+        };
+    
   }
 };
 
