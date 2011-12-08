@@ -1,4 +1,4 @@
-var sys = require('sys');
+var util = require('util');
 var fs = require('fs');
 var scriptDir = __dirname;
 var curDir = process.cwd();
@@ -30,14 +30,14 @@ function addFilesToMap(files) {
 
 
 function buildProject(whenDone) {
-  console.log('--- Building Project ---');
+  util.debug('--- Building Project ---');
   exec("node " + scriptDir + "/BuildProject.js; ", 
     function (error, stdout, stderr) {
-      console.log('--- Building Process Returned ---');
-      console.error(stdout);
-      console.error(stderr);
+      util.debug('--- Building Process Returned ---');
+      util.debug(stdout);
+      util.debug(stderr);
       if (error) {
-        console.error('\n' +
+        util.debug('\n' +
           redStr("[ERROR] Something is blocking the build - fix it or the server can't update.\n"));
       } else {
         if (whenDone) {
@@ -53,10 +53,10 @@ function buildProject(whenDone) {
  * file called server.js
  */
 function startServer(whenDone) {
-  console.log(greenStr('\nRunning Server:' + curDir + "/server.js\n"));
+  util.debug(greenStr('\nRunning Server:' + curDir + "/server.js\n"));
   webServerProc = fork(curDir + "/server.js"); 
   webServerProc.on('exit', function (code, signal) {
-    console.log('Web Server Killed due to signal ' + signal);
+    util.debug('Web Server Killed due to signal ' + signal);
     // When we get word that our web server is dead, terminate our
     // own process.
     process.kill('SIGHUP');
@@ -71,16 +71,16 @@ function startServer(whenDone) {
   });
 }
 
-console.log('--- Performing initial build on project ---');
+util.debug('--- Performing initial build on project ---');
 /* The build project step will unzip node_modules prereqs that contain
  * findit.js. We need to wait until the build returns in order to require
  * findit. Not very well structured but it prevents having to unzip
  * in BuildAndRun *and* BuildProject.js */
 buildProject(function() {
   var fileName;
-  console.log('--- Starting Web Server ---');
+  util.debug('--- Starting Web Server ---');
   startServer();
-  console.log('--- Watching directory for changes ---');
+  util.debug('--- Watching directory for changes ---');
   setInterval(function() {
     if (buildIsRequested) {
       buildIsRequested = false;

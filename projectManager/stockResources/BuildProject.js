@@ -1,4 +1,4 @@
-var sys = require('sys');
+var util = require('util');
 var fs = require('fs');
 var scriptDir = __dirname;
 var curDir = process.cwd();
@@ -91,14 +91,6 @@ function compile(buildSpecs) {
       files = findIt.sync(curDir + '/build/client/buildLib/');
 
 
-  /* When computing style, we'll require each file and get the exported
-   * styleExports, but in doing so, these modules will end up requiring
-   * other modules (in the lib directory.) Make them available to avoid
-   * failures by pushing them onto the require.paths.*/
-  require.paths.push(Object.keys(buildSpecs.projectConfig.projectModules).map(function(moduleName) {
-    require.paths.push(buildSpecs.buildClientBuildLibDir + '/' + moduleName);
-  }));
-
   for (i=0; i < files.length; i=i+1) {
     if (files[i].indexOf('.js') !== files[i].length-3) {
       continue;
@@ -162,14 +154,19 @@ function build(buildSpecs) {
 
   }
 
-  // Todo: build skeletons for missing modules.
+  /* Todo: build skeletons for missing modules. */
+  /* Here, we sym link node_modules to the buildLib because things we require
+   * (that have style modules that we want to turn into css) have dependencies
+   * on the other project modules. We need to make sure that their dependencies
+   * are met. */
   exec("cp -r " + curDir + "/lib/* " + curDir + "/build/client/buildLib/; " +
+       "ln -s " + curDir + "/build/client/buildLib " + curDir + "/build/client/node_modules; " +
        "cp " + curDir + "/index.html " + curDir + "/build/client/ ;" +
        "cp -r " + curDir + "/staticResources/* " + curDir + "/build/client/staticResources/ ;",
 
     function (error, stdout, stderr) {
-      sys.puts(stdout);
-      sys.puts(stderr);
+      util.debug(stdout);
+      util.debug(stderr);
       logAndThrowIf(error, 'Error moving lib to buildLib');
 
       compile(buildSpecs);
@@ -250,8 +247,8 @@ function setup() {
       exec(
         'mv ' + curDir + '/build/client ' + curDir + '/build/buildBackups/b' + curTime + ' ;',
         function (error, stdout, stderr) {
-          sys.puts(stdout);
-          sys.puts(stderr);
+          util.debug(stdout);
+          util.debug(stderr);
           logAndThrowIf(error, 'Error moving Build directory', error);
           build(buildSpecs);
         }
@@ -268,8 +265,8 @@ function setup() {
 exec(
   'cd ' + curDir + '/build/buildRequirements/; rm -r ./node_modules/; unzip buildPrereqsNodeModules.zip; cd ' + curDir + ';',
   function (error, stdout, stderr) {
-    sys.puts(stdout);
-    sys.puts(stderr);
+    util.debug(stdout);
+    util.debug(stderr);
     logAndThrowIf(error, 'Error Unpacking build prereqs', error);
 
     jsParser = require('uglify-js').parser;
