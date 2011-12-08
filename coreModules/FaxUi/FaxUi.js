@@ -170,7 +170,6 @@ module.exports.styleExports = {
 	hStretch:  { position: 'absolute', left:0, right:0 },
   hVStretch: { display: 'block', padding: 0, margin: 0,
                position: 'absolute', top: 0, bottom: 0, left:0, right:0},
-  bottomFooter10: {position: 'absolute', left: 10, bottom: 10, right: 10},
   block: {
     display: 'block'
   },
@@ -184,7 +183,10 @@ module.exports.styleExports = {
 		'-ms-overflow-y': 'visible',
 		overflow: 'visible'
 	},
-	pointer: { cursor: 'pointer' },
+	cursorPointer: { cursor: 'pointer' },
+	cursorDefault: { cursor: 'default' },
+	cursorColResize: { cursor: 'col-resize' },
+	cursorRowResize: { cursor: 'row-resize' },
 	
 	/**
    * http://help.dottoro.com/lcrlukea.php #todoIe: unselectable="on" is tag attr

@@ -56,6 +56,17 @@ var FaxUtils = require('./FaxUtils'),
   *
   * At least for the iOS world, it seems listening for bubbled touch
   * events on the document object is actualy the best for compatibility.
+  *
+  * In addition: Firefox v8.01 (and possibly others exhibited strange behavior
+  * when mounting onmousemove events at some node that was not the document
+  * element. The symptoms were that if your mouse is not moving over something
+  * contained within that mount point (for example on the background) the top
+  * level handlers for onmousemove won't be called. However, if you register
+  * the mousemove on the document object, then it will of course catch all
+  * mousemoves. This along with iOS quirks, justifies restricting top level
+  * handlers to the document object only, at least for these movementy types of
+  * events and possibly all events. There seems to be no reason for allowing
+  * arbitrary mount points.
   * 
   */
 var ERROR_MESSAGES = {
@@ -875,6 +886,13 @@ _Fax.universalPrivateMixins = {
    * cases where declarative programming isn't as easy or concise.
    */
   _childAt: function(s) {
+  },
+
+  stateUpdater: function (func) {
+    var ths = this;
+    return func && function(/*arguments*/) {
+      ths.updateState(func.apply(ths, arguments));
+    };
   }
 };
 
@@ -2406,6 +2424,7 @@ var _extractAndSealPosInfoInlineUsingTranslateMoz = function(obj) {
   // Updates (if the browser supports transforms) are so much faster
   // than merely absolute positioning.
   if (l === 0 || l || t === 0 || t) {
+    ret += 'left:0px; top:0px;';
     ret += '-moz-transform: translate(';
     if (l === 0 || l) {
       ret += (l.charAt ? l + ',' : (l + 'px,'));
@@ -2470,6 +2489,7 @@ var _extractAndSealPosInfoInlineUsingTranslateIe = function(obj) {
   // Updates (if the browser supports transforms) are so much faster
   // than merely absolute positioning.
   if (l === 0 || l || t === 0 || t) {
+    ret += 'left:0px; top:0px;';
     ret += '-ie-transform: translate(';
     if (l === 0 || l) {
       ret += (l.charAt ? l + ',' : (l + 'px,'));
@@ -2775,10 +2795,11 @@ if (typeof Fax === 'object') {
     clearBeforeRenderingQueue: _Fax.clearBeforeRenderingQueue,
     renderingStrategies: _Fax.renderingStrategies,
     _onlyGenMarkupOnProjection: _Fax._onlyGenMarkupOnProjection,
-    getTotalInstantiationTime: function() { return _Fax.totalInstantiationTime; },
-    keyOf: keyOf,
-    minifiedKeyTest: minifiedKeyTest
+    getTotalInstantiationTime: function() { return _Fax.totalInstantiationTime; }
   };
+  Fax['keyOf'] = keyOf;
+  Fax['minifiedKeyTest'] = minifiedKeyTest;
+  Fax['renderTopLevelComponentAt'] = Fax.renderTopLevelComponentAt;
 
   module.exports = Fax;
 }

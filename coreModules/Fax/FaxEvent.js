@@ -154,7 +154,7 @@ FaxEvent = {
    * nice to be able to only do this occasionally. We'll offer two things, 1.
    * Custom sample rate, 2. Adaptive sampling - sample less when each signal
    * takes a longer amount of time to respond to - trailing average. */
-  DRAG_PIXEL_SAMPLE_RATE : 3,
+  DRAG_PIXEL_SAMPLE_RATE : 2,
 
   /**
    * Will not fire drag events spaced further apart than 50 milliseconds.
@@ -685,6 +685,7 @@ FaxEvent = {
 
 
     if (FaxEvent.activeDragListenersCount) {
+      // Not distance, but sum of deltas along both dimensions
       totalDistanceSinceLastDrag =
           Math.abs(globalX - FaxEvent.lastTriggeredDragAtX) +
           Math.abs(globalY - FaxEvent.lastTriggeredDragAtY);
@@ -900,7 +901,7 @@ FaxEvent.registerTopLevelListeners = function(mountAt, touchInsteadOfMouse) {
    * likely need to capture using addEventListener/attachEvent.
    */
   if (!touchInsteadOfMouse) {
-    FaxEvent.__trapBubbledEvent(topLevelEventTypes.topLevelMouseMove, 'onmousemove', mountAt || document);
+    FaxEvent.__trapBubbledEvent(topLevelEventTypes.topLevelMouseMove, 'onmousemove', document);
     FaxEvent.__trapBubbledEvent(topLevelEventTypes.topLevelMouseIn, 'onmouseover', mountAt || document);
     FaxEvent.__trapBubbledEvent(topLevelEventTypes.topLevelMouseDown, 'onmousedown', mountAt || document);
     FaxEvent.__trapBubbledEvent(topLevelEventTypes.topLevelMouseUp, 'onmouseup', mountAt || document);
