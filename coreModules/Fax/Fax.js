@@ -1521,8 +1521,7 @@ _Fax.controlPhysicalDomByNodeOrId = function (elem,
       }
       var prop = nextProps[propKey];
       if (_controlUsingSetAttrDomAttrsMap[propKey]) {
-        elem.setAttribute(_controlUsingSetAttrDomAttrsMap[propKey],
-            FaxUtils.escapeTextForBrowser(prop));
+        elem.setAttribute(_controlUsingSetAttrDomAttrsMap[propKey], prop);
       } else if(propKey === CLASS_SET_KEY) {
         elem.className = FaxUtils.escapeTextForBrowser(_Fax.renderClassSet(prop));
       } else if (_Fax.controlDirectlyDomAttrsMap[propKey]) {

@@ -29,6 +29,7 @@ FaxUi.Button = F.makeDomContainerComponent('button');
 FaxUi.Table = F.makeDomContainerComponent('table');
 FaxUi.Tr = F.makeDomContainerComponent('tr');
 FaxUi.Td = F.makeDomContainerComponent('td');
+FaxUi.IFrame = F.makeDomContainerComponent('iframe');
 
 /**
  * FaxUi.MakeTagView: Makes slightly higher level view components from lower
