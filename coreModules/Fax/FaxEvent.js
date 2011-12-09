@@ -904,7 +904,7 @@ FaxEvent.registerTopLevelListeners = function(mountAt, touchInsteadOfMouse) {
     FaxEvent.__trapBubbledEvent(topLevelEventTypes.topLevelMouseMove, 'onmousemove', document);
     FaxEvent.__trapBubbledEvent(topLevelEventTypes.topLevelMouseIn, 'onmouseover', mountAt || document);
     FaxEvent.__trapBubbledEvent(topLevelEventTypes.topLevelMouseDown, 'onmousedown', mountAt || document);
-    FaxEvent.__trapBubbledEvent(topLevelEventTypes.topLevelMouseUp, 'onmouseup', mountAt || document);
+    FaxEvent.__trapBubbledEvent(topLevelEventTypes.topLevelMouseUp, 'onmouseup', document);
     FaxEvent.__trapBubbledEvent(topLevelEventTypes.topLevelMouseOut, 'onmouseout', mountAt || document);
     FaxEvent.__trapBubbledEvent(topLevelEventTypes.topLevelClick, 'onclick', mountAt || document);
     FaxEvent.__trapBubbledEvent(topLevelEventTypes.topLevelMouseWheel, 'onmousewheel', mountAt || document);
