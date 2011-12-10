@@ -1,5 +1,4 @@
-# FaxJs - Javascript User Interface Toolkit
-
+# FaxJs - Javascript User Interface Toolkit  
 
 <table cellspacing=0 cellpadding=0 border-style=none border-width=0>
 
@@ -16,30 +15,44 @@
   <li> <h3>Performant</h3><ul><li>Fast rendering using string concatenation, small code size </li></ul></li>
   <li> <h3>Structural</h3><ul><li>High level components, functionally defined, declarative views</li></ul></li>
 </ul>
+      <br>
+      <br>
+      <br>
+<ul><ul><ul>
+<ul><ul><ul>
+<ul><ul><ul>
+<ul><ul><ul>
+<ul><ul><ul>
+      <a href="http://www.twitter.com/faxjs">  <img  height=15px src="https://si0.twimg.com/a/1323449606/images/logos/logo_twitter_withbird_1000_allblack.png"> </img></a>
+</ul></ul></ul>
+</ul></ul></ul>
+</ul></ul></ul>
+</ul></ul></ul>
+</ul></ul></ul>
+
 </td>
 </tr>
 
+</tr>
+<br>
+
 </table>
+
 <br>
 ### Get Started Now:
 
 Get node.js using <a href='https://sites.google.com/site/nodejsmacosx/'>the OSX Installer</a>
 
 
-**1. Make sure you have the right version of node:**
-
-        node.js 0.5.2 or above will *not* work with the build script - fix coming soon, download 0.5.1
-        using the single click installer linked to above
-    
-**2. Clone or download FaxJs: Save it anywhere you like.**
+**1. Clone or download FaxJs: Save it anywhere you like.**
 
         git clone git://github.com/jordow/FaxJs.git ~/Desktop/FaxJs
         
-**3. Create a new project: Make a directory with the name of your project ("TestProject"). Execute createNewProjectInCurrentDir.sh from within it.**
+**2. Create a new project: Make a directory with the name of your project ("TestProject"). Execute createNewProjectInCurrentDir.sh from within it.**
 
         mkdir ~/TestProject && cd ~/TestProject && ~/Desktop/FaxJs/newProjectInCurrentDir.sh
         
-**4. Simply start the web server. See your web app in the browser.**
+**3. Simply start the web server. See your web app in the browser.**
 
         ./runBuild.sh        # now visit http://localhost:8080/
 
@@ -47,13 +60,20 @@ Get node.js using <a href='https://sites.google.com/site/nodejsmacosx/'>the OSX 
   <tr>
     <td width=50%>
       <img src="https://github.com/jordow/FaxJs/raw/gh-pages/images/newProjectScreenshot.png" />
+
     </td>
     <td border-style=none border-width=0>
         <p> The project that you created is completely self contained. It contains all of the Fax toolkit libraries, build scripts, and test server to run your app. The original download/clone of FaxJs is only needed to create new projects. When a new project is created, everything important is copied into that new project directory. </p>
 
     </td>
   </tr>
+<tr>
+
+</tr>
 </table>
+<br>
+
+
 
 ### Let's Start Hacking!
 
