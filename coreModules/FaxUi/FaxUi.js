@@ -5,7 +5,6 @@
 var F = require('Fax');
 var _FaxUi = {};
 var FaxUi = {};
-F.using(FaxUi);
 
 
 /**
@@ -31,97 +30,6 @@ FaxUi.Tr = F.makeDomContainerComponent('tr');
 FaxUi.Td = F.makeDomContainerComponent('td');
 FaxUi.IFrame = F.makeDomContainerComponent('iframe');
 
-/**
- * FaxUi.MakeTagView: Makes slightly higher level view components from lower
- * level dom constructors. Giving a nice positioning, and mixin (overrides) api
- * that is more consistent and flexible than the native DOM api. Build your
- * applications on top of these components for better cross browser/platform
- * compatibility, but experience a slight performance hit. Eventually each tag
- * view can be implemented specifically for performance, while not needing to
- * change any users of tag views.
- * @deprecated
- */
-FaxUi.MakeTagView = function(NativeTagProjectingConstructor) {
-  return {
-    project : function() {
-      var props = this.props;
-      var nativeTagProps;
-      var overrides = props.overrides || {};
-      var tagClassSet = {tagClass:'abs nover hVStretch block ' };
-      if (props.classSet || overrides.classSet) {
-        tagClassSet = F.mergeThree(
-            tagClassSet,
-            props.classSet,
-            overrides.classSet);
-      }
-      /**
-       * Style as specified by the discouraged style property, then override with
-       * positioning info, then override with any 'override' positioning
-       * attributes.
-       */
-      var nativeTagStyle = props.style;
-
-      var nativeTagPosInfo = F.merge(
-            F.extractPosInfo(props),
-            F.extractPosInfo(overrides));
-
-      nativeTagProps = F.mergeThree(props, overrides, {
-        className: F.renderClassSet(tagClassSet),
-        style: nativeTagStyle,
-        posInfo: nativeTagPosInfo
-      });
-
-      delete nativeTagProps.overrides;
-      delete nativeTagProps.classSet;
-      // Could also delete position info
-      return NativeTagProjectingConstructor(nativeTagProps);
-    }
-  };
-};
-
-
-FaxUi.ViewDiv = FaxUi.MakeTagView(FaxUi.Div);
-FaxUi.ViewA = FaxUi.MakeTagView(FaxUi.A);
-FaxUi.ViewLabel = FaxUi.MakeTagView(FaxUi.Label);
-FaxUi.ViewUl = FaxUi.MakeTagView(FaxUi.Ul);
-FaxUi.ViewP = FaxUi.MakeTagView(FaxUi.P);
-FaxUi.ViewImg = FaxUi.MakeTagView(FaxUi.Img);
-FaxUi.ViewLi = FaxUi.MakeTagView(FaxUi.Li);
-FaxUi.ViewH1 = FaxUi.MakeTagView(FaxUi.H1);
-FaxUi.ViewH2 = FaxUi.MakeTagView(FaxUi.H2);
-FaxUi.ViewH3 = FaxUi.MakeTagView(FaxUi.H3);
-FaxUi.ViewH4 = FaxUi.MakeTagView(FaxUi.H4);
-FaxUi.ViewSpan = FaxUi.MakeTagView(FaxUi.Span);
-FaxUi.ViewInput = FaxUi.MakeTagView(FaxUi.Input);
-FaxUi.ViewButton = FaxUi.MakeTagView(FaxUi.Button);
-FaxUi.ViewTable = FaxUi.MakeTagView(FaxUi.Table);
-FaxUi.ViewTr = FaxUi.MakeTagView(FaxUi.Tr);
-FaxUi.ViewTd = FaxUi.MakeTagView(FaxUi.Td);
-
-/*
- * Those should be avoided when possible. Building entirely on top of an FView
- * will ensure that various targets are well supported. In the reference
- * implementation for web browsers, not desktop software, a div is used.
- */
-FaxUi.FView = FaxUi.ViewDiv;
-
-
-/**
- * FaxUi.MultiConstructor: A container of several named subcomponents each
- * potentially having an entirely different 'type'. Each name must always refer
- * to an instance of that particular type. The members must not ever change
- * order and must never grow or shrink.
- */
-_FaxUi.MultiConstructor = F.MakeComponentClass({},[F.multiComponentMixins]);
-FaxUi.Multi = function(propsParam) {
-  var props = propsParam || this;
-  return {
-    props: props,
-    maker: _FaxUi.MultiConstructor
-  };
-};
-
-
 
 /*
  * FaxUi.Ordered: A container of several same-typed subcomponents each element
@@ -136,7 +44,6 @@ FaxUi.Ordered = function(propsParam) {
     maker: _FaxUi.OrderedConstructor
   };
 };
-
 
 
 /*

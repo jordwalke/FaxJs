@@ -76,21 +76,21 @@ var abstractHandlerTypes = {
 var topLevelEventTypes = {
   topLevelMouseMove: { type: 1 },
   topLevelMouseIn: { type: 2 },
-  topLevelMouseDown: { type: 3, mappedToAbstractHanlderType: abstractHandlerTypes.onMouseDown },
-  topLevelMouseUp: { type: 4, mappedToAbstractHanlderType: abstractHandlerTypes.onMouseUp },
+  topLevelMouseDown: { type: 3, mappedToAbstractHandlerType: abstractHandlerTypes.onMouseDown },
+  topLevelMouseUp: { type: 4, mappedToAbstractHandlerType: abstractHandlerTypes.onMouseUp },
   topLevelMouseOut: { type: 5 },
-  topLevelClick: { type: 6, mappedToAbstractHanlderType: abstractHandlerTypes.onClick },
-  topLevelMouseWheel: { type: 7, mappedToAbstractHanlderType: abstractHandlerTypes.onMouseWheel },
-  topLevelTouchStart: { type: 8, mappedToAbstractHanlderType: abstractHandlerTypes.onTouchStart },
-  topLevelTouchEnd: { type: 9, mappedToAbstractHanlderType: abstractHandlerTypes.onTouchEnd},
-  topLevelTouchMove: { type: 10, mappedToAbstractHanlderType: abstractHandlerTypes.onTouchMove },
+  topLevelClick: { type: 6, mappedToAbstractHandlerType: abstractHandlerTypes.onClick },
+  topLevelMouseWheel: { type: 7, mappedToAbstractHandlerType: abstractHandlerTypes.onMouseWheel },
+  topLevelTouchStart: { type: 8, mappedToAbstractHandlerType: abstractHandlerTypes.onTouchStart },
+  topLevelTouchEnd: { type: 9, mappedToAbstractHandlerType: abstractHandlerTypes.onTouchEnd},
+  topLevelTouchMove: { type: 10, mappedToAbstractHandlerType: abstractHandlerTypes.onTouchMove },
   topLevelTouchCancel: { type: 11 },
-  topLevelKeyUp: { type: 12, mappedToAbstractHanlderType: abstractHandlerTypes.onKeyUp },
-  topLevelKeyPress: { type: 13, mappedToAbstractHanlderType: abstractHandlerTypes.onKeyPress },
-  topLevelKeyDown: { type: 14, mappedToAbstractHanlderType: abstractHandlerTypes.onKeyDown },
-  topLevelFocus: { type: 15, mappedToAbstractHanlderType:  abstractHandlerTypes.onFocus },
-  topLevelBlur: { type: 16, mappedToAbstractHanlderType: abstractHandlerTypes.onBlur },
-  topLevelScroll: { type: 17, mappedToAbstractHanlderType: abstractHandlerTypes.onScroll }
+  topLevelKeyUp: { type: 12, mappedToAbstractHandlerType: abstractHandlerTypes.onKeyUp },
+  topLevelKeyPress: { type: 13, mappedToAbstractHandlerType: abstractHandlerTypes.onKeyPress },
+  topLevelKeyDown: { type: 14, mappedToAbstractHandlerType: abstractHandlerTypes.onKeyDown },
+  topLevelFocus: { type: 15, mappedToAbstractHandlerType:  abstractHandlerTypes.onFocus },
+  topLevelBlur: { type: 16, mappedToAbstractHandlerType: abstractHandlerTypes.onBlur },
+  topLevelScroll: { type: 17, mappedToAbstractHandlerType: abstractHandlerTypes.onScroll }
 };
 
 function _constructAbstractEventDirectlyFromTopLevel(topLevelEventType,
@@ -117,7 +117,7 @@ function _constructAbstractEventDirectlyFromTopLevel(topLevelEventType,
   }
 
   return new AbstractEvent(
-      topLevelEventType.mappedToAbstractHanlderType,
+      topLevelEventType.mappedToAbstractHandlerType,
       topLevelEventType,
       target,
       nativeEvent,
@@ -301,7 +301,7 @@ FaxEvent = {
   },
 
   topLevelEventTypeIsUsableAsAbstract: function(topLevelEventType) {
-    return !!topLevelEventType.mappedToAbstractHanlderType;
+    return !!topLevelEventType.mappedToAbstractHandlerType;
   },
 
   dispatchAllAbstractEventsToListeners: function (id, mode, abstractEvents) {

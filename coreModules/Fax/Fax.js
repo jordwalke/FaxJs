@@ -2,6 +2,8 @@ var FaxUtils = require('./FaxUtils'),
     FaxEvent = require('./FaxEvent'),
     FEnv = require('./FEnv');
 
+var Fax;
+
 /**
   * A note about touch events:  See:
   * http://www.quirksmode.org/blog/archives/2010/09/click_event_del.html
@@ -151,6 +153,13 @@ function _throw(e) {
 }
 
 /**
+ * If we use this, then a shim is absolutely required.
+ */
+function _eq(obj1, obj2) {
+  return JSON.stringify(obj1) === JSON.stringify(obj2);
+}
+
+/**
  * We need to flatten all of these package records. Either as an uglify
  * processor stage, or in the code itself. Accessing data through objects is 20%
  * slower in Safari, and 12% slower in IE8.
@@ -195,13 +204,6 @@ function _ser(o) {
  return JSON.stringify(o);
 }
 
-
-if (typeof Fax === 'object') {
-  if (Fax.keys(Fax._eventsById).length) {
-    _Fax.Error(ERROR_MESSAGES.UNEXPECTED_PREINIT);
-  }
-}
-
 /**
  * Does not work correctly with tables etc.
  */
@@ -232,14 +234,6 @@ var _appendNode = function (elem, node) {
 };
 
 /**
- * Inserts node before insertBeforeNode. If insertBeforeNode is null, inserts it
- * before nothing, which is inserting it at the end.
- */
-var _insertNodeBeforeNode = function (elem, insertNode, insertBeforeNode) {
-   return elem.insertBefore(insertNode, insertBeforeNode);
-};
-
-/**
  * Inserts node after insertAfterNode. If insertAfterNode is null, inserts it
  * after nothing, which is inserting it at the beginning.
  */
@@ -260,6 +254,7 @@ var _insertNodeAfterNode = function (elem, insertNode, insertAfterNode) {
  * Must be set directly, not with a 'setAttribute' call. There are performance
  * gains to be had by setting all of the properties to be equal to the native
  * ones (no lookup needed), but who could stand to not use proper camel casing?
+ * Also, application code can be more easily minified if using a lookup table.
  */
 _Fax.controlDirectlyDomAttrsMap = {
   value: 'value', scrollTop: 'scrollTop', scrollLeft: 'scrollLeft'
@@ -299,10 +294,11 @@ var logicalStyleAttrNamesMap = {
 /**
  * _controlUsingSetAttrDomAttrsMap: Attributes of a dom node that show up in the
  * tag header and may be controlled after they are rendered. This not only can
- * be usd to check if an attribute is controllable but also determine the
+ * be used to check if an attribute is controllable but also determine the
  * appropriate name that we control the attribute with (sometimes they are
  * different (className->class)). classSet belong here as well - but since it needs
  * to be transformed it is dealt with specially.
+ * Notice how 'type' is missing here - because it may not be controlled.
  */
 var _controlUsingSetAttrDomAttrsMap = {
   margin: 'margin', marginRight: 'margin-right', marginLeft: 'margin-left',
@@ -371,16 +367,6 @@ var _markupDomTagAttrsMap = {
   value: 'value', width: 'width', height: 'height',
   className: 'class', /*classSet: 'class-ButFirstCallFax.renderClassSet', */
   type: 'type', href: 'href', src: 'src'
-};
-
-/**
- * Converts between convenient form of style attribute names and turns them into
- * the hyphenated (harder to type in declarative objects) versions.  We'll let
- * you pass any style attribute you want, but if you happen to hit one of these
- * supported ones, we'll translate into the harder to type hyphenated version.
- */
-var _styleAttrNameForLogicalName = function(attr) {
-  return logicalStyleAttrNamesMap[attr] || attr;
 };
 
 /** Set of attribute names for which we do not append 'px'. */
@@ -902,6 +888,7 @@ _Fax.universalPrivateMixins = {
         };
     
   }
+
 };
 
 /**
@@ -930,6 +917,24 @@ _Fax.crossProduct = function(arr1, arr2, handler) {
 };
 
 /**
+ * Finds an index of an item that has a particular structure. The structure is
+ * checked by using stringify.
+ */
+_Fax.indexOfStruct = function(searchArr, obj) {
+  var i;
+  for (i=0; i < searchArr.length; i=i+1) {
+    if (_eq(obj, searchArr[i])) {
+      return i;
+    }
+  }
+  return -1;
+};
+
+_Fax.structExists = function (searchArr, obj) {
+  return _Fax.indexOfStruct(searchArr, obj) !== -1;
+};
+
+/**
  * Fax.objMap - the key should probably be the second parameter to play nicer
  * with other functions.
  */
@@ -947,15 +952,19 @@ _Fax.objMap = function (obj, fun, context) {
   return ret;
 };
 
+_Fax.swapKeyOrder = function(obj, singleKeyed, anotherSingleKeyed) {
+  // todo
+};
+
 /**
  * Accepts an object, and for each own property, calls mapper, while
  * constructing an array to return.
  */
-_Fax.objMapToArray = function(obj, mapper) {
+_Fax.objMapToArray = function(obj, mapper, context) {
   var ret = [], aKey;
   for (aKey in obj) {
     if (obj.hasOwnProperty(aKey)) {
-      ret.push(mapper(obj[aKey], aKey));
+      ret.push(mapper.call(context || this, aKey, obj[aKey]));
     }
   }
   return ret;
@@ -1035,45 +1044,6 @@ _Fax.copyProps = function(obj, obj2) {
 
 _Fax.shallowClone = function(obj) {
   return _Fax.copyProps({}, obj);
-};
-
-/**
- * Fax.multiComponentMixins - useless in most cases since it does not deallocate
- * children no longer in the properties - may be used when we know the set
- * will not change - may delete this.
- */
-_Fax.multiComponentMixins = {
-  _doControlImpl: function() {
-    var childKey, child, projection;
-    projection = this.props;
-    for (childKey in this.children) {
-      if (!this.children.hasOwnProperty(childKey)) {
-        continue;
-      }
-
-      child = this.children[childKey];
-      child.doControl(projection[childKey].props);
-    }
-  },
-  _genMarkupImpl: function(idSpaceSoFar, gen, events) {
-    var projection, childKey, childProjection, markupAccum, newChild;
-    markupAccum = '';
-    this.children = {};
-    projection = this.props;   // the projection is the props!
-    for (childKey in projection) {
-      if (!projection.hasOwnProperty(childKey)) { continue; }
-      childProjection = projection[childKey];
-      newChild = new childProjection.maker(
-          childProjection.props,
-          childProjection.instantiator);
-      markupAccum += newChild.genMarkup(idSpaceSoFar+('.' + childKey), gen, events);
-      this.children[childKey] = newChild;
-    }
-    return markupAccum;
-  },
-  project: function() {
-    return this.props;
-  }
 };
 
 
@@ -1499,7 +1469,7 @@ _Fax.controlPhysicalDomByNodeOrId = function (elem,
   nextPosInfo = nextProps.posInfo || {};
   lastPosInfo = lastProps.posInfo || {};
   nextClassSet = nextProps.classSet;
-  lastClassSet = nextProps.classSet;
+  lastClassSet = lastProps.classSet;
   if ((nextPosInfo &&
         (nextPosInfo.l !== lastPosInfo.l || nextPosInfo.t !== lastPosInfo.t ||
         nextPosInfo.w !== lastPosInfo.w || nextPosInfo.h !== lastPosInfo.h ||
@@ -2727,86 +2697,81 @@ function _arrPullJoin(arr, key) {
 }
 
 
+module.exports = Fax = {
+  _abstractEventListenersById : FaxEvent.abstractEventListenersById,
+  curryOne: _curryOne,
+  bindNoArgs: _bindNoArgs,
+  curryOnly: _curryOnly,
+  MakeComponentClass: _Fax.MakeComponentClass,
+  Componentize: _Fax.Componentize,
+  ComponentizeAll: _Fax.ComponentizeAll,
+  forceClientRendering: true,
+  renderAt: _Fax.renderAt,
+  renderTopLevelComponentAt: _Fax.renderTopLevelComponentAt,
+  maybeInvoke: _Fax.maybeInvoke,
+  makeDomContainerComponent: _makeDomContainerComponent,
+  allTruthy: _Fax.allTruthy,
+  crossProduct: FaxUtils.crossProduct,
+  extractCssPosInfo: _Fax.extractCssPosInfo,
+  extractPosInfo: _Fax.extractPosInfo,
+  sealPosInfo: _Fax.sealPosInfo,
+  extractAndSealPosInfo: _Fax.extractAndSealPosInfo,
+  newPosInfoRelativeTo: _Fax.newPosInfoRelativeTo,
+  objMap: _Fax.objMap,
+  oMap: _Fax.objMap,
+  arrPull: _arrPull,
+  arrPullJoin: _arrPullJoin,
+  map: _Fax.map,
+  mapRange: _Fax.mapRange,
+  mapSlice: _Fax.mapSlice,
+  mapSubSequence: _Fax.mapSubSequence,
+  mapIndices: _Fax.mapIndices,
+  arrToObj: _Fax.arrToObj,
+  reduce: _Fax.reduce,
+  objMapToArray: _Fax.objMapToArray,
+  objMapFilter: _objMapFilter,
+  arrayMapToObj: _Fax.arrayMapToObj,
+  keys: _Fax.keys,
+  keyCount: _Fax.keyCount,
+  objSubset: _Fax.objSubset,
+  objExclusion: _Fax.objExclusion,
+  using: _Fax.using,
+  populateNamespace: null,
+  copyProps: _Fax.copyProps,
+  shallowClone: _Fax.shallowClone,
+  sure: _sure,
+  STRETCH: {top: 0, left: 0, right: 0, bottom: 0, position: 'absolute'},
+  appendMarkup: _appendMarkup,
+  singleDomNodeFromMarkup: _singleDomNodeFromMarkup,
+  insertNodeAfterNode: _insertNodeAfterNode,
+  renderClassSet: _Fax.renderClassSet,
+  fastClassMap: _fastClassMap,
+  merge: _Fax.merge,
+  mergeThree: _Fax.mergeThree,
+  mergeDeep: _Fax.mergeDeep,
+  mergeStuff: _Fax.mergeStuff,
+  multiComponentMixins: _Fax.multiComponentMixins,
+  orderedComponentMixins: _Fax.orderedComponentMixins,
+  multiDynamicComponentMixins: _Fax.multiDynamicComponentMixins,
+  getViewportDims: FaxUtils.getViewportDims,
+  serializeInlineStyle: _serializeInlineStyle,
+  clone: _clone,
+  POS_KEYS: {l:true, h:true, w:true, r:true, b:true, t:true },
+  POS_CLASS_KEYS: {l:true, h:true, w:true, r:true, b:true, t:true, classSet: true },
+  allNativeTagAtrributes: _allNativeTagAttributes,
+  allNativeTagPropertiesIncludingHandlerNames: _allNativeTagPropertiesIncludingHandlerNames,
+  escapeTextForBrowser: FaxUtils.escapeTextForBrowser,
+  clearBeforeRenderingQueue: _Fax.clearBeforeRenderingQueue,
+  renderingStrategies: _Fax.renderingStrategies,
+  _onlyGenMarkupOnProjection: _Fax._onlyGenMarkupOnProjection,
+  getTotalInstantiationTime: function() { return _Fax.totalInstantiationTime; },
+  indexOfStruct: _Fax.indexOfStruct,
+  structExists: _Fax.structExists
+};
 /**
- * This is to help browserify's cache not break.
+ * Members used to work around object key minification are the only entry
+ * points that need to avoid object key minification.
  */
-if (typeof Fax === 'object') {
-    module.exports = Fax;
-} else {
-  Fax = {
-    _abstractEventListenersById : FaxEvent.abstractEventListenersById,
-    curryOne: _curryOne,
-    bindNoArgs: _bindNoArgs,
-    curryOnly: _curryOnly,
-    MakeComponentClass: _Fax.MakeComponentClass,
-    Componentize: _Fax.Componentize,
-    ComponentizeAll: _Fax.ComponentizeAll,
-    forceClientRendering: true,
-    renderAt: _Fax.renderAt,
-    renderTopLevelComponentAt: _Fax.renderTopLevelComponentAt,
-    maybeInvoke: _Fax.maybeInvoke,
-    makeDomContainerComponent: _makeDomContainerComponent,
-    allTruthy: _Fax.allTruthy,
-    crossProduct: FaxUtils.crossProduct,
-    extractCssPosInfo: _Fax.extractCssPosInfo,
-    extractPosInfo: _Fax.extractPosInfo,
-    sealPosInfo: _Fax.sealPosInfo,
-    extractAndSealPosInfo: _Fax.extractAndSealPosInfo,
-    newPosInfoRelativeTo: _Fax.newPosInfoRelativeTo,
-    objMap: _Fax.objMap,
-    arrPull: _arrPull,
-    arrPullJoin: _arrPullJoin,
-    map: _Fax.map,
-    mapRange: _Fax.mapRange,
-    mapSlice: _Fax.mapSlice,
-    mapSubSequence: _Fax.mapSubSequence,
-    mapIndices: _Fax.mapIndices,
-    arrToObj: _Fax.arrToObj,
-    reduce: _Fax.reduce,
-    objMapToArray: _Fax.objMapToArray,
-    objMapFilter: _objMapFilter,
-    arrayMapToObj: _Fax.arrayMapToObj,
-    keys: _Fax.keys,
-    keyCount: _Fax.keyCount,
-    objSubset: _Fax.objSubset,
-    objExclusion: _Fax.objExclusion,
-    using: _Fax.using,
-    populateNamespace: null,
-    copyProps: _Fax.copyProps,
-    shallowClone: _Fax.shallowClone,
-    sure: _sure,
-    STRETCH: {top: 0, left: 0, right: 0, bottom: 0, position: 'absolute'},
-    appendMarkup: _appendMarkup,
-    singleDomNodeFromMarkup: _singleDomNodeFromMarkup,
-    appendNode: _appendNode,
-    insertNodeBeforeNode: _insertNodeBeforeNode,
-    insertNodeAfterNode: _insertNodeAfterNode,
-    renderClassSet: _Fax.renderClassSet,
-    fastClassMap: _fastClassMap,
-    merge: _Fax.merge,
-    mergeThree: _Fax.mergeThree,
-    mergeDeep: _Fax.mergeDeep,
-    mergeStuff: _Fax.mergeStuff,
-    multiComponentMixins: _Fax.multiComponentMixins,
-    orderedComponentMixins: _Fax.orderedComponentMixins,
-    multiDynamicComponentMixins: _Fax.multiDynamicComponentMixins,
-    getViewportDims: FaxUtils.getViewportDims,
-    styleAttrNameForLogicalName: _styleAttrNameForLogicalName,
-    serializeInlineStyle: _serializeInlineStyle,
-    clone: _clone,
-    POS_KEYS: {l:true, h:true, w:true, r:true, b:true, t:true },
-    POS_CLASS_KEYS: {l:true, h:true, w:true, r:true, b:true, t:true, classSet: true },
-    allNativeTagAtrributes: _allNativeTagAttributes,
-    allNativeTagPropertiesIncludingHandlerNames: _allNativeTagPropertiesIncludingHandlerNames,
-    escapeTextForBrowser: FaxUtils.escapeTextForBrowser,
-    clearBeforeRenderingQueue: _Fax.clearBeforeRenderingQueue,
-    renderingStrategies: _Fax.renderingStrategies,
-    _onlyGenMarkupOnProjection: _Fax._onlyGenMarkupOnProjection,
-    getTotalInstantiationTime: function() { return _Fax.totalInstantiationTime; }
-  };
-  Fax['keyOf'] = keyOf;
-  Fax['minifiedKeyTest'] = minifiedKeyTest;
-  Fax['renderTopLevelComponentAt'] = Fax.renderTopLevelComponentAt;
-
-  module.exports = Fax;
-}
+Fax['keyOf'] = keyOf;
+Fax['minifiedKeyTest'] = minifiedKeyTest;
+Fax['renderTopLevelComponentAt'] = Fax.renderTopLevelComponentAt;
