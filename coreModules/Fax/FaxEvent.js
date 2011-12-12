@@ -700,7 +700,7 @@ FaxEvent = {
   /**
    * Handles events that are 'movementy', meaning mouse and touch drags, not mouse
    * in or out events which are more instantaneous in nature occurring at element
-   * boundries and thus don't need the same quantization as movementy events.
+   * boundaries and thus don't need the same quantization as movementy events.
    * From these top level movementy events we can infer (currently) two higher
    * level events (both drag events) (onQuantizeTouchDrag and onQuantizeDrag)
    */
@@ -906,6 +906,66 @@ FaxEvent.registerIeOnSelectStartListener = function() {
   };
 };
 
+/**
+ * We'll put something like this in Utils, and fall back to either a compiled
+ * regex, or the following algorithm, depending on which is faster on which
+ * browser.  */
+function startsWith(str, startsWithStr) {
+  var i;
+  for (i=0; i < startsWithStr.length; i=i+1) {
+    if (str[i] !== startsWithStr[i]) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
+ * Releases memory in a controlled manner. Once artifacts are removed from the
+ * DOM, simply removing any event handlers in the top level bank should be the
+ * last thing needed to clear memory.
+ *
+ * This particular algorithm will be very slow if you wait too long until
+ * clearing memory.  You may set up a window timeOut to clear memory every
+ * second or so, but your application likely has a particular moments of
+ * interest when you know it's most beneficial to clear memory. Choose those
+ * times, and eliminate any master timeOut when in those application flows.
+ *
+ * Coming soon: We'll test a tree hierarchy for event listeners, so in a single
+ * statement we can clear out all child dependency listeners.
+ *
+ * Also: using top level event delegation in the more traditional manner (one
+ * handler for several instances will make this cleanup process very very
+ * fast.) Since we don't want to push the burden of thinking about that onto
+ * the developer, we'll hold off until our static analysis (or api) is robust
+ * enough to accommodate those patterns.
+ */
+FaxEvent.releaseMemoryReferences = function (idPrefixes) {
+  var i, idPrefix, listenerDesc,
+      abstractListeners = FaxEvent.abstractEventListenersById;
+
+  for (idPrefix in idPrefixes) {
+    if (!idPrefixes.hasOwnProperty(idPrefix)) {
+      continue;
+    }
+    for (listenerDesc in abstractListeners) {
+      if (!abstractListeners.hasOwnProperty(listenerDesc)) {
+        continue;
+      }
+      /* Need to avoid accidentally deleting .top.thing.key11 when we are
+       * searching by prefix .top.thing.key1. Searching by prefix (with dot at
+       * the end) finds all handlers that are on dom elements that are
+       * descendants of the prefix element. The '@' symbol will catch any
+       * events registered on elements that have an id exactly equal to the
+       * prefix. */
+      if (startsWith(listenerDesc, idPrefix) &&
+          (listenerDesc.charAt(idPrefix.length) === '.' ||
+            listenerDesc.charAt(idPrefix.length) === '@')) {
+        delete abstractListeners[listenerDesc];
+      }
+    }
+  }
+};
 
 /**
  * ----------------------------------------------------------------------------

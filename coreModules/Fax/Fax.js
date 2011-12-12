@@ -215,7 +215,8 @@ function _eq(obj1, obj2) {
 var _Fax = {
   componentCurrentlyProjectingLock: null,
   beforeRendering: [],
-  totalInstantiationTime: 0
+  totalInstantiationTime: 0,
+  idPrefixesAwaitingClearing: {}
 };
 
 _Fax.Fatal = function(str) {
@@ -294,6 +295,11 @@ var _insertNodeAfterNode = function (elem, insertNode, insertAfterNode) {
   } else {
     return elem.insertBefore(insertNode, elem.firstChild);
   }
+};
+
+_Fax.releaseMemoryReferences = function () {
+  FaxEvent.releaseMemoryReferences(_Fax.idPrefixesAwaitingClearing);
+  _Fax.idPrefixesAwaitingClearing = {};
 };
 
 
@@ -802,22 +808,21 @@ function childGenerator(idRoot, childProjections, doMarkup, doHandlers) {
   }
 }
 
-// OnlyControlChildKeys === {} => ignoreProps === props
-// _dontControlExistingChildren === true => ignoreProps === props
-// ignoreProps === tagAtrrs => what we did before
 function childReconciler(nextProps, ignoreProps, onlyConsiderProps) {
   if (!this._rootDomId) { throw ERROR_MESSAGES.CONTROL_WITHOUT_BACKING_DOM; }
 
   var myChildren = this.children, deallocChildren = {}, keepChildren = {},
       curChild, curChildKey, deallocChild, deallocChildKey, newMarkup,
       rootDomId = this._rootDomId, rootDomIdDot = rootDomId + '.',
+      deallocId, domNodeToRemove,
       newProjection;
 
   if (nextProps === ignoreProps) { return; }
 
   for (curChildKey in myChildren) {
     if (!myChildren.hasOwnProperty(curChildKey) ||
-        onlyConsiderProps && !onlyConsiderProps[curChildKey]) {
+        onlyConsiderProps && !onlyConsiderProps[curChildKey] ||
+        ignoreProps && ignoreProps[curChildKey]) {
       continue;
     }
 
@@ -852,16 +857,17 @@ function childReconciler(nextProps, ignoreProps, onlyConsiderProps) {
     if (!deallocChildren.hasOwnProperty(deallocChildKey)) { continue; }
     deallocChild = myChildren[deallocChildKey];
     if (deallocChild && deallocChild.doControl) {
-      var domNodeToRemove =
+      deallocId = rootDomIdDot + deallocChildKey;
+      domNodeToRemove =
           deallocChild.rootDomNode ||
-          document.getElementById(rootDomIdDot + deallocChildKey);
+          document.getElementById(deallocId);
 
       domNodeToRemove.parentNode.removeChild(domNodeToRemove);
-      // Todo: Deallocate handlers - experiment with various handler tree
-      // structures.  Search for all other 'delete's.
       delete myChildren[deallocChildKey];
+      _Fax.idPrefixesAwaitingClearing[deallocId] = true;
     }
   }
+  domNodeToRemove = null; // paranoid memory
 
   var lastIteratedDomNodeId = null,
       newChild, propKey, prop, newChildId;
@@ -871,14 +877,19 @@ function childReconciler(nextProps, ignoreProps, onlyConsiderProps) {
         onlyConsiderProps && !onlyConsiderProps[propKey]) {
       continue;
     }
+
+    /* Make sure the memory won't be cleared for this - it could have been
+     * pending a clear, but then readded as a child before we had the
+     * opportunity to clean up memory.  */
     prop = nextProps[propKey];
+    newChildId = rootDomIdDot + propKey;
+    delete _Fax.idPrefixesAwaitingClearing[newChildId];
     if (myChildren[propKey]) {
-      lastIteratedDomNodeId = (rootDomIdDot + propKey);
+      lastIteratedDomNodeId = newChildId;
     } else {
       if ((!ignoreProps || !ignoreProps[propKey]) &&
             prop && prop.maker) {
         // If there's not yet a child and we want to allocate a component
-        newChildId = rootDomIdDot + propKey;
         newChild = new (prop.maker)( prop.props, prop.instantiator);
         newMarkup = newChild.genMarkup(newChildId, true, true);
         myChildren[propKey] = newChild;
@@ -1257,6 +1268,7 @@ _Fax.standardComponentMixins = {
  * projection of components for which each element is the exact same type
  * (accepts the same props) and where each element is indistinguishable from the
  * others (each holds no state.)
+ * Todo: Have this clean up memory in the same way that the multi dynamic does.
  */
 _Fax.orderedComponentMixins = {
 
@@ -1364,11 +1376,11 @@ _Fax.multiDynamicComponentMixins = {
       ret = '<div id="';
       ret += idRoot;
       ret += '" style="display:inherit">';
-      ret += childGenerator.call(this, idRoot, this.props, doMarkup, doHandlers);
+      ret += this._childGenerator(idRoot, this.props, doMarkup, doHandlers);
       ret += "</div>";
       return ret;
     } else {
-      this.childGenerator(idRoot, this.props, doMarkup, doHandlers);
+      this._childGenerator(idRoot, this.props, doMarkup, doHandlers);
     }
   },
 
@@ -1808,8 +1820,7 @@ function _makeDomContainerComponent(tag, optionalTagTextPar, pre, post, headText
     }
 
     if (sawChildren) {
-      innerMarkup = childGenerator.call(
-          this, idRoot, childProjections, doMarkup, doHandlers);
+      innerMarkup = this._childGenerator(idRoot, childProjections, doMarkup, doHandlers);
     }
 
     if (doMarkup) {
@@ -2602,6 +2613,7 @@ module.exports = Fax = {
   renderingStrategies: _Fax.renderingStrategies,
   _onlyGenMarkupOnProjection: _Fax._onlyGenMarkupOnProjection,
   getTotalInstantiationTime: function() { return _Fax.totalInstantiationTime; },
+  releaseMemoryReferences: _Fax.releaseMemoryReferences,
   indexOfStruct: _Fax.indexOfStruct,
   structExists: _Fax.structExists
 };
