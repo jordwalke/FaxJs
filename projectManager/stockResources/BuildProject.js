@@ -132,6 +132,7 @@ function build(buildSpecs) {
 
   console.log('-> Copying project modules to build directory');
 
+  var newPackageFiles = {};
   for (moduleName in buildSpecs.projectConfig.projectModules) {
     if (!buildSpecs.projectConfig.projectModules.hasOwnProperty(moduleName)) {
       continue;
@@ -152,7 +153,33 @@ function build(buildSpecs) {
          moduleMain ? moduleMain.substr(2) : (moduleName + '.js'));
     console.log('   -> Using single module main file in build:' + moduleMainPath);
 
+    /* Automatically generate package.json files if they don't exist yet. This is so that when
+     * we dynamically require files to generate the style, node will pick up dependencies.
+     * This whole system only works if the main is named after the module, because while node
+     * works correctly for dynamically determining style exports, modulr doesn't seem to work
+     * right now unless the "main" is named exactly the same as the module directory (likely
+     * the fault of this build script) */
+    newPackageFiles[
+        buildSpecs.buildClientBuildLibDir + moduleName + '/package.json'
+    ] =
+      '{\\"name\\"  : \\"{moduleName}\\", \\"main\\"  : \\"{moduleMain}\\" }'.
+          replace("{moduleName}", moduleName).
+          replace("{moduleMain}", moduleMain.substr(0, moduleMain.length - 3));
+
+
+
   }
+  
+  var newPackageFile, packageCommand = '';
+  for (newPackageFile in newPackageFiles) {
+    if (!newPackageFiles.hasOwnProperty(newPackageFile)) {
+      continue;
+    }
+    packageCommand += "[ -e " + newPackageFile + " ] || echo " +
+    newPackageFiles[newPackageFile] + " >> " + newPackageFile + ";";
+  }
+
+
 
   /* Todo: build skeletons for missing modules. */
   /* Here, we sym link node_modules to the buildLib because things we require
@@ -162,7 +189,7 @@ function build(buildSpecs) {
   exec("cp -r " + curDir + "/lib/* " + curDir + "/build/client/buildLib/; " +
        "ln -s " + curDir + "/build/client/buildLib " + curDir + "/build/client/node_modules; " +
        "cp " + curDir + "/index.html " + curDir + "/build/client/ ;" +
-       "cp -r " + curDir + "/staticResources/* " + curDir + "/build/client/staticResources/ ;",
+       "cp -r " + curDir + "/staticResources/* " + curDir + "/build/client/staticResources/ ;" + packageCommand,
 
     function (error, stdout, stderr) {
       util.debug(stdout);
