@@ -190,6 +190,7 @@ var CONTENT_KEY = keyOf({ content: null });
 var DANGEROUSLY_SET_INNER_HTML_KEY = keyOf({ dangerouslySetInnerHtml: null });
 var INNER_HTML_KEY = keyOf({ innerHtml: null });
 var DYNAMIC_HANDLERS_KEY = keyOf({ dynamicHandlers: true });
+var VALUE_KEY = keyOf({ value: true });
 
 
 /**
@@ -310,7 +311,18 @@ _Fax.releaseMemoryReferences = function () {
  * Also, application code can be more easily minified if using a lookup table.
  */
 _Fax.controlDirectlyDomAttrsMap = {
-  value: 'value', scrollTop: 'scrollTop', scrollLeft: 'scrollLeft'
+  scrollTop: 'scrollTop', scrollLeft: 'scrollLeft'
+};
+
+/**
+ * Properties that are not truly idempotent at the dom level, and therefore we
+ * need to check their current values on the actual dom node before setting
+ * them.  One example, is a text box value attribute. Setting the value will
+ * reposition the cursor. Another example is src on an iframe - resetting it
+ * will trigger a reload of the content and reflow.
+ */
+_Fax.controlDirectlyNonIdempotent = {
+  value: 'value', src: 'src'
 };
 
 /**
@@ -329,19 +341,23 @@ _Fax.controlDirectlyDomAttrsMapDoEscape = {
 
 
 var logicalStyleAttrNamesMap = {
-  boxSizing: 'box-sizing', boxShadow: 'box-shadow',
+  boxSizing: 'box-sizing', boxShadow: 'box-shadow', textShadow: 'text-shadow',
   paddingRight: 'padding-right', paddingLeft: 'padding-left',
   paddingTop: 'padding-top', paddingBottom: 'padding-bottom',
   marginRight: 'margin-right', marginLeft: 'margin-left',
   marginTop: 'margin-top', marginBottom: 'margin-bottom',
   zIndex: 'z-index', backgroundImage: 'background-image',
+  cursor: 'cursor', direction: 'direction',
   border: 'border', borderTop: 'border-top',
   fontSize: 'font-size', fontWeight: 'font-weight',
+  fontFamily: 'font-family', lineHeight: 'line-height',
   fontColor: 'font-color', textTransform: 'text-transform',
   textDecoration: 'text-decoration', textAlign: 'text-align',
   borderLeft: 'border-left', borderRight: 'border-right',
   borderBottom: 'border-bottom', borderColor: 'border-color',
-  position: 'position', backgroundColor: 'background-color'
+  position: 'position', backgroundColor: 'background-color',
+  minHeight: 'min-height', maxHeight: 'max-height', minWidth: 'min-width',
+  maxWidth: 'max-width', outline: 'outline'
 };
 
 /**
@@ -358,7 +374,7 @@ var _controlUsingSetAttrDomAttrsMap = {
   marginTop: 'margin-top', marginBottom: 'margin-bottom', padding: 'padding',
   paddingRight: 'padding-right', paddingLeft: 'padding-left',
   paddingTop: 'padding-top', paddingBottom: 'padding-bottom', width: 'width',
-  height: 'height', className: 'class', href: 'href', src: 'src'
+  height: 'height', className: 'class', href: 'href'
   /*, classSet: 'class-ButFirstCallFax.renderClassSet'*/
 };
 
@@ -378,6 +394,7 @@ _Fax.controlUsingSetAttrDomAttrsMapButNormalizeFirst = {
 var _allNativeTagAttributes = {
   // Using setattribute
   margin: 'margin', marginRight: 'margin-right', marginLeft: 'margin-left',
+  tabIndex: 'tabindex',
   marginTop: 'margin-top', marginBottom: 'margin-bottom', padding: 'padding',
   paddingRight: 'padding-right', paddingLeft: 'padding-left',
   paddingTop: 'padding-top', paddingBottom: 'padding-bottom', width: 'width',
@@ -414,6 +431,7 @@ _Fax.cannotEverControl = {
  */
 var _markupDomTagAttrsMap = {
   margin: 'margin', marginRight: 'margin-right', marginLeft: 'margin-left',
+  tabIndex: 'tabindex',
   marginTop: 'margin-top', marginBottom: 'margin-bottom', padding: 'padding',
   paddingRight: 'padding-right', paddingLeft: 'padding-left',
   paddingTop: 'padding-top', paddingBottom: 'padding-bottom',
@@ -424,8 +442,8 @@ var _markupDomTagAttrsMap = {
 
 /** Set of attribute names for which we do not append 'px'. */
 var _cssNumber = {
-  textDecoration: true, zoom: true, fillOpacity: true, fontWeight: true,
-  lineHeight: true, opacity: true, orphans: true, widows: true,
+  tabIndex: true, textDecoration: true, zoom: true, fillOpacity: true,
+  fontWeight: true, opacity: true, orphans: true,
   zIndex: true, outline: true
 };
 
@@ -808,6 +826,16 @@ function childGenerator(idRoot, childProjections, doMarkup, doHandlers) {
   }
 }
 
+/*
+ * Soon - for native dom components and any other multichild components, if the
+ * properties are an array - the build stage (meaning projection constructors,
+ * will fold all elements in an array form properties into a single one - so
+ * that we can avoid the concept of overrides and perf hit of merging at several
+ * layers. Instead, we'll just merge once before rendering/updating - or let the
+ * deepest code simply work on arrays. Another (better solution, is to have a
+ * delayed merge function, that queues up merge after merge after merge, but
+ * doesn't iterate in the process - simply defers that for the latest point.
+ */
 function childReconciler(nextProps, ignoreProps, onlyConsiderProps) {
   if (!this._rootDomId) { throw ERROR_MESSAGES.CONTROL_WITHOUT_BACKING_DOM; }
 
@@ -1061,6 +1089,15 @@ _Fax.universalPrivateMixins = {
           ths.updateState(funcOrFragment);
         };
     
+  },
+
+  stateUpdaterCurry: function (func /*, other arguments*/) {
+    var curriedArgs = Array.prototype.slice.call(arguments, 1);
+    var ths = this;
+    return function () {
+      ths.updateState(func.apply(ths,
+          curriedArgs.concat(Array.prototype.slice.call(arguments))));
+    };
   }
 
 };
@@ -1148,11 +1185,25 @@ _Fax.objMapToArray = function(obj, mapper, context) {
  * Mapper must return {key: x, value: y} If mapper returns undefined, no entry
  * in the ret will be made.  It must not return null.
  */
-_Fax.arrayMapToObj = function(arr, mapper) {
+_Fax.arrMapToObj = function(arr, mapper) {
   var ret = {}, res, i, len = arr.length;
   for(i=0; i < len; i++) {
     res = mapper(arr[i], i);
     ret[res.key] = res.value;
+  }
+  return ret;
+};
+
+/**
+ * Mapper should just return the value for which this function will create
+ * string keys for. Each straing key will not appear to be numeric, and
+ * therefore will experience order preservation. You can't decide the key
+ * though, it will simply be 'nNumber' (so as not to appear numeric).
+ */
+_Fax.arrMapToObjAutoKey = function(arr, mapper) {
+  var ret = {}, i, len = arr.length;
+  for(i=0; i < len; i++) {
+    ret['n' + i] = mapper(arr[i], i);
   }
   return ret;
 };
@@ -1500,7 +1551,7 @@ _Fax.controlPhysicalDomByNodeOrId = function (elem,
 
   var cssText = '', style = nextProps.style, propKey,
       styleAttr, styleAttrVal, nextPropsStyleAttrVal, logStyleAttrName,
-      nextPosInfo, lastPosInfo, nextClassSet, lastClassSet;
+      nextPosInfo, lastPosInfo, nextClassSet, lastClassSet, currentValue;
 
   /* here's an interesting optimization. Saves 20% render time in many cases
    * when overprojecting, will hurt the cases where we don't overproject,
@@ -1526,6 +1577,7 @@ _Fax.controlPhysicalDomByNodeOrId = function (elem,
             JSON.stringify(nextProps.style) !== JSON.stringify(lastProps.style)) ||
       nextProps.dangerouslySetInnerHtml !== lastProps.dangerouslySetInnerHtml ||
       nextProps.content !== lastProps.content ||
+      nextProps.src !== lastProps.src ||
       /* Todo: check for 'checked' */
       nextProps.className !== lastProps.className || nextProps.value !== lastProps.value ||
       JSON.stringify(nextClassSet) !== JSON.stringify(lastClassSet)) {
@@ -1540,6 +1592,10 @@ _Fax.controlPhysicalDomByNodeOrId = function (elem,
       var prop = nextProps[propKey];
       if (_controlUsingSetAttrDomAttrsMap[propKey]) {
         elem.setAttribute(_controlUsingSetAttrDomAttrsMap[propKey], prop);
+      } else if (propKey === VALUE_KEY) {
+        if (elem.value !== nextProps.value) {
+          elem.value = nextProps.value;
+        }
       } else if(propKey === CLASS_SET_KEY) {
         elem.className = FaxBrowserUtils.escapeTextForBrowser(_Fax.renderClassSet(prop));
       } else if (_Fax.controlDirectlyDomAttrsMap[propKey]) {
@@ -1559,6 +1615,11 @@ _Fax.controlPhysicalDomByNodeOrId = function (elem,
          * to be the clear winner, though. I'll settle for online textContent.
          * The perf test doesn't even account for escaping though. */
         elem.textContent = prop;
+      } else if (_Fax.controlDirectlyNonIdempotent[propKey]) {
+        currentValue = elem[_Fax.controlDirectlyNonIdempotent[propKey]];
+        if (currentValue !== prop) {
+          elem[_Fax.controlDirectlyNonIdempotent[propKey]] = prop;
+        }
       } else if (propKey === DANGEROUSLY_SET_INNER_HTML_KEY) {
         elem.innerHTML = prop;
       } else if (propKey === INNER_HTML_KEY) {
@@ -1616,6 +1677,7 @@ _Fax.controlPhysicalDomByNodeOrId = function (elem,
  *   ${footText}
  * </tag>
  * {$post}
+ *
  */
 function _makeDomContainerComponent(tag, optionalTagTextPar, pre, post, headText, footText) {
   var optionalTagText =  optionalTagTextPar || '',
@@ -2545,6 +2607,33 @@ function _arrPullJoin(arr, key) {
   return res;
 }
 
+/* Returns an object map of the form: valueOfByKey => [items where byKey equals
+ * valueOfByKey]. Note, if the value in byKey for any item is an object, it
+ * will be automatically stringified by the system since we're creating a
+ * 'JSON' style map as the return value. A more detailed (and slower)
+ * implementation would map categorize by structural value. We could create a
+ * similar function that allows us to 'tag' objects, allowing an item to exist
+ * in more than one category. Will filter out objects that are null or
+ * undefined. All objects that have nothing for that key will be categorized by
+ * the 'undefined' category. */
+function _arrCategorize(arr, byKey) {
+  var i, item, ret = {};
+  if (!arr) {
+    return {};
+  }
+  var categoryArr;
+  for (i = 0; i < arr.length; i = i + 1) {
+    item = arr[i];
+    if (item !== undefined && item !== null) {
+      if (!ret[item[byKey]]) {
+        ret[item[byKey]] = [];
+      }
+      ret[item[byKey]].push(item);
+    }
+  }
+  return ret;
+}
+
 
 module.exports = Fax = {
   _abstractEventListenersById : FaxEvent.abstractEventListenersById,
@@ -2570,6 +2659,7 @@ module.exports = Fax = {
   oMap: _Fax.objMap,
   arrPull: _arrPull,
   arrPullJoin: _arrPullJoin,
+  arrCategorize: _arrCategorize,
   map: _Fax.map,
   mapRange: _Fax.mapRange,
   mapSlice: _Fax.mapSlice,
@@ -2579,7 +2669,8 @@ module.exports = Fax = {
   reduce: _Fax.reduce,
   objMapToArray: _Fax.objMapToArray,
   objMapFilter: _objMapFilter,
-  arrayMapToObj: _Fax.arrayMapToObj,
+  arrMapToObj: _Fax.arrMapToObj,
+  arrMapToObjAutoKey: _Fax.arrMapToObjAutoKey,
   keys: _Fax.keys,
   keyCount: _Fax.keyCount,
   objSubset: _Fax.objSubset,
@@ -2615,7 +2706,8 @@ module.exports = Fax = {
   getTotalInstantiationTime: function() { return _Fax.totalInstantiationTime; },
   releaseMemoryReferences: _Fax.releaseMemoryReferences,
   indexOfStruct: _Fax.indexOfStruct,
-  structExists: _Fax.structExists
+  structExists: _Fax.structExists,
+  keyOf: keyOf
 };
 /**
  * Members used to work around object key minification are the only entry

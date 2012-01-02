@@ -1018,24 +1018,32 @@ FaxEvent.registerTopLevelListeners = function(mountAt, touchInsteadOfMouse) {
   FaxEvent.__trapBubbledEvent(topLevelEventTypes.topLevelKeyPress, 'onkeypress', mountAt || document);
   FaxEvent.__trapBubbledEvent(topLevelEventTypes.topLevelKeyDown, 'onkeydown', mountAt || document);
 
-  /**
-   * TODO: IE has focusin and focusout which bubble, and we don't need to use
-   * event 'capturing'. We just need to switch on the user agent so we avoid
-   * unnecessarily capturing the focus and blur events - not that it harms
-   * anything.
-   *
-   * See: http://www.quirksmode.org/blog/archives/2008/04/delegating_the.html
-   * focus and blur events do not bubble, but we can capture them on 'the way
-   * down'.
-   */
-  FaxEvent.__trapCapturedEvent(topLevelEventTypes.topLevelFocus, 'focus', mountAt || window);
-  FaxEvent.__trapCapturedEvent(topLevelEventTypes.topLevelBlur, 'blur', mountAt || window);
 
 
   /** http://www.quirksmode.org/dom/events/tests/scroll.html (Firefox needs to
    * capture a diff mouse scroll); No browser captures both simultaneously so we're good */
   FaxEvent.__trapCapturedEvent(topLevelEventTypes.topLevelMouseWheel, 'DOMMouseScroll', mountAt || document);
   FaxEvent.__trapCapturedEvent(topLevelEventTypes.topLevelScroll, 'scroll', mountAt || document);
+
+  /**
+   * IE has focusin and focusout which bubble which we have to use because we
+   * can't use event capturing in IE8 and below. No other browsers besides IE
+   * support these events, so we must capture them at the top level.
+   *
+   * The IE support needs to be tested.
+   *
+   * See: http://www.quirksmode.org/blog/archives/2008/04/delegating_the.html
+   */
+  FEnv.ensureBrowserDetected();
+  if (FEnv.browserInfo.browser === 'MSIE' &&
+      '' + FEnv.browserInfo.version !== '9' &&
+      '' + FEnv.browserInfo.version !== '10') {
+    FaxEvent.__trapBubbledEvent(topLevelEventTypes.topLevelFocus, 'onfocusin', document);
+    FaxEvent.__trapBubbledEvent(topLevelEventTypes.topLevelBlur, 'onfocusin', document);
+  } else {
+    FaxEvent.__trapCapturedEvent(topLevelEventTypes.topLevelFocus, 'focus', mountAt || window);
+    FaxEvent.__trapCapturedEvent(topLevelEventTypes.topLevelBlur, 'blur', mountAt || window);
+  }
 };
 
 

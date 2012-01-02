@@ -114,7 +114,10 @@ function compile(buildSpecs) {
       }
     } catch (e2) {
       console.error(redStr('[ERROR]: Could not optimize style module:' + files[i] + '/.css'));
-      // Don't rethrow, modulr will fail with a much better description.
+      // It seems modulr is throwing better exceptions than this build script for
+      // optimization failures, but not style optimization failures. Will rethrow
+      // here.
+      throw e2;
     }
   }
   modulrize(buildSpecs);
