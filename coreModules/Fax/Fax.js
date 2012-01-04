@@ -322,7 +322,7 @@ _Fax.controlDirectlyDomAttrsMap = {
  * will trigger a reload of the content and reflow.
  */
 _Fax.controlDirectlyNonIdempotent = {
-  value: 'value', src: 'src'
+  value: 'value', src: 'src', checked: 'checked'
 };
 
 /**
@@ -400,13 +400,14 @@ var _allNativeTagAttributes = {
   paddingTop: 'padding-top', paddingBottom: 'padding-bottom', width: 'width',
   height: 'height', className: 'class', href: 'href', src: 'src',
   // controlDirectlyDomAttrsMap
-  value: 'value', scrollTop: 'scrollTop', scrollLeft: 'scrollLeft',
+  value: 'value', scrollTop: 'scrollTop', scrollLeft: 'scrollLeft', name: 'name',
+  checked: 'checked',
   // controlDirectlyDomAttrsMapNoEscape
   dangerouslySetInnerHtml: 'innerHTML',
   // controlDirectlyDomAttrsMapDoEscape
   content: 'innerHTML-ButFirstEscape-Not-A-Real-Property',
   // cannotEverControl
-  type: 'type',
+  type: 'type', htmlFor: 'htmlFor',
   // controlUsingSetAttrDomAttrsMapButNormalizeFirst
   classSet: 'class-ButFirstCallFax.renderClassSet'
 };
@@ -416,7 +417,8 @@ var _allNativeTagAttributes = {
  * problem is that the dom itself is not idempotent (at least ie8).
  */
 _Fax.cannotEverControl = {
-  type: 'type'
+  type: 'type',
+  htmlFor: 'for'
 };
 
 /**
@@ -437,7 +439,8 @@ var _markupDomTagAttrsMap = {
   paddingTop: 'padding-top', paddingBottom: 'padding-bottom',
   value: 'value', width: 'width', height: 'height',
   className: 'class', /*classSet: 'class-ButFirstCallFax.renderClassSet', */
-  type: 'type', href: 'href', src: 'src'
+  type: 'type', href: 'href', src: 'src',
+  name: 'name', htmlFor: 'for', checked: 'checked'
 };
 
 /** Set of attribute names for which we do not append 'px'. */
