@@ -167,6 +167,24 @@ function keyOf(oneKeyObj) {
 }
 
 /**
+ * Input:  {key1: val1, key2: val2}
+ * Output: {key1: key1, key2: key2}
+ */
+function keyMirror(obj) {
+  var key, ret = {};
+  if (!obj) {
+    return obj;
+  }
+  for (key in obj) {
+    if (!obj.hasOwnProperty(key)) {
+      continue;
+    }
+    ret[key] = key;
+  }
+  return ret;
+}
+
+/**
  * keyTest(someKey, {className: true}) => true/false Minification tolerant key
  * test. The minifiedKey *must* be minified. Q: How do you know it's minified?
  * A: It must have come from a key that was specified in javascript object, not
@@ -687,6 +705,8 @@ _Fax.renderTopLevelComponentAt = function(ProjectionOrProjectionConstructor,
 
 /**
  * Merges into an existing object - as in "merges" then "stuffs" into ths.
+ * Since we have the luxury of mutating ths, we can apply a shortcut when we see
+ * that merge is falsey - we can just return ths!
  */
 _Fax.mergeStuff = function(ths, merge) {
   var aKey;
@@ -2047,7 +2067,7 @@ _Fax.renderClassSet = function(namedSet) {
       accum += nameOfClass;
       accum += ' ';
     } else if(nameOfClass && val) {
-      accum += val;
+      accum += val + ' ';
     }
   }
   return accum;
@@ -2710,7 +2730,8 @@ module.exports = Fax = {
   releaseMemoryReferences: _Fax.releaseMemoryReferences,
   indexOfStruct: _Fax.indexOfStruct,
   structExists: _Fax.structExists,
-  keyOf: keyOf
+  keyOf: keyOf,
+  keyMirror: keyMirror
 };
 /**
  * Members used to work around object key minification are the only entry

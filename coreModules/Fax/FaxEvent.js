@@ -1035,11 +1035,11 @@ FaxEvent.registerTopLevelListeners = function(mountAt, touchInsteadOfMouse) {
    * See: http://www.quirksmode.org/blog/archives/2008/04/delegating_the.html
    */
   FEnv.ensureBrowserDetected();
-  if (FEnv.browserInfo.browser === 'MSIE' &&
+  if (FEnv.browserInfo.browser === 'Explorer' &&
       '' + FEnv.browserInfo.version !== '9' &&
       '' + FEnv.browserInfo.version !== '10') {
     FaxEvent.__trapBubbledEvent(topLevelEventTypes.topLevelFocus, 'onfocusin', document);
-    FaxEvent.__trapBubbledEvent(topLevelEventTypes.topLevelBlur, 'onfocusin', document);
+    FaxEvent.__trapBubbledEvent(topLevelEventTypes.topLevelBlur, 'onfocusout', document);
   } else {
     FaxEvent.__trapCapturedEvent(topLevelEventTypes.topLevelFocus, 'focus', mountAt || window);
     FaxEvent.__trapCapturedEvent(topLevelEventTypes.topLevelBlur, 'blur', mountAt || window);

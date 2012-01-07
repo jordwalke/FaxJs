@@ -1,4 +1,3 @@
-
 console.log("\nServing files from client build directory");
 var http = require("http"),
     url = require("url"),
@@ -20,7 +19,9 @@ http.createServer(function(request, response) {
       return;
     }
 
-	  if (fs.statSync(fileName).isDirectory()) fileName += '/index.html';
+	  if (fs.statSync(fileName).isDirectory()) {
+      fileName += '/index.html';
+    }
     fs.readFile(fileName, "binary", function(err, file) {
       if(err) {        
         response.writeHead(500, {"Content-Type": "text/plain"});
@@ -29,7 +30,12 @@ http.createServer(function(request, response) {
         return;
       }
 
-      response.writeHead(200);
+      response.writeHead(200, {
+        "Content-Type":
+            fileName.substr(fileName.length - 4) === '.css'  ? 'text/css' :
+            fileName.substr(fileName.length - 5) === '.html' ? 'text/html' :
+            'text/plain'
+        });
       response.write(file, "binary");
       response.end();
     });
@@ -37,3 +43,4 @@ http.createServer(function(request, response) {
 }).listen(8080);
 
 console.log("Static file server running on port 8080 - CTRL + C to stop");
+
