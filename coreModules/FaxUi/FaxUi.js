@@ -57,6 +57,7 @@ FaxUi.Input = F.makeDomContainerComponent('input');
 FaxUi.Button = F.makeDomContainerComponent('button');
 FaxUi.Table = F.makeDomContainerComponent('table');
 FaxUi.Tr = F.makeDomContainerComponent('tr');
+FaxUi.Th = F.makeDomContainerComponent('th');
 FaxUi.Td = F.makeDomContainerComponent('td');
 FaxUi.IFrame = F.makeDomContainerComponent('iframe');
 
@@ -165,7 +166,7 @@ var rgbaToFilterHexFromMap = function(map) {
          convertToHex(map.g)+convertToHex(map.b);
 };
 
-module.exports.stylers = {
+var stylers = module.exports.stylers = {
 
   /**
    * Since FaxJs works with key minification compilers, you end up having to
@@ -196,26 +197,26 @@ module.exports.stylers = {
   },
 
   burnDelta: function (rgbaMap, points) {
-    return this.rgbaDelta(rgbaMap, -1*points);
+    return stylers.rgbaDelta(rgbaMap, -1*points);
   },
 
   dodgeDelta: function (rgbaMap, points) {
-    return this.rgbaDelta(rgbaMap, points);
+    return stylers.rgbaDelta(rgbaMap, points);
   },
 
   /**
    * Alters an rgba map evenly across each color demension by a rate.
    */
   rgbaFactor: function (rgbaMap, rate) {
-    return this.rgbaDelta(rgbaMap, 255*rate);
+    return stylers.rgbaDelta(rgbaMap, 255*rate);
   },
 
   burnFactor: function (rgbaMap, rate) {
-    return this.rgbaFactor(rgbaMap, -1*rate);
+    return stylers.rgbaFactor(rgbaMap, -1*rate);
   },
 
   dodgeFactor: function (rgbaMap, rate) {
-    return this.rgbaFactor(rgbaMap, rate);
+    return stylers.rgbaFactor(rgbaMap, rate);
   },
 
   /**
@@ -287,9 +288,9 @@ module.exports.stylers = {
    * gradient with the same start and end color.
 	 */
 	backgroundColorValue: function(rr, gg, bb, aa) {
-    var accum = this.rgbaStr({r:rr, g:gg, b:bb});
+    var accum = stylers.rgbaStr({r:rr, g:gg, b:bb});
     if (aa || aa === 0) {
-      accum += '; background:' + this.rgbaStr({r: rr, g:gg, b:bb, a: aa});
+      accum += '; background:' + stylers.rgbaStr({r: rr, g:gg, b:bb, a: aa});
     }
     return accum;
 	},
@@ -301,8 +302,8 @@ module.exports.stylers = {
    * http://dev.opera.com/articles/view/cross-browser-box-shadows/
    */
 	boxShadowValueWithParams: function(a, b, c, re, gr, bl, al, inset) {
-    var shadow = this._shadowSegment(a,b,c,re,gr,bl,al,inset);
-    return this._crossBrowserBoxShadow(shadow);
+    var shadow = stylers._shadowSegment(a,b,c,re,gr,bl,al,inset);
+    return stylers._crossBrowserBoxShadow(shadow);
 	},
 
   _crossBrowserBoxShadow: function (shadowText) {
@@ -315,30 +316,30 @@ module.exports.stylers = {
   boxShadowValue: function (map) {
     /* Backwards compatibility here: */
     if (map && !map.r && map.r !== 0) {
-      return this.boxShadowValueWithParams.apply(this, arguments);
+      return stylers.boxShadowValueWithParams.apply(stylers, arguments);
     }
-    return this.boxShadowValueWithParams(
+    return stylers.boxShadowValueWithParams(
         map.x, map.y, map.size,
         map.r, map.g, map.b, map.a, map.inset);
   },
 
   boxShadowOutsetAndInset: function (outsetMap, insetMap) {
-    var outsetShadow= this._shadowSegment(
+    var outsetShadow= stylers._shadowSegment(
         outsetMap.x, outsetMap.y, outsetMap.size,
         outsetMap.r, outsetMap.g, outsetMap.b, outsetMap.a, false);
-    var insetShadow= this._shadowSegment(
+    var insetShadow= stylers._shadowSegment(
         insetMap.x, insetMap.y, insetMap.size,
         insetMap.r, insetMap.g, insetMap.b, insetMap.a, true);
 
-    return this._crossBrowserBoxShadow(outsetShadow + ',' + insetShadow);
+    return stylers._crossBrowserBoxShadow(outsetShadow + ',' + insetShadow);
 
   },
 
   textShadowOutsetAndInset: function (outsetMap, insetMap) {
-    var outsetShadow= this._shadowSegment(
+    var outsetShadow= stylers._shadowSegment(
         outsetMap.x, outsetMap.y, outsetMap.size,
         outsetMap.r, outsetMap.g, outsetMap.b, outsetMap.a, false);
-    var insetShadow= this._shadowSegment(
+    var insetShadow= stylers._shadowSegment(
         insetMap.x, insetMap.y, insetMap.size,
         insetMap.r, insetMap.g, insetMap.b, insetMap.a, false);
 
@@ -347,7 +348,7 @@ module.exports.stylers = {
   },
 
   textShadowValue: function (shadowMap) {
-    return this._shadowSegment(
+    return stylers._shadowSegment(
         shadowMap.x, shadowMap.y,
         shadowMap.size, shadowMap.r, shadowMap.g,
         shadowMap.b, shadowMap.a, shadowMap.inset);
@@ -356,7 +357,7 @@ module.exports.stylers = {
   _shadowSegment: function (x,y,s,re,gr,bl,al,inset) {
     return (inset ? 'inset ' : '') +
         x+'px '+y+'px '+s+ 'px ' +
-        this.rgbaStr({ r: re, g:gr, b:bl, a:al });
+        stylers.rgbaStr({ r: re, g:gr, b:bl, a:al });
   },
 
   /**
@@ -366,35 +367,35 @@ module.exports.stylers = {
    * support one of the following gradient settings. (Maybe ie6?)
    */
   backgroundBottomUpGradientValueParams: function(lR,lG,lB,lA,hR,hG,hB,hA) {
-    return this.backgroundBottomUpGradientValue({
+    return stylers.backgroundBottomUpGradientValue({
       r: lR, g: lG, b: lB, a: lA
     }, {
       r: hR, g: hG, b: hB, a: hA
     });
   },
 
-  backgroundGradientBurnValue: function (lMap, deltaHigh) {
-    return this.backgroundBottomUpGradientValue(
-      lMap, this.dodgeDelta(lMap, deltaHigh));
+  backgroundGradientDodgeValue: function (lMap, deltaHigh) {
+    return stylers.backgroundBottomUpGradientValue(
+      lMap, stylers.dodgeDelta(lMap, deltaHigh));
   },
 
   backgroundBottomUpGradientValue: function(lMap, hMap) {
     var lowWithoutA = F.objExclusion(lMap, {a: true});
-    var lowWithoutAString = this.rgbaStr(lowWithoutA);
-    var lowString = this.rgbaStr(lMap);
-    var highString = this.rgbaStr(hMap);
+    var lowWithoutAString = stylers.rgbaStr(lowWithoutA);
+    var lowString = stylers.rgbaStr(lMap);
+    var highString = stylers.rgbaStr(hMap);
     return lowWithoutAString +
-    '; background:-moz-linear-gradient(top, ' + this.rgbaStr(hMap) +
-    ',' + this.rgbaStr(lMap) + '); background:-webkit-gradient(' +
-    'linear, left top, left bottom, from(' + this.rgbaStr(hMap) + 
-    '), to(' + this.rgbaStr(lMap) + 
+    '; background:-moz-linear-gradient(top, ' + stylers.rgbaStr(hMap) +
+    ',' + stylers.rgbaStr(lMap) + '); background:-webkit-gradient(' +
+    'linear, left top, left bottom, from(' + stylers.rgbaStr(hMap) + 
+    '), to(' + stylers.rgbaStr(lMap) + 
     ')); filter: progid:DXImageTransform.Microsoft.Gradient(GradientType=0,StartColorStr="#' +
     rgbaToFilterHexFromMap(hMap) + '", EndColorStr="#' + rgbaToFilterHexFromMap(lMap)+'")';
   },
 
   borderValue: function(color) {
     return 'solid 1px ' +
-        (color.r || color.r === 0 ? this.rgbaStr(color) : color);
+        (color.r || color.r === 0 ? stylers.rgbaStr(color) : color);
   },
 
   /* See: http://www.quirksmode.org/css/opacity.html - the order of ie opacity

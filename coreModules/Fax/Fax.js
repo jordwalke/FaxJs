@@ -210,6 +210,13 @@ var INNER_HTML_KEY = keyOf({ innerHtml: null });
 var DYNAMIC_HANDLERS_KEY = keyOf({ dynamicHandlers: true });
 var VALUE_KEY = keyOf({ value: true });
 
+var T_KEY = keyOf({ t: true });
+var L_KEY = keyOf({ l: true });
+var B_KEY = keyOf({ b: true });
+var R_KEY = keyOf({ r: true });
+var H_KEY = keyOf({ h: true });
+var W_KEY = keyOf({ w: true });
+
 
 /**
  * Just so we can use this in declarative ternary expressions.
@@ -785,14 +792,16 @@ _Fax.mergeDeep = function(obj1, obj2) {
   }
   var obj2Terminal =
     obj2 === undefined || obj2 === null || typeof obj2 === 'string' ||
-    typeof obj2 === 'number' || typeof obj2 === 'function';
+    typeof obj2 === 'number' || typeof obj2 === 'function' || obj2 === true ||
+    obj2 === false;
 
   if(obj2Terminal) {
     return obj2;
   }
   var obj1Terminal =
     obj1 === undefined || obj1 === null || typeof obj1 === 'string' ||
-    typeof obj1 === 'number' || typeof obj1 === 'function';
+    typeof obj1 === 'number' || typeof obj1 === 'function' || obj1 === true ||
+    obj1 === false;
 
   // Wipe out
   if(obj1Terminal) {
@@ -2043,14 +2052,22 @@ var _curryOnly = function(func, val, context) {
 };
 
 /**
- * Takes a set of classes in map form, concatenating the truthy class values
- * together to form a single class string. Maintains a trailing space at the end
- * so you can easily add additional classes. A nice way to string together class
- * strings when there are several things that determine what should be included.
+ * Takes a set of classes in map form, concatenating the keys for which values
+ * are '===true' together to form a single class string. Maintains a trailing
+ * space at the end so you can easily add additional classes. A nice way to
+ * string together class strings when there are several things that determine
+ * what should be included. Added support for nesting trees (the owner can pass
+ * you a classSet, and you can embed it into the classSet - forming a tree.
+ * Eventually we should guarantee some sort of order, but for now we don't.
+ * Maybe, the order guarantee should be breadth first.
+ *
  * var classString =
  *  Fax.classSet({
  *    ClassOne: true,                  // Will append 'ClassOne'
+ *
+ *    // Support for the next use case should be deprecated.
  *    userProvidedClass: this.userClass, // Appends this.userClass if it's truthy
+ *
  *    disabled: !!this.shouldDisable   // appends 'disabled' iff this.shouldDisable
  *    enabled: !this.shouldDisable     // appends 'enabled' iff !this.shouldDisable
  *  });
@@ -2063,11 +2080,19 @@ _Fax.renderClassSet = function(namedSet) {
       continue;
     }
     var val = namedSet[nameOfClass];
-    if(val === true || val === 1) {
+    // Intentionally check double equals == true to catch number 1 || true
+    if(val == true) {
       accum += nameOfClass;
       accum += ' ';
-    } else if(nameOfClass && val) {
-      accum += val + ' ';
+    } else if(nameOfClass) {
+      /* This type of classSet value should be deprecated because it encourages
+       * using strings which will not be minifiable.*/
+      if (typeof val === 'string') {
+        accum += val;
+        accum += ' ';
+      } else {
+        accum += _Fax.renderClassSet(val);
+      }
     }
   }
   return accum;
@@ -2198,6 +2223,7 @@ var _extractAndSealPosInfoInline = function(obj) {
   if (z === 0 || z) {
     ret += 'z-index:' + z + ';';
   }
+  ret += 'position:absolute';
   return ret;
 };
 
@@ -2208,268 +2234,276 @@ var _extractAndSealPosInfoInline = function(obj) {
  */
 var _extractAndSealPosInfoInlineImpl = _extractAndSealPosInfoInline;
 
-/**
- * Optimized for css engines that support translations. An absolutely positioned
- * element with a (top, left, width, height) is equivalent to an absolutely
- * positioned element with (width, height, translate3d(left, top, 0)). When a
- * position info includes a right value, things are more complicated.
- * t:1, l:1, w:20, h:20 => transform(1,1), w:20, h:20
- *
- * t:1, l:1, r:10, b:10 => transform(1,1), r: 10+1, b:10+1
- *
- * see: http://jsfiddle.net/3HzTC/1/
- *
- * We need to trick certain webkit implementations into kicking the computations
- * to the GPU by using a 3d transform even though this is only a 2d operation.
- */
-var _extractAndSealPosInfoInlineUsingTranslateWebkit = function(obj) {
-  if(!obj) { return ''; }
-  var ret = '', w = obj.w, h = obj.h, l = obj.l,
-      t = obj.t, b = obj.b, r = obj.r, z = obj.z;
+var webkitVendorPrefix = 'left:0px; top:0px;-webkit-transform:translate3d(';
+var webkitvendorSuffixForString = ',0);';
+var webkitvendorSuffixForNum = 'px,0);';
+var webkitvendorSuffixForNothing = '0px,0);';
 
-  /** I with we didn't have to do these checks. Oh well, in the event that we're
-   * using css3 to position, the javascript isn't going to likely be our
-   * bottleneck anyways. Going forward, we should use posInfo: to represent
-   * absolutely positioned coords such that no boundary is 'auto'
-   */
-  if (l === 'auto' || r === 'auto' || b === 'auto' || t === 'auto') {
-    return _extractAndSealPosInfoInline(obj);
-  }
+var mozVendorPrefix = 'left:0px; top:0px;-moz-transform: translate(';
+var mozVendorSuffixForString = ');';
+var mozVendorSuffixForNum = 'px);';
+var mozVendorSuffixForNothing = '0);';
 
-  if (w === 0 || w) {
-    ret += 'width:';
-    ret += w;
-    if (w.charAt) {
-      ret += ';';
-    } else {
-      ret += 'px;';
-    }
-  }
-  if (h === 0 || h) {
-    ret += 'height:';
-    ret += h;
-    if (h.charAt) {
-      ret += ';';
-    } else {
-      ret += 'px;';
-    }
-  }
-  // Updates if the browser supports transforms are so much faster
-  // than merely absolute positioning.
-  if (l === 0 || l || t === 0 || t) {
-    ret += 'left:0px; top:0px; -webkit-transform: translate3d(';
-    if (l === 0 || l) {
-      ret += l;
-      if(l.charAt) {
-        ret += ',';
-      } else {
-        ret += 'px,';
-      }
-    } else {
-      ret+= '0px,';
-    }
-    if (t === 0 || t) {
-      ret += t;
-      if(t.charAt) {
-        ret += ', 0);';
-      } else {
-        ret += 'px, 0);';
-      }
-    } else {
-      ret+= '0px, 0);';
-    }
-  }
+var ieVendorPrefix = 'left:0px; top:0px;-ie-transform: translate(';
+var ieVendorSuffixForString = mozVendorSuffixForString;
+var ieVendorSuffixForNum = mozVendorSuffixForNum;
+var ieVendorSuffixForNothing = mozVendorSuffixForNothing;
+
+var _makeExtractAndSealerInlineUsingVendorTransform =
+    function(prefix, suffixForString, suffixForNum, suffixForNothing) {
 
   /**
-   * We must add the height and left values to bottom and top respectively
-   * because the left and top values are going to act as translate. Can't
-   * help you out with percentages, though.
+   * Optimized for css engines that support translations. An absolutely positioned
+   * element with a (top, left, width, height) is equivalent to an absolutely
+   * positioned element with (width, height, translate3d(left, top, 0)). When a
+   * position info includes a right value, things are more complicated.
+   * t:1, l:1, w:20, h:20 => transform(1,1), w:20, h:20
+   *
+   * t:1, l:1, r:10, b:10 => transform(1,1), r: 10+1, b:10+1
+   *
+   * see: http://jsfiddle.net/3HzTC/1/
+   *
+   * We need to trick certain webkit implementations into kicking the computations
+   * to the GPU by using a 3d transform even though this is only a 2d operation.
    */
-  if (b === 0 || b) {
-    if (t === 0 || (t && !t.charAt)) {
-      ret += 'bottom:';
-      if(b.charAt) {
+  return function(obj) {
+    if(!obj) { return ''; }
+    var ret = '', w = obj.w, h = obj.h, l = obj.l,
+        t = obj.t, b = obj.b, r = obj.r, z = obj.z;
+
+    /** I with we didn't have to do these checks. Oh well, in the event that we're
+     * using css3 to position, the javascript isn't going to likely be our
+     * bottleneck anyways. Going forward, we should use posInfo: to represent
+     * absolutely positioned coords such that no boundary is 'auto'
+     */
+    if (l === 'auto' || r === 'auto' || b === 'auto' || t === 'auto') {
+      return _extractAndSealPosInfoInline(obj);
+    }
+
+    if (w === 0 || w) {
+      ret += 'width:';
+      ret += w;
+      if (w.charAt) {
+        ret += ';';
+      } else {
+        ret += 'px;';
+      }
+    }
+    if (h === 0 || h) {
+      ret += 'height:';
+      ret += h;
+      if (h.charAt) {
+        ret += ';';
+      } else {
+        ret += 'px;';
+      }
+    }
+    // Updates if the browser supports transforms are so much faster
+    // than merely absolute positioning.
+    if (l === 0 || l || t === 0 || t) {
+      ret += prefix;
+      if (l === 0 || l) {
+        ret += l;
+        if(l.charAt) {
+          ret += ',';
+        } else {
+          ret += 'px,';
+        }
+      } else {
+        ret+= '0px,';
+      }
+      if (t === 0 || t) {
+        ret += t;
+        if(t.charAt) {
+          ret += suffixForString;
+        } else {
+          ret += suffixForNum;
+        }
+      } else {
+        ret+= suffixForNothing;
+      }
+    }
+
+    /**
+     * We must add the height and left values to bottom and top respectively
+     * because the left and top values are going to act as translate. Can't
+     * help you out with percentages, though.
+     */
+    if (b === 0 || b) {
+      if (t === 0 || (t && !t.charAt)) {
+        ret += 'bottom:';
+        if(b.charAt) {
+          ret += b;
+          ret += ';';
+        } else {
+          ret += (b + t);
+          ret += 'px;';
+        }
+      } else {
+        ret += 'bottom:';
         ret += b;
-        ret += ';';
-      } else {
-        ret += (b + t);
-        ret += 'px;';
-      }
-    } else {
-      ret += 'bottom:';
-      ret += b;
-      if(b.charAt) {
-        ret += ';';
-      } else {
-        ret += 'px;';
+        if(b.charAt) {
+          ret += ';';
+        } else {
+          ret += 'px;';
+        }
       }
     }
-  }
-  if (r === 0 || r) {
-    if (l === 0 || (l && !l.charAt)) {
-      ret += 'right:';
-      if(r.charAt) {
+    if (r === 0 || r) {
+      if (l === 0 || (l && !l.charAt)) {
+        ret += 'right:';
+        if(r.charAt) {
+          ret += r;
+          ret += ';';
+        } else {
+          ret += (r+l);
+          ret += 'px;';
+        }
+      } else {
+        ret += 'right:';
         ret += r;
-        ret += ';';
-      } else {
-        ret += (r+l);
-        ret += 'px;';
-      }
-    } else {
-      ret += 'right:';
-      ret += r;
-      if(r.charAt) {
-        ret += ';';
-      } else {
-        ret += 'px;';
+        if(r.charAt) {
+          ret += ';';
+        } else {
+          ret += 'px;';
+        }
       }
     }
-  }
-  if (z === 0 || z) {
-    ret += 'z-index:';
-    ret += z;
-    ret += ';';
-  }
-  return ret;
+    if (z === 0 || z) {
+      ret += 'z-index:';
+      ret += z;
+      ret += ';';
+    }
+    ret += 'position:absolute;';
+    return ret;
+  };
+
+
 };
 
+var _extractAndSealPosInfoInlineUsingTranslateWebkit =
+    _makeExtractAndSealerInlineUsingVendorTransform(webkitVendorPrefix,
+        webkitvendorSuffixForString, webkitvendorSuffixForNum,
+        webkitvendorSuffixForNothing);
+
+var _extractAndSealPosInfoInlineUsingTranslateMoz =
+    _makeExtractAndSealerInlineUsingVendorTransform(mozVendorPrefix,
+        mozVendorSuffixForString, mozVendorSuffixForNum,
+        mozVendorSuffixForNothing);
+
+var _extractAndSealPosInfoInlineUsingTranslateIe =
+    _makeExtractAndSealerInlineUsingVendorTransform(ieVendorPrefix,
+        ieVendorSuffixForString, ieVendorSuffixForNum,
+        ieVendorSuffixForNothing);
+
 /**
- * The moz and ie implementations are blatant code duplication with a couple of
- * differences. The code itself is similar though, and should gzip nicely - but
- * the code duplication can help runtime performance.
+ * Will not work with 'auto', should remove support for auto everywhere - This
+ * utility is flexible enough to preserve autos when they're already there -
+ * just don't include a delta for the field you want to keep default 'auto'
+ * behavior.
  *
- * Note: Mozilla may have some differences in how applied classes effect the
- * starting point from which css3pos takes effect - I saw a case where an
- * applied css class adjusted the starting point in Firefox but not Chrome. I
- * think FF would be correct here.
+ * Note that if an element is relatively positioned with a left and right
+ * value, this won't do what you want (similarly to transforms). We handle
+ * transforms because we know that we need to work around a relatively
+ * positioned system, whereas when using this function, we're not sure if the
+ * object at hand is using absolute or relatively positioned. We default to
+ * absolute.
+ *
+ * Summary: if you have a parent with an abs child and a rel child, using this
+ * function to offset the rel child with respect to the abs child's posInfo
+ * will not act strangly when that posInfo has both a right and a left.  You
+ * need to manually compensate for that situation (so pass in forRel=true)
+ * Correction: When position: 'relative' is used, you cannot seem to compensate
+ * at all for right, right has no effect, because the element will first be
+ * statically positioned, then the top and left values only will be used to
+ * offset it. The forRel may still be useful when doing 3d transforms on abs
+ * positioned elements.
+ *
+ * Todo: Let the transform code use this.
+ *
+ * In deltas:
+ *   omitted: No field in result.
+ *   Included and delta value zero:
+ *       If posInfo value is present, that value is coppied over to the result.
+ *       If posInfo value is not present, no value is coppied to result.
  */
-var _extractAndSealPosInfoInlineUsingTranslateMoz = function(obj) {
-  if(!obj) { return ''; }
-  var ret = '', w = obj.w, h = obj.h, l = obj.l,
-      t = obj.t, b = obj.b, r = obj.r, z = obj.z;
-
-
-  /** I with we didn't have to do these checks. Oh well, in the event that we're
-   * using css3 to position, the javascript isn't going to likely be our
-   * bottleneck anyways. Going forward, we should use posInfo: to represent
-   * absolutely positioned coords such that no boundary is 'auto'
-   */
-  if (l === 'auto' || r === 'auto' || b === 'auto' || t === 'auto') {
-    return _extractAndSealPosInfoInline(obj);
+var _posOffset = function (posInfo, deltas, forRel) {
+  if (!posInfo && deltas) {
+    return deltas; // vulnerable to mutation bugs - be careful.
   }
-
-
-  if (w === 0 || w) {
-    ret += 'width:' + (w.charAt ? (w + ';') : (w + 'px;'));
+  if (!deltas && posInfo) {
+    return posInfo;
   }
-  if (h === 0 || h) {
-    ret += 'height:' + (h.charAt ? (h + ';') : (h + 'px;'));
+  if (!deltas && !posInfo) {
+    return deltas;
   }
-  // Updates (if the browser supports transforms) are so much faster
-  // than merely absolute positioning.
-  if (l === 0 || l || t === 0 || t) {
-    ret += 'left:0px; top:0px;';
-    ret += '-moz-transform: translate(';
-    if (l === 0 || l) {
-      ret += (l.charAt ? l + ',' : (l + 'px,'));
+  var ret = {};
+  var addlRight = 0;
+  var addlBot = 0;
+  if (deltas.hasOwnProperty(L_KEY)) {
+    if (!deltas.l /* falsey */ ) {
+      if (posInfo.hasOwnProperty(L_KEY)) {
+        ret.l = posInfo.l;
+      }
     } else {
-      ret+= '0px,';
+      ret.l = (deltas.l + (posInfo.l || 0));
     }
-    if (t === 0 || t) {
-      ret += (t.charAt ? t + ', 0);' : (t + 'px);'));
+    addlRight = forRel && ret.l || 0;
+  }
+  if (deltas.hasOwnProperty(R_KEY)) {
+    if (!deltas.r /* falsey */ ) {
+      if (posInfo.hasOwnProperty(R_KEY)) {
+        ret.r = posInfo.r + addlRight;
+      }
     } else {
-      ret+= '0px);';
+      ret.r = (deltas.r + (posInfo.r || 0)) + addlRight;
     }
   }
-
-  /**
-   * We must add the height and left values to bottom and top respectively
-   * because the left and top values are going to act as translate. Can't
-   * help you out with percentages, though.
-   */
-  if (b === 0 || b) {
-    if (t === 0 || (t && !t.charAt)) {
-      ret += 'bottom:' + (b.charAt ? (b + ';') : ((b + t) + 'px;'));
+  if (deltas.hasOwnProperty(T_KEY)) {
+    if (!deltas.t /* falsey */ ) {
+      if (posInfo.hasOwnProperty(T_KEY)) {
+        ret.t = posInfo.t;
+      }
     } else {
-      ret += 'bottom:' + (b.charAt ? (b + ';') : (b + 'px;'));
+      ret.t = (deltas.t + (posInfo.t || 0));
+    }
+    addlBot = forRel && ret.t || 0;
+  }
+  if (deltas.hasOwnProperty(B_KEY)) {
+    if (!deltas.b /* falsey */ ) {
+      if (posInfo.hasOwnProperty(B_KEY)) {
+        ret.b = posInfo.b + addlBot;
+      }
+    } else {
+      ret.b = (deltas.b + (posInfo.b || 0)) + addlBot;
     }
   }
-  if (r === 0 || r) {
-    if (l === 0 || (l && !l.charAt)) {
-      ret += 'right:' + (r.charAt ? (r + ';') : ((r + l) + 'px;'));
+  if (deltas.hasOwnProperty(W_KEY)) {
+    if (!deltas.w /* falsey */ ) {
+      if (posInfo.hasOwnProperty(W_KEY)) {
+        ret.w = posInfo.w;
+      }
     } else {
-      ret += 'right:' + (r.charAt ? (r + ';') : (r + 'px;'));
+      ret.w = (deltas.w + (posInfo.w || 0));
     }
   }
-  if (z === 0 || z) {
-    ret += 'z-index:' + z + ';';
+  if (deltas.hasOwnProperty(H_KEY)) {
+    if (!deltas.h /* falsey */ ) {
+      if (posInfo.hasOwnProperty(H_KEY)) {
+        ret.h = posInfo.h;
+      }
+    } else {
+      ret.h = (deltas.h + (posInfo.h || 0));
+    }
   }
   return ret;
 };
 
 /**
- * Again, see note above on code duplication.
+ * If a pos info is provided it will offset it, otherwise return the falseyness.
  */
-var _extractAndSealPosInfoInlineUsingTranslateIe = function(obj) {
-  if(!obj) { return ''; }
-  var ret = '', w = obj.w, h = obj.h, l = obj.l,
-      t = obj.t, b = obj.b, r = obj.r, z = obj.z;
-
-  /** I with we didn't have to do these checks. Oh well, in the event that we're
-   * using css3 to position, the javascript isn't going to likely be our
-   * bottleneck anyways. Going forward, we should use posInfo: to represent
-   * absolutely positioned coords such that no boundary is 'auto'
-   */
-  if (l === 'auto' || r === 'auto' || b === 'auto' || t === 'auto') {
-    return _extractAndSealPosInfoInline(obj);
-  }
-
-  if (w === 0 || w) {
-    ret += 'width:' + (w.charAt ? (w + ';') : (w + 'px;'));
-  }
-  if (h === 0 || h) {
-    ret += 'height:' + (h.charAt ? (h + ';') : (h + 'px;'));
-  }
-  // Updates (if the browser supports transforms) are so much faster
-  // than merely absolute positioning.
-  if (l === 0 || l || t === 0 || t) {
-    ret += 'left:0px; top:0px;';
-    ret += '-ie-transform: translate(';
-    if (l === 0 || l) {
-      ret += (l.charAt ? l + ',' : (l + 'px,'));
-    } else {
-      ret+= '0px,';
-    }
-    if (t === 0 || t) {
-      ret += (t.charAt ? t + ', 0);' : (t + 'px);'));
-    } else {
-      ret+= '0px);';
-    }
-  }
-
-  /**
-   * We must add the height and left values to bottom and top respectively
-   * because the left and top values are going to act as translate. Can't
-   * help you out with percentages, though.
-   */
-  if (b === 0 || b) {
-    if (t === 0 || (t && !t.charAt)) {
-      ret += 'bottom:' + (b.charAt ? (b + ';') : ((b + t) + 'px;'));
-    } else {
-      ret += 'bottom:' + (b.charAt ? (b + ';') : (b + 'px;'));
-    }
-  }
-  if (r === 0 || r) {
-    if (l === 0 || (l && !l.charAt)) {
-      ret += 'right:' + (r.charAt ? (r + ';') : ((r + l) + 'px;'));
-    } else {
-      ret += 'right:' + (r.charAt ? (r + ';') : (r + 'px;'));
-    }
-  }
-  if (z === 0 || z) {
-    ret += 'z-index:' + z + ';';
-  }
-  return ret;
+var _posOffsetIfPosInfo = function (posInfo, deltas, forRel) {
+  return posInfo ? _posOffset(posInfo, deltas, forRel) : posInfo;
 };
 
 /**
@@ -2731,7 +2765,9 @@ module.exports = Fax = {
   indexOfStruct: _Fax.indexOfStruct,
   structExists: _Fax.structExists,
   keyOf: keyOf,
-  keyMirror: keyMirror
+  keyMirror: keyMirror,
+  posOffset: _posOffset,
+  posOffsetIfPosInfo: _posOffsetIfPosInfo
 };
 /**
  * Members used to work around object key minification are the only entry

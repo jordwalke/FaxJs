@@ -1030,8 +1030,6 @@ FaxEvent.registerTopLevelListeners = function(mountAt, touchInsteadOfMouse) {
    * can't use event capturing in IE8 and below. No other browsers besides IE
    * support these events, so we must capture them at the top level.
    *
-   * The IE support needs to be tested.
-   *
    * See: http://www.quirksmode.org/blog/archives/2008/04/delegating_the.html
    */
   FEnv.ensureBrowserDetected();
