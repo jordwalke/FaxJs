@@ -33,8 +33,12 @@ var defaultMainModule =
 
 var defaultProjectConfig =
   fs.readFileSync(scriptDir + '/stockResources/projectConfigTemplate.js', 'utf8').
-  replace('MainModuleName', mainModuleName).replace('MainModuleName', mainModuleName).
+  replace('MainModuleName', mainModuleName).
   replace('MainModuleName', mainModuleName).replace('ProjectName', projectName);
+
+var defaultModulePackageJson =
+  fs.readFileSync(scriptDir + '/stockResources/mainModulePackageTemplate.json', 'utf8').
+  replace('MainModuleName', mainModuleName).replace('MainModuleName', mainModuleName);
 
 var EVIDENCE_OF_PRIOR_PROJECT = {
   'build.sh': true,
@@ -72,6 +76,7 @@ fs.mkdirSync(curDir + '/build/client/staticResources', '0777');
 fs.mkdirSync(curDir + '/build/client/builtLib', '0777');
 fs.writeFileSync(curDir + '/index.html', defaultIndexHtml, 'utf8');
 fs.writeFileSync(curDir + '/ProjectConfig.js', defaultProjectConfig, 'utf8');
+fs.writeFileSync(curDir + '/lib/' + mainModuleName + '/package.json', defaultModulePackageJson, 'utf8');
 fs.writeFileSync(curDir + '/lib/' + mainModuleName + '/' +
                  mainModuleName + '.js', defaultMainModule, 'utf8');
 

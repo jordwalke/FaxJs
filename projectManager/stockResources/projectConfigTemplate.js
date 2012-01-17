@@ -1,18 +1,20 @@
-/* Project modules are modules that are owned by your project.  They were
- * "invented *here*". However, they will be usable in other projects. Imagine
- * the name of each of the modules you invent in your projects getting a
- * universal telephone number that is the name of the module. Once you invent a
- * module in your project and build the project, any other project can simply
- * include it as a dependency.  If you make changes to your module in this
- * project, all other projects will automatically see the changes. For all
- * modules that you invent here, this is their home. They belong here.  Modules
- * *not* invented inside your project are a different story.  Note: Even if
- * you're just making a library project, it still needs to have a main module.
- * Allow the main module to be a dummy if needed, or one that renders some
- * information or examples showing yourmodule awesome library.  All of the
- * settings, are assumed to be for the page index.html.  Eventually for
- * multi-page websites (what *are* those?) it would be good to have a way to
- * aggregate multiple projects and map a custom url to each project.  */
+/* By default, all directories in ./lib are copied into the build, but
+ * projectModules listed here will be processed by the Fax ast optimizer and
+ * will be used to generate stylesheets.
+ * To add a new non-UI module:
+ *  1. Place in projectDir/lib/
+ *  2. Make sure there is a package.json file (if needed) to model depencies,
+ *  and set the main file.
+ *
+ * To add a UI module (FaxUi component etc.)
+ *  1. Place in projectDir/lib
+ *  2. Make sure there is a package.json (if needed) (as in non-ui modules).
+ *  3. Any module that depends on your new module, needs to declare so in
+ *  *their* package.json file (dependencies).
+ *  4. add an entry with the same name as that directory in projectModules
+ *  (below).
+ *  5. Include any css that is generated in index.html.
+ */
 exports.projectConfig = {
   projectAuthor: "yourEmail@example.com",
   projectUrl: "www.example.com",
@@ -30,26 +32,27 @@ exports.projectConfig = {
 
   projectMainModule: "MainModuleName",
 
+
+  /* Fax Ui modules.
+   * To add a new module, add an entry here, and make sure to include it's
+   * corresponding css file in index.html (if it has a styleExports).
+   * TODO: Have all of these stylesheets automatically injected into the
+   * index.html. For now you need to manually include them.
+   */
   projectModules: {
-    MainModuleName: {                         // Implicit name
-      description : "Main module for project ProjectName",
-      main        : "./MainModuleName.js"
-    },
+    MainModuleName: { },
 
-    FaxUi: {                                 // Implicit name
-      description : "FaxUi Toolkit Core",
-      main        : "./FaxUi.js"
-    },
+    FaxUi: { },
 
-    Fax: {                                   // Implicit name
-      description : "Fax Toolkit Core",
-      main        : "./Fax.js"
-    }
+    Fax: { },
 
-    /** Add new modules here to have the system automatically package them up in
-     * the monolithic build. Todo: when we notice a new module here, with
-     * 'autogenerateSkeleton: true' we'll automatically make a new lib directory
-     * with skeleton files.  */
+    FTextInput: { },
+
+    FBoxes: { },
+
+    FButton: { },
+
+    FToggleSwitch: {}
   }
 };
 
