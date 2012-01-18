@@ -63,7 +63,7 @@ Get node.js using <a href='https://sites.google.com/site/nodejsmacosx/'>the OSX 
 
     </td>
     <td border-style=none border-width=0>
-        <p> The project that you created is completely self contained. It contains all of the Fax toolkit libraries, build scripts, and test server to run your app. The original download/clone of FaxJs is only needed to create new projects. When a new project is created, everything important is copied into that new project directory. </p>
+        <p> The new project directory is self contained and has all of the core libraries copied into its `./lib` directory. It also has all the project build scripts. </p>
 
     </td>
   </tr>
@@ -134,53 +134,46 @@ TestProjectMain.PersonDisplayer = {
 };
 ```
 
-Just like with our main component, a `PersonDisplayer` has that super important method called `project`. But there's a couple of new concepts here that we haven't yet seen.
+Just like with our main component, a `PersonDisplayer` has that method called `project`. But there's a couple of new concepts here that we haven't yet seen.
 
-1. The outer most div has a `classSet` property. This is just a way to describe a set of css classes.
-2. You'll notice references to `this.props`. You'll also notice that the things inside of `this.props` (name/interests/age) look very much like the things set on each instance of `PersonDisplayer` inside of our `MainComponent`.
-When someone instantiates a component, the properties set on it become `this.props` inside of the instantiated component's `project` method.
-
-<br>
-So far you've seen how components can instantiate other components and provide properties to each other. The only two things left to cover is how a component can be statefull, instead of just reacting to properties set on it, and how a component cna respond to user events. These will be covered further down in this README. For now, let's take a look at the project structure.
+1. The outer most div has a `classSet` property. This is just a way to describe a set of css classes (by the object keys).
+2. You'll notice references to `this.props`. The things inside of `this.props` (name/interests/age) look very much like the things set on each instance of `PersonDisplayer` inside of our `MainComponent`.
+When someone contains a child component, the properties injected into it that child component become `this.props` inside the child component's  `project` method.
 
 <br>
-### Project Structure:
-Look at `ProjectConfig.js` in your project, and you'll see the set of project modules in your project:
+The two remaining topics are "statefullness" and "event handing". These will be covered further down in this README. For now, let's take a look at the project structure.
+
+<br>
+### Project Structure and building:
+Look at `ProjectConfig.js` in your project, and you'll see the set of `projectModules`. `projectModules` is the list of modules in `./lib` that will have special processing applied to them (FaxJS specific).
 
 ```javascript
 projectModules: {
-  TestProjectMain: {    // The name of this object key must match the folder name in ./lib
-    description: "Main module for project TestProject",
-    main: "./TestProjectMain.js"
-  },
-  FaxUi: {
-    description : "FaxUi Toolkit Core",
-    main        : "./FaxUi.js"
-  },
-  Fax: {
-    description : "Fax Toolkit Core",
-    main        : "./Fax.js"
-  }
+  TestProjectMain: {  },
+  
+  FaxUi: { },
+
+  Fax: { },
+
+  FTextInput: { },
+
+  FBoxes: { },
+
+  FButton: { },
+
+  FToggleSwitch: {}
 }
 ```
 
-Your new app has three modules. Your main project module, `Fax` and `FaxUi`. For every module in the `ProjectConfig` there must be a module in `./lib` in a folder by the same name. If you look in `./lib` you'll see that your project is valid because it has a folder for `Fax`, `FaxUi`, and `TestProjectMain`.
-The way you add new modules to your project is by adding a new entry in the ProjectConfig and creating new folders in `./lib` matching the naming conventions of the others. (Ignore any package.json files - you won't need to worry about those)
+Just execute `runBuild.sh` and it will continually do the following:</b>
 
-<br>
-### Building:
-<b>Just execute `runBuild.sh` and it will continually do the following:</b>
-
-1. Continually package and optimize your javascript and serve it on port 8080.
-2. Generate css files from FaxJs javascript modules that have `styleExports`
-
-<br>
-When you execute `./runBuild` the FaxJs project build system uses the project config in conjunction with <a href='https://github.com/tobie/modulr-node'>modulr</a> to build all of your libraries. It starts with the `projectMainModule` from `ProjectConfig.js` and uses modulr to determine the entire set of dependencies from the ProjectConfig. Modulr packages all of them into a single monolithic js file that `index.html` includes. But before `runServer.sh` tells modulr to package your files, **behind the scenes** it calls the FaxJs build and optimization system to perform some AST code transformations on the javascript, and automatically generates css from your javascript files.
-`runBuild.sh` also watches for changes and repeats the process for you as often as needed, always serving the most recent build on port 8080.
+1. Continually package and optimize your javascript and serve it on port 8080 (using <a href='https://github.com/tobie/modulr-node'>modulr</a>)
+2. Optimize the AST for any modules that are listed in `projectModules` (in ProjectConfig.js) and are present in `./lib`.
+2. Generate css files from `projectModules` (in ProjectConfig.js) that have `styleExports` and are present in `./lib`. (See example of this in the demo project)
 
 
 <br>
-## Simple example of statefullness, reactivity and events in a component:
+### Simple example of statefullness, reactivity and events in a component:
 
 We'll make a button wrapped inside of a containing div. The button will stretch to the size of it's container. When we click the inner button, we'll make the outer container change width. The button will, of course, stretch to fit it's container.
 
