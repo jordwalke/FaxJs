@@ -1123,6 +1123,18 @@ _Fax.universalPrivateMixins = {
     
   },
 
+  oneValueStateUpdater: function (singleKeyDescriptionObj) {
+    var ths = this;
+    return function(singleVal) {
+      var keyToUpdate = keyOf(singleKeyDescriptionObj);
+      var updateBlock = {};
+      if (keyToUpdate) {
+        updateBlock[keyToUpdate] = singleVal;
+        ths.updateState(updateBlock);
+      }
+    };
+  },
+
   stateUpdaterCurry: function (func /*, other arguments*/) {
     var curriedArgs = Array.prototype.slice.call(arguments, 1);
     var ths = this;
@@ -2510,15 +2522,16 @@ var _posOffsetIfPosInfo = function (posInfo, deltas, forRel) {
  * Before the initial render, call this function to ensure that we compute
  * position information in a way that performs best.
  */
-var _setBrowserOptimalPositionComputation = function() {
+var _setBrowserOptimalPositionComputation = function(useTransformPositioning) {
   _extractAndSealPosInfoInlineImpl =
-      FEnv.browserInfo.browser === 'Chrome' || FEnv.browserInfo.browser === 'Safari' ?
+    !useTransformPositioning ? _extractAndSealPosInfoInline :
+    FEnv.browserInfo.browser === 'Chrome' || FEnv.browserInfo.browser === 'Safari' ?
       _extractAndSealPosInfoInlineUsingTranslateWebkit :
-  FEnv.browserInfo.browser === 'Firefox' ? _extractAndSealPosInfoInlineUsingTranslateMoz :
-  FEnv.browserInfo.browser === 'MSIE' &&
+    FEnv.browserInfo.browser === 'Firefox' ? _extractAndSealPosInfoInlineUsingTranslateMoz :
+    FEnv.browserInfo.browser === 'MSIE' &&
      (FEnv.browserInfo.version === '9.0' || FEnv.browserInfo.version === '10.0') ?
       _extractAndSealPosInfoInlineUsingTranslateIe :
-  _extractAndSealPosInfoInline;
+      _extractAndSealPosInfoInline;
 };
 
 /* Fetching the scroll values before rendering results in something like a 20%
@@ -2532,7 +2545,7 @@ _Fax.preRenderingAnything = function(mountAt, renderOptions) {
   FEnv.refreshAuthoritativeViewportValues();
   FaxEvent.ensureListening(mountAt, useTouchEventsInstead);
   FEnv.ensureBrowserDetected();
-  _setBrowserOptimalPositionComputation();
+  _setBrowserOptimalPositionComputation(renderOptions.useTransformPositioning);
 };
  
 
