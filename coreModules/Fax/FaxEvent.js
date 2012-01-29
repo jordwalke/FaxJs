@@ -9,10 +9,10 @@
  * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
  * sell copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -20,7 +20,7 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
- * 
+ *
  * I am providing code in this repository to you under an open source license.
  * Because this is my personal repository, the license you receive to my code
  * is from me and not from my employer (Facebook).
@@ -30,8 +30,7 @@
 /**
  * Fax/FaxEvent.js - FaxUi event system module.
  */
-var FEnv = require('./FEnv'),
-    F = require('./Fax');
+var FEnv = require('./FEnv');
 
 // Forward Declaration
 var FaxEvent;
@@ -186,12 +185,12 @@ FaxEvent = {
    * nice to be able to only do this occasionally. We'll offer two things, 1.
    * Custom sample rate, 2. Adaptive sampling - sample less when each signal
    * takes a longer amount of time to respond to - trailing average. */
-  DRAG_PIXEL_SAMPLE_RATE : 2,
+  DRAG_PIXEL_SAMPLE_RATE : 1,
 
   /**
    * Will not fire drag events spaced further apart than 50 milliseconds.
    */
-  DRAG_TIME_SAMPLE_THRESH: 25,
+  DRAG_TIME_SAMPLE_THRESH: 5,
 
   /**
    * The number of pixels that are tolerated in between a touchStart and
@@ -379,7 +378,7 @@ FaxEvent = {
                                       targ) {
   
     var nextIdAt = nextId + '@',
-        abstractHandlerTypes = FaxEvent.abstractHandlerTypes,      
+        abstractHandlerTypes = FaxEvent.abstractHandlerTypes,
         abstractEventListenersById = FaxEvent.abstractEventListenersById,
         mouseDownDragDesc = nextIdAt + (abstractHandlerTypes.onQuantizeDrag + mode),
         touchStartDragDesc = nextIdAt + (abstractHandlerTypes.onQuantizeTouchDrag + mode),
@@ -818,7 +817,7 @@ FaxEvent = {
      * than it sounds - we're talking about multiple drag events. That would
      * require that when multiple touches occur, and multiple touchmoves occur
      * that we track which originating objects should receive which signal
-     * channel for touch events. Maybe the browser helps us out with this? 
+     * channel for touch events. Maybe the browser helps us out with this?
      */
     FaxEvent.activeDragListenersByListenerDesc = {};
     FaxEvent.currentlyPressingDown = false;
@@ -840,7 +839,7 @@ FaxEvent = {
  * value, they'd trigger reflows like mad. I don't think we needed to normalize
  * the target here. Check this on safari etc - we only care about one very
  * specific event on a very specific target - as long as it works for that case.
- * TODO: Make resizing recalculate these as well. 
+ * TODO: Make resizing recalculate these as well.
  */
 FaxEvent.registerDocumentScrollListener = function() {
   var previousDocumentScroll = document.onscroll;
@@ -863,7 +862,7 @@ FaxEvent.registerDocumentScrollListener = function() {
  */
 FaxEvent.applicationResizeBatchTimeMs = 0;
 FaxEvent.registerWindowResizeListener = function() {
-  var previousResizeListener = window.onresize;   
+  var previousResizeListener = window.onresize;
   var pendingCallback = null;
   var lastMs = (new Date()).getTime(), now, ellapsed;
   window.onresize = function(nativeEvent) {
@@ -880,10 +879,10 @@ FaxEvent.registerWindowResizeListener = function() {
           pendingCallback = false;
           lastMs = now;
         }, Math.max(FaxEvent.applicationResizeBatchTimeMs - ellapsed + 1, 1));
-      return; // Don't trigger a reflow by querying for the window dimensions   
+      return; // Don't trigger a reflow by querying for the window dimensions
     }
   };
-}; 
+};
 
 /**
  * This is just for IE only. For other browsers, we can easily apply a noselect
@@ -1160,4 +1159,3 @@ function _handleTopLevel(topLevelEventType, nativeEvent, targ) {
 }
 
 module.exports = FaxEvent;
-

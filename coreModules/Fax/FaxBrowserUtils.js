@@ -9,10 +9,10 @@
  * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
  * sell copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -20,7 +20,7 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
- * 
+ *
  * I am providing code in this repository to you under an open source license.
  * Because this is my personal repository, the license you receive to my code
  * is from me and not from my employer (Facebook).
@@ -28,11 +28,11 @@
 
 
 /*
- *  ____    ______   __   __       _____  ____       
- * /\  _`\ /\  _  \ /\ \ /\ \     /\___ \/\  _`\     
- * \ \ \L\_\ \ \L\ \\ `\`\/'/'    \/__/\ \ \,\L\_\   
- *  \ \  _\/\ \  __ \`\/ > <         _\ \ \/_\__ \   
- *   \ \ \/  \ \ \/\ \  \/'/\`\     /\ \_\ \/\ \L\ \ 
+ *  ____    ______   __   __       _____  ____
+ * /\  _`\ /\  _  \ /\ \ /\ \     /\___ \/\  _`\
+ * \ \ \L\_\ \ \L\ \\ `\`\/'/'    \/__/\ \ \,\L\_\
+ *  \ \  _\/\ \  __ \`\/ > <         _\ \ \/_\__ \
+ *   \ \ \/  \ \ \/\ \  \/'/\`\     /\ \_\ \/\ \L\ \
  *    \ \_\   \ \_\ \_\ /\_\\ \_\   \ \____/\ `\____\
  *     \/_/    \/_/\/_/ \/_/ \/_/    \/___/  \/_____/
  *
@@ -41,7 +41,14 @@
  *
  */
 function escaper(match) {
-  return {"&": "&amp;", ">": "&gt;", "<": "&lt;", "\"": "&quot;", "'": "&#x27;", "/": "&#x2f;" }[match];
+  return {
+    "&": "&amp;",
+    ">": "&gt;",
+    "<": "&lt;",
+    "\"": "&quot;",
+    "'": "&#x27;",
+    "/": "&#x2f;"
+  }[match];
 }
 
 var browserDetection = null;
@@ -49,7 +56,7 @@ var browserDetection = null;
  * Thank you quirksmode! (We can delete antique browsers)
  * http://www.quirksmode.org/js/detect.html
  */
-function initializeAndReturnBrowserDetection() {
+function initializeAndReturnBrowserDetection(someVar) {
   var BrowserDetect = {
     init: function () {
       this.browser = this.searchString(this.dataBrowser) || "An unknown platform";
@@ -153,7 +160,8 @@ function initializeAndReturnBrowserDetection() {
 module.exports = {
 
   browserDetection: function() {
-    return browserDetection ? browserDetection : (browserDetection = initializeAndReturnBrowserDetection());
+    return browserDetection ? browserDetection :
+           (browserDetection = initializeAndReturnBrowserDetection());
   },
 
   escapeTextForBrowser : function (textNode) {

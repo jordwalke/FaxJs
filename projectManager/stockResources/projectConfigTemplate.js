@@ -30,7 +30,14 @@ exports.projectConfig = {
    * sheets. */
   generateIndexHtml: 'useProjectRootIndexHtml',
 
-  projectMainModule: "MainModuleName",
+  projectMainModule: "main",
+
+  minifyClosureAdvanced: false,
+
+  minifyClosureAdvancedPreserveKeys: {
+    thisKeyWillNeverBeMinifiedIfUsingAdvancedMinification: true,
+    thisOneWontBeEither: true
+  },
 
 
   /* Fax Ui modules.
@@ -40,6 +47,9 @@ exports.projectConfig = {
    * index.html. For now you need to manually include them.
    */
   projectModules: {
+
+    main: { },
+
     MainModuleName: { },
 
     FaxUi: { },

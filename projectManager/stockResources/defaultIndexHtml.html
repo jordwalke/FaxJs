@@ -13,27 +13,10 @@
          TODO: Have them automatically injected into here.
     -->
     {insertStyleRequiresHere}
-		<link rel="stylesheet" type="text/css" href="./buildLib/mainModuleName/mainModuleName.css">
-		<link rel="stylesheet" type="text/css" href="./buildLib/FaxUi/FaxUi.css">
-		<link rel="stylesheet" type="text/css" href="./buildLib/FTextInput/FTextInput.css">
-		<link rel="stylesheet" type="text/css" href="./buildLib/FButton/FButton.css">
-		<link rel="stylesheet" type="text/css" href="./buildLib/FToggleSwitch/FToggleSwitch.css">
-		<link rel="stylesheet" type="text/css" href="./buildLib/FBoxes/FBoxes.css">
+		<link rel="stylesheet" type="text/css" href="./monolithicStyle.css">
     <script type="text/javascript" src="./monolithicBuild.js"></script>
     <script type="text/javascript">
-      var F = require('Fax');
-      window.onload = function () {
-        var mainModuleName = require('mainModuleName');
-        var start = (new Date()).getTime();
-        F.renderTopLevelComponentAt(mainModuleName.MainComponent,
-          { mountAtId: 'appMount',
-            appStyle: true,
-            renderingStrategy: F.renderingStrategies.standard,
-          }
-        );
-        var end = (new Date()).getTime();
-        console.log('Total rendering time:' + (end-start));
-      };
+      window.onload = require('main').indexDotHtmlCallsThisOnLoad;
     </script>
   </head>
   <body id="appMount">

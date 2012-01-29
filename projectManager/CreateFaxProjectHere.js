@@ -3,7 +3,7 @@ var fs = require('fs');
 var scriptDir = __dirname;
 var curDir = process.cwd();
 var projectName = require('path').basename(curDir);
-var mainModuleName = projectName + 'Main';
+var mainModuleName = projectName;
 var exec = require('child_process').exec;
 var i;
 
@@ -11,34 +11,55 @@ function projectConfig(fileName) {
 	return require(fileName).projectConfig || require(fileName);
 }
 
+// Code duplicated
+function replaceAll(text, search, replace) {
+  if (search === replace) {
+    return text;
+  }
+  while(text.indexOf(search) !== -1) {
+    text = text.replace(search, replace);
+  }
+  return text;
+}
+
+
 var defaultIndexHtml =
   fs.readFileSync(scriptDir + '/stockResources/defaultIndexHtml.html', 'utf8').
       replace('pageTitle', projectName).
-      replace('mainModuleName', mainModuleName).
-      replace('mainModuleName', mainModuleName).
-      replace('mainModuleName', mainModuleName).
-      replace('mainModuleName', mainModuleName).
-      replace('mainModuleName', mainModuleName).
       replace('{insertStyleRequiresHere}', '');
   // This style will be kept in sync with all modules that are monolithic js,
   // that also export styleExports
 
-var defaultMainModule =
-  fs.readFileSync(scriptDir + '/stockResources/mainModuleTemplate.js', 'utf8').
-  replace('MainModuleName', mainModuleName).replace('MainModuleName', mainModuleName).
-  replace('MainModuleName', mainModuleName).replace('MainModuleName', mainModuleName).
-  replace('MainModuleName', mainModuleName).replace('MainModuleName', mainModuleName).
-  replace('MainModuleName', mainModuleName).replace('MainModuleName', mainModuleName).
-  replace('MainModuleName', mainModuleName).replace('ProjectName', projectName);
+var defaultMainModule = replaceAll(
+  replaceAll(
+    fs.readFileSync(scriptDir + '/stockResources/mainModuleTemplate.js', 'utf8')
+  ),
+  'ProjectName', projectName
+);
 
 var defaultProjectConfig =
-  fs.readFileSync(scriptDir + '/stockResources/projectConfigTemplate.js', 'utf8').
-  replace('MainModuleName', mainModuleName).
-  replace('MainModuleName', mainModuleName).replace('ProjectName', projectName);
+  replaceAll(
+    replaceAll(fs.readFileSync(scriptDir + '/stockResources/projectConfigTemplate.js', 'utf8'),
+    'MainModuleName', mainModuleName
+  ),
+  'ProjectName', projectName
+);
 
-var defaultModulePackageJson =
-  fs.readFileSync(scriptDir + '/stockResources/mainModulePackageTemplate.json', 'utf8').
-  replace('MainModuleName', mainModuleName).replace('MainModuleName', mainModuleName);
+var defaultModulePackageJson = replaceAll(
+  fs.readFileSync(scriptDir + '/stockResources/mainModulePackageTemplate.json', 'utf8'),
+  'MainModuleName', mainModuleName
+);
+
+var defaultEntryPointPackageJson = replaceAll(
+  fs.readFileSync(scriptDir + '/stockResources/mainEntryPointPackageTemplate.json', 'utf8'),
+  'MainModuleName', mainModuleName
+);
+
+var defaultEntryPointModule = replaceAll(
+  fs.readFileSync(scriptDir + '/stockResources/mainEntryPointTemplate.js', 'utf8'),
+  'MainModuleName', mainModuleName
+);
+
 
 var EVIDENCE_OF_PRIOR_PROJECT = {
   'build.sh': true,
@@ -77,6 +98,9 @@ fs.mkdirSync(curDir + '/build/client/builtLib', '0777');
 fs.writeFileSync(curDir + '/index.html', defaultIndexHtml, 'utf8');
 fs.writeFileSync(curDir + '/ProjectConfig.js', defaultProjectConfig, 'utf8');
 fs.writeFileSync(curDir + '/lib/' + mainModuleName + '/package.json', defaultModulePackageJson, 'utf8');
+fs.mkdirSync(curDir + '/lib/main', '0777');
+fs.writeFileSync(curDir + '/lib/main/package.json', defaultEntryPointPackageJson, 'utf8');
+fs.writeFileSync(curDir + '/lib/main/main.js', defaultEntryPointModule, 'utf8');
 fs.writeFileSync(curDir + '/lib/' + mainModuleName + '/' +
                  mainModuleName + '.js', defaultMainModule, 'utf8');
 
@@ -91,7 +115,7 @@ var copyCommand =
   "cp -r {scriptDir}/stockResources/defaultWebServer.js {curDir}/server.js;" +
   "cp -r {scriptDir}/stockResources/runBuild.sh {curDir}/runBuild.sh;" +
   "cp -r {scriptDir}/stockResources/newProjectDotGitIgnore {curDir}/.gitignore;" +
-  "cp -r {scriptDir}/stockResources/buildPrereqsNodeModules.zip {curDir}/build/buildRequirements/buildPrereqsNodeModules.zip;" +
+  "cp -r {scriptDir}/stockResources/buildPrereqsAndNodeModules.zip {curDir}/build/buildRequirements/buildPrereqsAndNodeModules.zip;" +
   "cp -r {scriptDir}/../astTransformations/* {curDir}/build/buildRequirements/;" +
   "cp -r {scriptDir}/stockResources/BuildProject.js {curDir}/build/buildRequirements/BuildProject.js;" +
   "cp -r {scriptDir}/stockResources/BuildAndRun.js {curDir}/build/buildRequirements/BuildAndRun.js;" +
