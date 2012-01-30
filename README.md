@@ -77,12 +77,12 @@ Get node.js using <a href='https://sites.google.com/site/nodejsmacosx/'>the OSX 
 
 ### Let's Start Hacking!
 
-Open up `./lib/TestProjectMain/TestProjectMain.js` and we'll discover how to create Ui modules.
+Open up `./lib/TestProject/TestProject.js` and we'll discover how to create Ui modules.
 
 <b>First let's take a look at `MainComponent`.</b>
 
 ```javascript
-TestProjectMain.MainComponent = {
+TestProject.MainComponent = {
   project : function() {
     return {
       firstPerson: {
@@ -104,7 +104,7 @@ TestProjectMain.MainComponent = {
 };
 ```
 
-`TestProjectMain.MainComponent` is the entry point of our app (because index.html says so). `TestProjectMain.MainComponent` has a single method inside of it called `project`. `project` (as in "projector") describes the structure of your component. `project` is expected to be very inteligent. The system expects that `project` will *always* be able to answer the question: "Hey component, what do you look like *right now* ?" In this case, our component is *always* composed of three PersonDisplayer components with hard-coded names, ages, and interests. Thre three PersonDisplayer components are contained within a div, and each PersonDisplayer instance is given properties name/age/interests.
+`TestProject.MainComponent` is the main component of our app (index.html loads the `main/main.js` module which loads this one). `TestProject.MainComponent` has a single method inside of it called `project`. `project` (as in "projector") describes the structure of your component. `project` is expected to be very inteligent. The system expects that `project` will *always* be able to answer the question: "Hey component, what do you look like *right now* ?" In this case, our component is *always* composed of three PersonDisplayer components with hard-coded names, ages, and interests. Thre three PersonDisplayer components are contained within a div, and each PersonDisplayer instance is given properties name/age/interests.
 An interesting thing to note, is that each PersonDisplayer instance inside of the div is given a key (firstPerson,secondPerson,thirdPerson). They aren't used yet, but for now they help readability.
 Also, the PersonDisplayer is described by a *tail constructor*. (Tail constructors are enabled by a call to Fax.using()).
 But what *is* a PersonDisplayer? We haven't yet seen the definition.
@@ -112,7 +112,7 @@ But what *is* a PersonDisplayer? We haven't yet seen the definition.
 <b>Look further down in the file and you can see where `PersonDisplayer` is defined.</b>
 
 ```javascript
-TestProjectMain.PersonDisplayer = {
+TestProject.PersonDisplayer = {
   project : function() {
     return {
       classSet: { personDisplayerContainer: true},
@@ -145,11 +145,14 @@ The two remaining topics are "statefullness" and "event handing". These will be 
 
 <br>
 ### Project Structure and building:
-Look at `ProjectConfig.js` in your project, and you'll see the set of `projectModules`. `projectModules` is the list of modules in `./lib` that will have special processing applied to them (FaxJS specific).
+Look at `ProjectConfig.js` in your project, and you'll see the set of `projectModules`. `projectModules` is the list of modules in `./lib` that will have special processing applied to them (FaxJS specific performance).
 
 ```javascript
 projectModules: {
-  TestProjectMain: {  },
+  // This is the entry point from index.html, which kicks off TestProject.js
+  main: { },
+  
+  TestProject: {  },
   
   FaxUi: { },
 
@@ -256,6 +259,22 @@ all browsers, this particular app doesn't work well in IE. Try it in Chrome/Safa
 
 ## FaxJs Additional features:
 
+### Google Closure Advanced Compilation:
+In `ProjectConfig.js` there is an entry to control whether or not you'd like to run Google Closure's advanced minification. Set the field to true to see what kind of saving on filesize you can achieve. Expect a large reduction in js/css size. The FaxJs build system is smart enough to take the key minification that closure applied, and apply it to the `styleExports` css output as well, so those css files will also be reduced in size. (This only works correctly if you use `classSet: {myCssClassName: true}`, not `className: 'myCssClassName'`. Key minification works by renaming all occurences of object keys across your entire project. Strings will never be renamed. Be dilligent about using the `classSet` construct which uses object keys to specify class names.) 
+The advanced mode of compliation will significantly reduce your filesize, but will take a long time to compile. It is suggested that you develop with this mode set to `false` but occasionally set it to `true` to test that your app is resilient to key minification.
+
+```javascript
+minifyClosureAdvanced: false,  // Set this to true
+
+minifyClosureAdvancedPreserveKeys: {   // Add whatever keys you don't want touched
+  thisKeyWillNeverBeMinifiedIfUsingAdvancedMinification: true,
+  thisOneWontBeEither: true
+},
+```
+
+**As a general rule of thumb, strings will never be changed by the compiler, object keys likely will. If you don't want something changed, encode it into a string or add it to the `ProjectConfig.js` `minifyClosureAdvancedPreserveKeys` .**
+
+
 ### Optional server side rendering:
 The reason why FaxJs uses top level event delegation for the eventing system, is so
 that the interactive portions can work with the markup, regardless of where the
@@ -286,9 +305,9 @@ currently generating your pages (connect etc.)
 
 FaxJs lets you define stylesheets in your favorite language - javascript. This
 is important because often programatic behavior at runtime needs to be consistent
-with css styles. If you can declare some javascript constants and generate code *and*
-style from them, this takes much of the pain out of interactive ui development.
-But feel free to use traditional css if you're more comfortable with that.
+with css styles. If you can declare some javascript constants/functions and generate
+code *and* style from them, it's much easier to keep your code and style in sync.
+FaxJs will work completely fine with standard css/less files.
 
 For example:
 After the last line in the stretchy button example, we could have exported some
@@ -307,36 +326,39 @@ We could have ended the file with:
       }
     };
 
-Then in our html file we can just "include" the js file *as a css file*. Just
-replace '.js' with '.css'.
-
-    <link rel="stylesheet" type="text/css" href="/Demo/Demo.css">
-
 The FaxJs backend system will automatically convert that module into an
 includable css file, on the fly, based on what you specified as that
-javascript's module.styleExports. The css rules are just the same as you're used
-to, but with hyphens translated to camelCase. Also, each member of the style
-export is assumed to be a class name. If you want to style based on a dom id,
+javascript's module.styleExports. The css attribute names are just the same as
+you're used to, but with hyphens translated to camelCase (background-color=>backgroundColor).
+Also, each member of the style export is assumed to be a class name, unless it is one of
+the common tag names (body/div/span). If you want to style based on a dom id,
 include the key in quotes with a pound sign.
 
+All styleExports are automatically packaged into a single `monolithicStyle.css` file which
+the default index.html includes. There's nothing more to do beyond including your styleExports
+at the bottom of your FaxJs modules.
     
 ##Backend processing
-This packaging of FaxJs uses browserify to run commonjs modules in the browser. An
-example server.js node.js file and demo.html is given that will automatically
-package up these modules into browser ready components. In addition, the
-server.js also performs code transformations to make tail constructors faster
-(using the FaxProcessor module).
-The server continually parse and package the code. If there is a syntax error,
-the server will shut down. Sometimes the optimization process takes a while to
-transform code. If you load the demo and it seems slow, do not be fooled. The
-generated code will render the demo in about 10ms, but the delay you observe is
-the server transforming/optimizing the javascript.
-The server also builds the includable stylesheets from styleModule javascript
-exports as explained earlier.
+FaxJs uses `modulr` to package js into a single monolithic js file, and Google Closure advanced
+compilation to rename object keys. FaxJs ensures that styleExports are consistent with classNames
+defined in styleExports, which should work excellently for classNames specified using the classSet
+construct.
 
 
-##Other features:
-There is currently support for the most commont application events such as onFocus,
+````javascript
+var myDiv = {
+  classSet: {
+    blueDiv: true,
+    largeDiv: true
+  }
+  content: 'hello!'
+}.Div();
+```
+
+
+
+##Events:
+There is currently support for the most common application events such as onFocus,
 onBlur, onClick, onKeyUp etc. For each of these events, there is are two other
 corresponding versions of these handlers suffixed with 'Direct' and 'FirstHandler'.
 For example, there is onClick, onClickDirect, and onClickFirstHandler. onClickDirect
@@ -346,6 +368,21 @@ when a click happens on that element or some child of it, yet noone else deeper 
 the component tree has handled that event yet. This eliminates the need to ever
 'cancel' bubbling. Instead, the parent can just filter out events that have already
 been handled at the lower levels.
+
+
+````javascript
+var myDiv = {
+  onClickDirect: function() {
+    alert('You Clicked on the div directly, not the span!');
+  },
+  onClickFirstHandler: function() {
+    alert("You clicked on the div or some child, but in either case I'm the first to handle it!");
+  },
+  childSpan: {
+    content: 'spanny',
+  }.Span()
+}.Div();
+```
 
 
 
