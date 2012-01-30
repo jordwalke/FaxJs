@@ -72,16 +72,16 @@ AbstractEvent.prototype.preventDefault = function() {
 
 var abstractHandlerTypes = {
   onScroll: 1, onTouchTap: 2, onTouchEnd: 3, onTouchMove: 4, onTouchStart: 5,
-  onQuantizeTouchDrag: 6, onTouchDragDone: 7, onClick: 8, onDragDone: 9,
-  onQuantizeDrag: 10, onMouseWheel: 11, onKeyUp: 12, onKeyDown: 13,
+  onTouchDrag: 6, onTouchDragDone: 7, onClick: 8, onDragDone: 9,
+  onDrag: 10, onMouseWheel: 11, onKeyUp: 12, onKeyDown: 13,
   onKeyPress: 14, onFocus: 15, onBlur: 16, onMouseIn: 17, onMouseOut: 18,
   onMouseDown: 19, onMouseUp: 20,
 
   /* Direct handlers */
   onScrollDirect: 101, onTouchTapDirect: 102, onTouchEndDirect: 103,
   onTouchMoveDirect: 104, onTouchStartDirect: 105,
-  onQuantizeTouchDragDirect: 106, onTouchDragDoneDirect: 107,
-  onClickDirect: 108, onDragDoneDirect: 109, onQuantizeDragDirect: 110,
+  onTouchDragDirect: 106, onTouchDragDoneDirect: 107,
+  onClickDirect: 108, onDragDoneDirect: 109, onDragDirect: 110,
   onMouseWheelDirect: 111, onKeyUpDirect: 112, onKeyDownDirect: 113,
   onKeyPressDirect: 114, onFocusDirect: 115, onBlurDirect: 116,
   onMouseInDirect: 117, onMouseOutDirect: 118, onMouseDownDirect: 119,
@@ -90,9 +90,9 @@ var abstractHandlerTypes = {
   /* First handlers */
   onScrollFirstHandler: 201, onTouchTapFirstHandler: 202,
   onTouchEndFirstHandler: 203, onTouchMoveFirstHandler: 204,
-  onTouchStartFirstHandler: 205, onQuantizeTouchDragFirstHandler: 206,
+  onTouchStartFirstHandler: 205, onTouchDragFirstHandler: 206,
   onTouchDragDoneFirstHandler: 207, onClickFirstHandler: 208,
-  onDragDoneFirstHandler: 209, onQuantizeDragFirstHandler: 210,
+  onDragDoneFirstHandler: 209, onDragFirstHandler: 210,
   onMouseWheelFirstHandler: 211, onKeyUpFirstHandler: 212,
   onKeyDownFirstHandler: 213, onKeyPressFirstHandler: 214,
   onFocusFirstHandler: 215, onBlurFirstHandler: 216,
@@ -380,8 +380,8 @@ FaxEvent = {
     var nextIdAt = nextId + '@',
         abstractHandlerTypes = FaxEvent.abstractHandlerTypes,
         abstractEventListenersById = FaxEvent.abstractEventListenersById,
-        mouseDownDragDesc = nextIdAt + (abstractHandlerTypes.onQuantizeDrag + mode),
-        touchStartDragDesc = nextIdAt + (abstractHandlerTypes.onQuantizeTouchDrag + mode),
+        mouseDownDragDesc = nextIdAt + (abstractHandlerTypes.onDrag + mode),
+        touchStartDragDesc = nextIdAt + (abstractHandlerTypes.onTouchDrag + mode),
         mouseDownDragDoneDesc = nextIdAt + (abstractHandlerTypes.onDragDone + mode),
         touchStartDragDoneDesc = nextIdAt + (abstractHandlerTypes.onTouchDragDone + mode),
         dragDesc = topLevelEventType === topLevelEventTypes.topLevelMouseDown ? mouseDownDragDesc :
@@ -701,7 +701,7 @@ FaxEvent = {
    * in or out events which are more instantaneous in nature occurring at element
    * boundaries and thus don't need the same quantization as movementy events.
    * From these top level movementy events we can infer (currently) two higher
-   * level events (both drag events) (onQuantizeTouchDrag and onQuantizeDrag)
+   * level events (both drag events) (onTouchDrag and onDrag)
    */
   _handleMovementyTopLevelEvent: function(topLevelEventType, nativeEvent, targ) {
     if (!FaxEvent.currentlyPressingDown) {
@@ -747,8 +747,8 @@ FaxEvent = {
 
         var abstractEvent = new AbstractEvent(
           topLevelEventType === topLevelEventTypes.topLevelTouchMove ?
-              abstractHandlerTypes.onQuantizeTouchDrag :
-              abstractHandlerTypes.onQuantizeDrag,
+              abstractHandlerTypes.onTouchDrag :
+              abstractHandlerTypes.onDrag,
           topLevelEventType,
           targ, nativeEvent, abstractEventData);
         listener.callThis.call(listener.context || null, abstractEvent, nativeEvent);
