@@ -335,10 +335,17 @@ function dedupeCssAppropriate(keyRenameMap) {
       /* If there's dups w.r.t. lowerCase, or a dollar sign.  Todo, let the
        * first occurance keep the mixed case, non-dollar sign */
       if (Object.keys(entries).length > 1 || lowerCaseKey.indexOf('$') !== -1) {
+        var first = true;
         for(var originalSymbol in entries) {
-          if(entries.hasOwnProperty(originalSymbol)) {
-            newRenameMap[originalSymbol] = nextDedupedKeyNotIn(lowerCaseKeyToEntries);
+          if(!entries.hasOwnProperty(originalSymbol)) {
+            continue;
           }
+          if (!first || lowerCaseKey.indexOf('$') !== -1) {
+            newRenameMap[originalSymbol] = nextDedupedKeyNotIn(lowerCaseKeyToEntries);
+          } else {
+            newRenameMap[originalSymbol] = lowerCaseKey;
+          }
+          first = false;
         }
       } else {
         for(var originalSymbol in entries) {
