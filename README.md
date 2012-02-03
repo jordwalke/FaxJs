@@ -41,19 +41,11 @@
 <br>
 ### Get Started Now:
 
-Get node.js using <a href='https://sites.google.com/site/nodejsmacosx/'>the OSX Installer</a>
+Get node.js using <a href='https://sites.google.com/site/nodejsmacosx/'>the OSX Installer</a>. Download/clone FaxJs and Make a new directory for your project.
 
-
-**1. Clone or download FaxJs: Save it anywhere you like.**
 
         git clone git://github.com/jordow/FaxJs.git ~/Desktop/FaxJs
-        
-**2. Create a new project: Make a directory with the name of your project ("TestProject"). Execute createNewProjectInCurrentDir.sh from within it.**
-
         mkdir ~/TestProject && cd ~/TestProject && ~/Desktop/FaxJs/newProjectInCurrentDir.sh
-        
-**3. Simply start the web server. See your web app in the browser.**
-
         ./runBuild.sh        # now visit http://localhost:8080/
 
 <table cellspacing=0 cellpadding=0 border-style=none border-width=0>
