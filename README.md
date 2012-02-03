@@ -69,9 +69,7 @@ Get node.js using <a href='https://sites.google.com/site/nodejsmacosx/'>the OSX 
 
 ### Let's Start Hacking!
 
-Open up `./lib/TestProject/TestProject.js` and we'll discover how to create Ui modules.
-
-<b>First let's take a look at `MainComponent`.</b>
+Open up `./lib/TestProject/TestProject.js` and take a look at the `MainComponent` UI module.
 
 ```javascript
 TestProject.MainComponent = {
@@ -96,10 +94,10 @@ TestProject.MainComponent = {
 };
 ```
 
-`TestProject.MainComponent` is the main component of our app (index.html loads the `main/main.js` module which loads this one). `TestProject.MainComponent` has a single method inside of it called `project`. `project` (as in "projector") describes the structure of your component. `project` is expected to be very inteligent. The system expects that `project` will *always* be able to answer the question: "Hey component, what do you look like *right now* ?" In this case, our component is *always* composed of three PersonDisplayer components with hard-coded names, ages, and interests. Thre three PersonDisplayer components are contained within a div, and each PersonDisplayer instance is given properties name/age/interests.
-An interesting thing to note, is that each PersonDisplayer instance inside of the div is given a key (firstPerson,secondPerson,thirdPerson). They aren't used yet, but for now they help readability.
-Also, the PersonDisplayer is described by a *tail constructor*. (Tail constructors are enabled by a call to Fax.using()).
-But what *is* a PersonDisplayer? We haven't yet seen the definition.
+`TestProject.MainComponent` is the main component of our app. `TestProject.MainComponent` has a single method inside of it called `project`.  `project` is a powerful function that describes what the component looks like at any given point in time.
+Each `PersonDisplayer` is instantiated via a *tail constructor*. (Tail constructors are enabled by a call to Fax.using(). They are also totally optional.).
+Look further to see where the `PersonDisplayer` is defined.
+<br>
 <br>
 <b>Look further down in the file and you can see where `PersonDisplayer` is defined.</b>
 
