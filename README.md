@@ -73,7 +73,7 @@ Open up `./lib/TestProject/TestProject.js` and take a look at the `MainComponent
 
 ```javascript
 TestProject.MainComponent = {
-  project : function() {
+  structure : function() {
     return {
       firstPerson: {
         name: 'Joe Johnson', age: 31,
@@ -94,7 +94,7 @@ TestProject.MainComponent = {
 };
 ```
 
-`TestProject.MainComponent` is the main component of our app. `TestProject.MainComponent` has a single method inside of it called `project`.  `project` is a powerful function that describes what the component looks like at any given point in time.
+`TestProject.MainComponent` is the main component of our app. `TestProject.MainComponent` has a single method inside of it called `structure`.  `structure` is a powerful function that describes what the component looks like at any given point in time.
 Each `PersonDisplayer` is instantiated via a *tail constructor*. (Tail constructors are enabled by a call to Fax.using(). They are also totally optional.).
 Look further to see where the `PersonDisplayer` is defined.
 <br>
@@ -103,7 +103,7 @@ Look further to see where the `PersonDisplayer` is defined.
 
 ```javascript
 TestProject.PersonDisplayer = {
-  project : function() {
+  structure : function() {
     return {
       classSet: { personDisplayerContainer: true},
 
@@ -124,11 +124,11 @@ TestProject.PersonDisplayer = {
 };
 ```
 
-Just like with our main component, a `PersonDisplayer` has that method called `project`. But there's a couple of new concepts here that we haven't yet seen.
+Just like with our main component, a `PersonDisplayer` has that method called `structure`. But there's a couple of new concepts here that we haven't yet seen.
 
 1. The outer most div has a `classSet` property. This is just a way to describe a set of css classes (by the object keys).
 2. You'll notice references to `this.props`. The things inside of `this.props` (name/interests/age) look very much like the things set on each instance of `PersonDisplayer` inside of our `MainComponent`.
-When someone contains a child component, the properties injected into it that child component become `this.props` inside the child component's  `project` method.
+When someone contains a child component, the properties injected into it that child component become `this.props` inside the child component's  `structure` method.
 
 <br>
 The two remaining topics are "statefullness" and "event handing". These will be covered further down in this README. For now, let's take a look at the project structure.
@@ -198,7 +198,7 @@ Demo.StretchyButton = {
 
   // Returns the view as a function of state/properties. Remember, your job is to define
   // a function that answers the question: "What do you look like right <i> now </i>
-  project : function() {
+  structure : function() {
     return {
       style: {
         width: this.state.theContainerWidth  // Automatically updated when theContainerWidth is updated
@@ -219,17 +219,17 @@ module.exports = F.ComponentizeAll(Demo);
 ##Explanation of example:
 
 * The `initState` method describes the component's initial state.
-* The `project` method answers the question: "What do you look like right *now*?". In other words, you describe the structure of your component for an *arbitrary* state/property combination.
+* The `structure` method answers the question: "What do you look like right *now*?". In other words, you describe the structure of your component for an *arbitrary* state/property combination.
 * You don't need separate methods for creation/updating. Just tell FaxJs what your component *always is* and FaxJs take care of creating/updating the DOM when we detect changes.
 * FaxJs will ensure that your component **reacts** to changes in properties/state, by asking your component again: "What do you look like *now*?"
 * The Button's `onClick` method executes an update to this component's state. The
   containing `Div`'s width will automatically be changed, because the invariant 
-  `project()` states that the outer container's width should always be equal to what is
+  `structure()` states that the outer container's width should always be equal to what is
   stored in `this.state.theContainerWidth`.
  
 What you get by calling F.ComponentizeAll(Demo):
 
-* A reusable component that can be instantiated in the same declarative manner as the *project* method.
+* A reusable component that can be instantiated in the same declarative manner as the *structure* method.
 * No need to declare getters and setters for attributes - it's all just Plain 'Ol Javascript.
 
 
