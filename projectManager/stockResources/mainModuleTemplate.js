@@ -5,10 +5,10 @@ var F = require('Fax'), FaxUi = require('FaxUi'), MainModuleName = {};
 F.using(MainModuleName, FaxUi);
 
 /* The project was created with an index.html that instantiates
- * MainModuleName.MainComponent.  'project()' is the main method of any ui
+ * MainModuleName.MainComponent.  'structure()' is the main method of any ui
  * component. It declares what the component 'looks like' - how it's composed.*/
 MainModuleName.MainComponent = {
-  project : function() {
+  structure: function() {
     return {
       firstPerson: {
         name: 'Joe Johnson', age: 31,
@@ -29,7 +29,7 @@ MainModuleName.MainComponent = {
 };
 
 MainModuleName.PersonDisplayer = {
-  project : function() {
+  structure: function() {
     return {
       classSet: { personDisplayerContainer: true},
 

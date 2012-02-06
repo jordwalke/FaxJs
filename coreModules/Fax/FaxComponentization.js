@@ -497,7 +497,7 @@ var UniversalPrivateMixin = {
     return true;
   },
 
-  _reproject: function() {
+  _restucture: function() {
     this._doControlImpl();
   },
 
@@ -577,7 +577,7 @@ var MakeComponentClass = exports.MakeComponentClass = function(spec, addtlMixins
     mixin(ComponentClass, addtlMixins[j]);
   }
   if (!ComponentClass.prototype._genMarkupImpl ||
-      !ComponentClass.prototype.project) {
+      !ComponentClass.prototype.structure) {
     throw ERROR_MESSAGES.CLASS_NOT_COMPLETE;
   }
   return ComponentClass;
@@ -602,7 +602,7 @@ var StandardComponentMixin = exports.StandardComponentMixin = {
 
   _getProjection: function() {
     componentCurrentlyProjectingLock = this;
-    var proj = this.project();
+    var proj = this.structure();
     componentCurrentlyProjectingLock = null;
     return proj;
   },
@@ -715,7 +715,7 @@ var OrderedComponentMixin = exports.OrderedComponentMixin = {
   /**
    * #todomicroopt: Make it so this is the default projection.
    */
-  project: function() {
+  structure: function() {
     return this.props;
   }
 };
@@ -744,7 +744,7 @@ var MultiDynamicComponentMixin = exports.MultiDynamicComponentMixin = {
     }
   },
 
-  project: function() {
+  structure: function() {
     return this.props;
   },
 
@@ -760,7 +760,7 @@ var MultiDynamicComponentMixin = exports.MultiDynamicComponentMixin = {
  * projecting constructor is suitable for invocation in the standard manner, or
  * as a tail constructor, if it is appended to Object.prototype.
  *
- * @param component spec - an obj of type {project: Props->Projection<Child>}
+ * @param component spec - an obj of type {structure: Props->Projection<Child>}
  * @return projection constructor of type {props: Props, maker: unit->Child}
  */
 var Componentize = exports.Componentize = function(spec) {
@@ -790,7 +790,7 @@ var ComponentizeAll = exports.ComponentizeAll = function(obj) {
     }
     var potentialComponent = obj[memberName];
     if (potentialComponent && typeof potentialComponent !== 'function' &&
-        potentialComponent.project) {
+        potentialComponent.structure) {
       ret[memberName] = Componentize(potentialComponent);
     } else {
       // otherwise assume already componentized.
@@ -907,7 +907,7 @@ function(tag, optionalTagTextPar, pre, post, headText, footText) {
    * #todoperf: this api:
    * Comp = {
    *   onMyClicked: fun() {...},
-   *   project: function() {
+   *   structure: function() {
    *     return {
    *       onClick: this.onMyClicked
    *     }.Div()

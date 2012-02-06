@@ -407,7 +407,7 @@ var _usingInImpl = function(namespace, uiPackages) {
          * random data blob that is exported as part of the package. */
         if (typeof packageVal === 'function') {
           namespace[uiComponent] = packageVal;
-        } else if(packageVal && packageVal.project !== undefined) {
+        } else if(packageVal && packageVal.structure !== undefined) {
           namespace[uiComponent] = FaxComponentization.Componentize(packageVal);
         }
       }
