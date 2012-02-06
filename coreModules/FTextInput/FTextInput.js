@@ -29,17 +29,30 @@ var Consts =  {
  *    Only occurs in chrome when using browser optimized positioning (css3
  *    transforms)
  * http://stackoverflow.com/questions/7347241/
- *    caret-text-cursor-stops-when-translate3d-is-applied 
+ *    caret-text-cursor-stops-when-translate3d-is-applied
  */
 FTextInput.FTextInput = {
-  initState: function() {
-    return { focused: false };
+  initState: function(initProps) {
+    return {
+      focused: false,
+      lastBlurredValue: '' // Just for internally owned case.
+    };
+  },
+
+  /**
+   * I believe that in all uses, every ui control should be 'externally' owned
+   * - someone, somewhere outside of this component should hold the truth, and
+   *   be streaming that truth into this component. However, that doesn't demo
+   *   so well (best practices hardly ever do), so we'll support the
+   *   non-externally owned case.
+   */
+  _externallyOwned: function (props) {
+    return F.keyOf({value: 1}) in props;
   },
 
   /* Todo: We need: OnTabAttempt, OnTextChangeAttempt, OnTabHappened
    * onEnterHappened.  OnEnterDown causing textbox change, should not trigger a
    * textChange on the mouseup.  */
-
   onKeyDown: function(e) {
     var nativeEvent = e.nativeEvent, keyCode = nativeEvent.keyCode;
     if (nativeEvent.keyCode === 9) {
@@ -81,13 +94,17 @@ FTextInput.FTextInput = {
   },
 
   onBlur: function(e) {
+    var val = e.target.value;
     if (this.props.onBlurValue) {
-      this.props.onBlurValue(e.target.value);
+      this.props.onBlurValue(val);
     }
     if (this.props.onBlur) {
       this.props.onBlur(e);
     }
-    return { focused: false };
+    return {
+      focused: false,
+      lastBlurredValue: val
+    };
   },
 
   onFocus: function (e) {
@@ -102,7 +119,8 @@ FTextInput.FTextInput = {
 
   project: function() {
     var P = this.props, S = this.state;
-    var intendedText = P.value;
+    var extern = this._externallyOwned(P);
+    var intendedText = extern ? P.value : S.lastBlurredValue;
     var placeHeld = !intendedText && !S.focused;
     var textToShow = placeHeld && P.placeholder ? P.placeholder :
         intendedText ? intendedText : '';

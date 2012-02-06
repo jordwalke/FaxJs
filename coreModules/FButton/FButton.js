@@ -27,7 +27,7 @@ var Types = F.keyMirror({
 FButton.FButton = {
   project: function() {
     var P = this.props, type = P.type || Types.FButtonNormal;
-    return {
+    return (P.anchorWithHref ? FaxUi.A : FaxUi.Button)(F.merge(P, {
       classSet: {
         FButton: true,
         FButtonOkay: type === Types.FButtonOkay,
@@ -37,8 +37,8 @@ FButton.FButton = {
         classSet: this.props.classSet
       },
       content: this.props.labelText,
-      href: this.props.href
-    }.A();
+      href: this.props.anchorWithHref
+    }));
   }
 };
 
@@ -47,7 +47,7 @@ module.exports = FButton = F.ComponentizeAll(FButton);
 module.exports.Types = Types;
 
 module.exports.styleExports = {
-  FButton: {
+  FButton: F.merge(FaxUi.styleExports.noSelect, {
     borderRadius: stylers.roundValue(T.interfaceElementsRadius),
     boxSizing: stylers.boxSizingValue('border-box'),
     fontSize: T.interfaceElementsControlFontSize,
@@ -60,8 +60,10 @@ module.exports.styleExports = {
     textDecoration: 'none',
     display: 'inline-block',
     cursor: 'pointer',
-    '-webkit-transition': 'all .14s linear'
-  },
+    '-webkit-transition': 'all .14s linear',
+    '-moz-transition': 'all .14s linear',
+    'vertical-align': 'baseline'
+  }),
   FButtonOkay: {
     border: stylers.borderValue(T.contrast(T.okayBgColor, T.okayBorderDiff)),
     backgroundColor: stylers.rgbaStr(T.okayBgColor),
@@ -91,34 +93,41 @@ module.exports.styleExports = {
   }
 };
 
-module.exports.styleExports[stylers.hoverFocusKey({FButton: true})] = {
-  outline: 0
-};
+var styleExports = module.exports.styleExports;
 
 var okayBgColorHovered = T.contrast(T.okayBgColor, 15);
 var dangerBgColorHovered = T.contrast(T.dangerBgColor, 15);
 var normalBgColorHovered = T.contrast(T.normalBgColor, 10);
 var normalContrastedBgColorHovered = T.intensify(T.normalContrastedBgColor, 10);
 
-module.exports.styleExports[stylers.hoverFocusKey({FButtonOkay: true})] = {
+
+styleExports[stylers.hoverFocusKey({FButton: true})] = {
+  outline: 0,
+  textDecoration: 'none'
+};
+styleExports[stylers.hoverFocusKey({FButtonOkay: true})] = {
   border: stylers.borderValue(T.contrast(okayBgColorHovered, 2*T.okayBorderDiff)),
   backgroundColor: stylers.rgbaStr(okayBgColorHovered),
-  boxShadow: stylers.boxShadowValue(F.merge(T.fullInvertColor, {x:0,y:1,size:2, a:0.2}))
+  boxShadow: stylers.boxShadowValue(F.merge(T.fullInvertColor, {x:0,y:1,size:2, a:0.2})),
+  color: stylers.rgbaStr(T.okayTextColor)
 };
 
-module.exports.styleExports[stylers.hoverFocusKey({FButtonDanger: true})] = {
+styleExports[stylers.hoverFocusKey({FButtonDanger: true})] = {
   border: stylers.borderValue(T.contrast(dangerBgColorHovered, 2*T.dangerBorderDiff)),
-  backgroundColor: stylers.rgbaStr(dangerBgColorHovered)
+  backgroundColor: stylers.rgbaStr(dangerBgColorHovered),
+  color: stylers.rgbaStr(T.dangerTextColor)
 };
 
-module.exports.styleExports[stylers.hoverFocusKey({FButtonNormal: true})] = {
+styleExports[stylers.hoverFocusKey({FButtonNormal: true})] = {
   border: stylers.borderValue(T.contrast(normalBgColorHovered, 2*T.normalBorderDiff)),
   backgroundColor: stylers.rgbaStr(normalBgColorHovered),
-  boxShadow: stylers.boxShadowValue(F.merge(T.fullInvertColor, {x:0,y:1,size:2, a:0.04}))
+  boxShadow: stylers.boxShadowValue(F.merge(T.fullInvertColor, {x:0,y:1,size:2, a:0.04})),
+  color: stylers.rgbaStr(T.normalTextColor)
 };
 
-module.exports.styleExports[stylers.hoverFocusKey({FButtonNormalContrasted: true})] = {
+styleExports[stylers.hoverFocusKey({FButtonNormalContrasted: true})] = {
   border: stylers.borderValue(T.intensify(normalContrastedBgColorHovered, 2*T.normalContrastedBorderDiff)),
   backgroundColor: stylers.rgbaStr(normalContrastedBgColorHovered),
-  boxShadow: stylers.boxShadowValue(F.merge(T.fullInvertColor, {x:0,y:1,size:2, a:0.04}))
+  boxShadow: stylers.boxShadowValue(F.merge(T.fullInvertColor, {x:0,y:1,size:2, a:0.04})),
+  color: stylers.rgbaStr(T.normalTextColor)
 };
