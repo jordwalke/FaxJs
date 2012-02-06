@@ -1,4 +1,4 @@
-# FaxJs - Javascript User Interface Toolkit  
+### Check out <a href="http://www.faxjs.org/">faxJs.org</a> for a tutorial and API walkthrough
 
 <table cellspacing=0 cellpadding=0 border-style=none border-width=0>
 
