@@ -53,7 +53,7 @@ FToggleSwitch.FToggleSwitch = {
     }
   },
 
-  project: function() {
+  structure: function() {
     var perceivedValue = this._externallyOwned(this.props) ? this.props.value :
                          this.state.internalValue;
 

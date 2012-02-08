@@ -117,7 +117,7 @@ FTextInput.FTextInput = {
     return { focused: true };
   },
 
-  project: function() {
+  structure: function() {
     var P = this.props, S = this.state;
     var extern = this._externallyOwned(P);
     var intendedText = extern ? P.value : S.lastBlurredValue;

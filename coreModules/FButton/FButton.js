@@ -25,7 +25,7 @@ var Types = F.keyMirror({
  *    href: a link href
  */
 FButton.FButton = {
-  project: function() {
+  structure: function() {
     var P = this.props, type = P.type || Types.FButtonNormal;
     return (P.anchorWithHref ? FaxUi.A : FaxUi.Button)(F.merge(P, {
       classSet: {

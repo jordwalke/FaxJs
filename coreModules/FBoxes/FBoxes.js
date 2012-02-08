@@ -7,7 +7,7 @@ var F = require('Fax'), FaxUi = require('FaxUi'), stylers = FaxUi.stylers,
  * PageDialog - has a top and bottom part.
  * The bottom has a minimum height but will stretch larger.
  */
-(FBoxes.PageDialog = {}).project = function() {
+(FBoxes.PageDialog = {}).structure = function() {
   return Div({
     classSet: this.props.classSet,
     header: Div({
@@ -33,7 +33,7 @@ var F = require('Fax'), FaxUi = require('FaxUi'), stylers = FaxUi.stylers,
  * A two column, multi-row table for displaying information
  * such as forms.
  */
-(FBoxes.InfoTable = {}).project = function() {
+(FBoxes.InfoTable = {}).structure = function() {
   return Table(F.merge({
     classSet: {
       InfoTable: true
