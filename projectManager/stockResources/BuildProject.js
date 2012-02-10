@@ -180,10 +180,29 @@ function outputCss(styleSheetsByPath, transformer) {
 
 function compile(buildSpecs) {
   var i, origFileText, origFileAst, optimizedAst, generatedStyleString,
-      files = findIt.sync(curDir + '/build/client/buildLib/'),
+      buildLibFiles = findIt.sync(curDir + '/build/client/buildLib/'),
       /* We have to save the style sheets for later, because we don't yet know if we're going
        * to advanced minify - if so we need to hold off on the writing out of files. */
-      styleSheetsForLaterByPath = {};
+      styleSheetsForLaterByPath = {},
+      files = [];
+
+
+  /**
+   * The ProjectConfig is the way that ordering of styles is defined for now. It
+   * should probably be in dependency order - but this works okay for now.
+   * So we build up the files array based on the module order. Repeat: files has
+   * files from buildLib in order of modules listed in ProjectConfig.js
+   * Once modular allows hooks for build processing, it will be in dependency
+   * order.
+   */
+  for (var moduleName in buildSpecs.projectConfig.projectModules) {
+    util.debug(moduleName);
+    for (i=0; i < buildLibFiles.length; i=i+1) {
+      if(buildLibFiles[i].indexOf(curDir + '/build/client/buildLib//' + moduleName+'/') === 0) {
+        files.push(buildLibFiles[i]);
+      }
+    }
+  }
 
   function doComile() {
     for (i=0; i < files.length; i=i+1) {
