@@ -246,11 +246,12 @@ function compile(buildSpecs) {
       // file, then yanking out the styleExports - but that would be very very slow. This is just
       // string replacement. Store the rename maps by length so that we can easily replace them
       // in css without having problems where class names are prefixes of other class names -
-      // we start at the longest class names and work our way to the shorter ones.
+      // we start at the shortest class names and work our way to the longer
+      // ones so that we don't "reclobber" something that was just renamed.
       buildAdvancedRenameKeysForAppropriateCssUsage(buildSpecs, function(cssAppropriateKeyRenameMap) {
         var subsetByOriginalSymbLength = orderKeyRenameMapByOriginalSymbolLength(cssAppropriateKeyRenameMap);
         var styleSheetTransformer = function(styleSheet) {
-          for (var keyLen = subsetByOriginalSymbLength.length - 1; keyLen >= 0; keyLen--) {
+          for (var keyLen = 0; keyLen < subsetByOriginalSymbLength.length; keyLen++) {
             var renameMap = subsetByOriginalSymbLength[keyLen];
             for (var symbol in renameMap) {
               styleSheet = replaceAll(styleSheet, '.'+symbol + ' ', '.'+renameMap[symbol] + ' ');
