@@ -3,6 +3,17 @@ var F = require('Fax'), FaxUi = require('FaxUi'), stylers = FaxUi.stylers,
     Th = FaxUi.Th, Td = FaxUi.Td, Tr = FaxUi.Tr, Div = FaxUi.Div,
     Table = FaxUi.Table, FBoxes = {};
 
+
+(FBoxes.FBox = {}).structure = function() {
+  return Div({
+    classSet: {
+      FBox: true,
+      ownerProvidedClassSet: this.props.classSet
+    },
+    contained: this.props.contained
+  });
+};
+
 /**
  * PageDialog - has a top and bottom part.
  * The bottom has a minimum height but will stretch larger.
@@ -12,15 +23,13 @@ var F = require('Fax'), FaxUi = require('FaxUi'), stylers = FaxUi.stylers,
     classSet: this.props.classSet,
     header: Div({
       classSet: {
-        PageDialogHeader: true,
-        PageDialogHeaderBorder: !!this.props.hasBorders
+        PageDialogHeader: true
       },
       contained: this.props.headerContains
     }),
     footer: Div({
       classSet: {
-        PageDialogFooter: true,
-        PageDialogFooterBorder: !!this.props.hasBorders
+        PageDialogFooter: true
       },
       contained: this.props.footerContains
     })
@@ -60,31 +69,28 @@ var F = require('Fax'), FaxUi = require('FaxUi'), stylers = FaxUi.stylers,
 module.exports = FBoxes = F.ComponentizeAll(FBoxes);
 
 module.exports.styleExports = {
+  FBox: {
+    padding: 15,
+    boxSizing: stylers.boxSizingValue('border-box'),
+    backgroundColor: stylers.rgbaStr(T.grayBgColor),
+    border: stylers.borderValue(T.grayBgColor)
+  },
   PageDialogHeader: {
     padding: 15,
     boxSizing: stylers.boxSizingValue('border-box'),
-    backgroundColor: stylers.rgbaStr(T.reallyMildBgColor),
-    border: stylers.borderValue(T.reallyMildBgColor)
+    backgroundColor: stylers.rgbaStr(T.grayLightBgColor),
+    border: stylers.borderValue(T.grayLightBorderColor)
   },
   PageDialogFooter: {
-    padding: 15,
-    paddingTop: 10,
-    paddingBottom: 10,
+    padding: 8,
+    borderLeft: stylers.borderValue(T.grayLightBorderColor),
+    borderRight: stylers.borderValue(T.grayLightBorderColor),
+    borderBottom: stylers.borderValue(T.grayLightBorderColor),
+    borderTop: 'none',
     boxSizing: stylers.boxSizingValue('border-box'),
-    backgroundColor: stylers.rgbaStr(T.mildBgColor),
-    border: stylers.borderValue(T.mildBgColor)
+    backgroundColor: stylers.rgbaStr(T.grayBgColor)
   },
 
-  PageDialogHeaderBorder: {
-    border: stylers.borderValue(T.borderColorHighContrast)
-  },
-
-  PageDialogFooterBorder: {
-    borderTop: stylers.borderValue(T.mildBgColor),
-    borderBottom: stylers.borderValue(T.borderColor),
-    borderRight: stylers.borderValue(T.borderColor),
-    borderLeft: stylers.borderValue(T.borderColor)
-  },
 
   InfoTable: {
     'vertical-align': 'top',

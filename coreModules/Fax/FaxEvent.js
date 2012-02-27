@@ -63,13 +63,21 @@ function AbstractEvent(abstractEventType,
 }
 
 AbstractEvent.prototype.preventDefault = function() {
-  if(this.nativeEvent.preventDefault) {
-    this.nativeEvent.preventDefault();
-  } else {
-    this.nativeEvent.returnValue = false;
-  }
+  FaxEvent.preventDefaultOnNativeEvent(this.nativeEvent);
 };
 
+/**
+ * Todo: Once there is a unified events pipeline, drags, mousedowns, mouseups,
+ * dragdones should all be rethought out. We need a way to listen for global
+ * "up" events by the id of the object that was the down event. DragDone's work
+ * this way because they're highly synthetic. But there is no equivalent for
+ * simply mouse up. Someone would want to listen to a mouse up event even if
+ * the mouse was not only the object when "up" occured, but the mouse was over
+ * it when the "down" occured. You could call this type of event onGlobalMouseUp.
+ * Once there's a unified event pipeline, this kind of thing would be much
+ * easier to implement - as it's very much what we already do for drag done
+ * events.
+ */
 var abstractHandlerTypes = {
   onScroll: 1, onTouchTap: 2, onTouchEnd: 3, onTouchMove: 4, onTouchStart: 5,
   onTouchDrag: 6, onTouchDragDone: 7, onClick: 8, onDragDone: 9,
@@ -225,6 +233,14 @@ FaxEvent = {
     Default: 0,
     Direct: 100,
     FirstHandler: 200
+  },
+
+  preventDefaultOnNativeEvent: function(nativeEvent) {
+    if(nativeEvent.preventDefault) {
+      nativeEvent.preventDefault();
+    } else {
+      nativeEvent.returnValue = false;
+    }
   },
 
   /**
@@ -889,20 +905,51 @@ FaxEvent.registerWindowResizeListener = function() {
  * class. In IE we need to inspect every element that was selected and see if it
  * had a noselect class on it :( This also deactivates that horrible horrible
  * horrible horrible "accelerator" popups on IE8.
+ * This needs to be rethought, for a couple of reasons - first being that key
+ * minification can ruin any class name we might be looking for. The second, is
+ * this will prevent less than what non-ie browsers with noSelect will catch. I
+ * think the best solution, would be to apply a single global listener to
+ * document.onselectstart when in the process of a drag, which prevents default,
+ * and detach that listener on drag done.
  */
 FaxEvent.registerIeOnSelectStartListener = function() {
   var previousOnSelectStart = document.onselectstart;
   document.onselectstart = function(nativeEvent) {
     var targ = FaxEvent._getTarget(nativeEvent);
-    if (targ.className &&
-        (targ.className.search(/noSelect/) !== -1 ||
-        targ.className.search(/material/) !== -1)) {
+    if (targ.className && targ.className.search(/noSelect/) !== -1 ) {
       (nativeEvent || window.event).returnValue = false;
     }
     if (previousOnSelectStart) {
       previousOnSelectStart(nativeEvent || window.event);
     }
   };
+};
+
+/**
+ * Ensures that selection of document elements is disabled temporarily. When
+ * calling the complementary method enableSelectionGlobally, it will restore
+ * the old handler.
+ * Todo: Firefox support (by returning false on mousedowns during drags)
+ * Note: We use 'onselectstart' in string form so that closure compiler doesn't
+ * eliminate it -which is odd since Chrome actually supports that event.
+ */
+FaxEvent.disableSelectionGlobally = function() {
+  if (FaxEvent.haveBackedUpOldOnSelectStart) {
+    return;
+  }
+  FaxEvent.oldOnSelectStart = document['onselectstart'];
+  FaxEvent.haveBackedUpOldOnSelectStart = true;
+  document['onselectstart'] = function(nativeEvent) {
+    FaxEvent.preventDefaultOnNativeEvent(nativeEvent || window.event);
+  };
+};
+
+FaxEvent.enableSelectionGlobally = function() {
+  if (FaxEvent.haveBackedUpOldOnSelectStart) {
+    document['onselectstart'] = FaxEvent.oldOnSelectStart;
+    FaxEvent.oldOnSelectStart = null;
+    FaxEvent.haveBackedUpOldOnSelectStart = false;
+  }
 };
 
 /**
@@ -985,7 +1032,7 @@ FaxEvent.releaseMemoryReferences = function (idPrefixes) {
 FaxEvent.registerTopLevelListeners = function(mountAt, touchInsteadOfMouse) {
   FaxEvent.registerDocumentScrollListener();
   FaxEvent.registerWindowResizeListener();
-  FaxEvent.registerIeOnSelectStartListener();
+  //FaxEvent.registerIeOnSelectStartListener();
 
   /**
    * #todoie: onmouseover/out do not work on the window element on IE*, will

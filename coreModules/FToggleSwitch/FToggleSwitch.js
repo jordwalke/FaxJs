@@ -93,20 +93,18 @@ module.exports.styleExports = {
     position: 'absolute',
     height: '100%',
     boxSizing: stylers.boxSizingValue('border-box'),
-    '-webkit-transition': 'all .1s ease-in-out',
-    '-moz-transition': 'all .1s ease-in-out',
-    '-transition': 'all .1s ease-in-out'
+    transition: stylers.transitionAllValue(0.1)
   },
   FSwitch: {
     outline: 0,
     textDecoration: 'none',
-    'vertical-align': 'baseline',
+    'vertical-align': 'middle',
     cursor: 'pointer',
     width: 69,
-    height: T.interfaceControlsTotalHeight,
+    height: T.controlsHeight,
     boxSizing: stylers.boxSizingValue('border-box'),
     border: '0px solid transparent',
-    backgroundColor: stylers.rgbaStr(T.normalBgColor),
+    backgroundColor: stylers.rgbaStr(T.okayBgColor),
     overflow: 'hidden'
   },
   FSwitchNub: {
@@ -115,31 +113,31 @@ module.exports.styleExports = {
     left: 0,
     width: 34,
     height: '100%',
-    backgroundColor: stylers.rgbaStr(T.bgColor),
-    border: stylers.borderValue(T.borderColorReallyHighContrast),
+    backgroundColor: stylers.rgbaStr(T.white),
+    border: stylers.borderValue(T.grayBorderColor),
     boxSizing: stylers.boxSizingValue('border-box')
   },
-  FSwitchNubText: F.merge(FaxUi.styleExports.noSelect, {
+  FSwitchNubText: {
     cursor: 'pointer',
     position: 'absolute',
-    height: T.interfaceControlsTotalHeight,
-    lineHeight: T.interfaceControlsTotalHeight - 2,
+    height: T.controlsHeight,
+    lineHeight: T.controlsHeight - 2,
     width: 35,
     textAlign: 'center',
-    'vertical-align': 'center',
-    color: stylers.rgbaStr(T.textColorReallySubtle),
+    'vertical-align': 'middle',
+    color: stylers.rgbaStr(T.textColorSubtle),
     boxSizing: stylers.boxSizingValue('border-box')
-  }),
+  },
   FSwitchNubOnText: {
     left: -35,
-    backgroundColor: stylers.rgbaStr(T.okayBgColor),
-    color: stylers.rgbaStr(T.okayTextColor),
-    border: stylers.borderValue(T.contrast(T.okayBgColor, 15)),
+    backgroundColor: stylers.rgbaStr(T.confirmBgColor),
+    color: stylers.rgbaStr(T.confirmTextColor),
+    border: stylers.borderValue(T.confirmBorderColor),
     borderRight: 'none'
   },
   FSwitchNubOffText: {
     left: 34,
-    border: stylers.borderValue(T.borderColorReallyHighContrast),
+    border: stylers.borderValue(T.grayBorderColor),
     borderLeft: 'none'
   }
 };

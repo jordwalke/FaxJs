@@ -28,6 +28,46 @@
  */
 var F = require('Fax');
 
+function replaceAll(str, find, replace) {
+  var mutated = str;
+  while (mutated && mutated.indexOf(find) !== -1) {
+    mutated = mutated.replace(find, replace);
+  }
+  return mutated;
+}
+
+/**
+ * Cross browser gradients.
+ */
+var GRADIENT_STR =
+  '{fallbackBgColor};' +
+  'background:-moz-linear-gradient(top, {highRgba}, {lowRgba}); ' +
+  'background:-webkit-gradient(linear, left top, left bottom, ' +
+      'from({highRgba}), to({lowRgba}));' +
+  'filter: progid:DXImageTransform.Microsoft.Gradient(GradientType=0,'+
+      'StartColorStr="#{highHexDigits}", ' +
+      'EndColorStr="#{lowHexDigits}")';
+
+/**
+ * Cross browser opacity stylings.
+ */
+var OPACITY_STR = '{decimal};' +
+  '-ms-filter:"progid:DXImageTransform.Microsoft.Alpha(Opacity={msOpacity})";' +
+  'filter: alpha(opacity={msOpacity})';
+
+
+var BACKGROUND_IMAGE_STR = "url('{url}');" +
+  'background-repeat:no-repeat;' +
+  'background-position:{t}px {l}px;' +
+  'background-attachment: {attachment}';
+
+var TRANSITION_ALL_VALUE = '' +
+    'all {seconds} {motion};' +
+    '-webkit-transition: all {seconds} {motion};' +
+    '-moz-transition: all {seconds} {motion};' +
+    '-transition: all {seconds} {motion}';
+
+
 /**
  * FaxUiStylers: A useful set of utility functions for generating css values.
  * Most of these opereate on {rgba} maps, but when generating a stylesheet using
@@ -46,7 +86,7 @@ var convertRgbToHexFromMap = function(map) {
   return convertToHex(map.r)+convertToHex(map.g)+convertToHex(map.b);
 };
 var rgbaToFilterHexFromMap = function(map) {
-  return convertToHex(map.a*255)+convertToHex(map.r)+
+  return convertToHex((map.a || 1)*255)+convertToHex(map.r)+
          convertToHex(map.g)+convertToHex(map.b);
 };
 
@@ -69,6 +109,18 @@ var stylers = module.exports = {
   hoverFocusKey: function (singleMemberKey) {
     return '.' + F.keyOf(singleMemberKey) + ':hover, ' +
            '.' + F.keyOf(singleMemberKey) + ':focus';
+  },
+
+  activeKey: function (singleMemberKey) {
+    return '.' + F.keyOf(singleMemberKey) + ':active';
+  },
+
+  firstChildKey: function (singleMemberKey) {
+    return '.' + F.keyOf(singleMemberKey) + ':first-child';
+  },
+
+  afterKey: function (singleMemberKey) {
+    return '.' + F.keyOf(singleMemberKey) + '::after';
   },
 
   /**
@@ -134,8 +186,7 @@ var stylers = module.exports = {
    * width:100% than to set left:0, right:0.
    */
   boxSizingValue: function(val) {
-    return val + ';box-sizing:' + val +
-            ';-moz-box-sizing:' + val + ';-webkit-box-sizing:' + val;
+    return val + ';-moz-box-sizing:' + val + ';-webkit-box-sizing:' + val;
   },
 
   /**
@@ -226,6 +277,10 @@ var stylers = module.exports = {
         map.r, map.g, map.b, map.a, map.inset);
   },
 
+  blackBoxShadowValue: function(xysa) {
+    return stylers.boxShadowValue(F.merge({r:0, g:0, b:0}, xysa));
+  },
+
   boxShadowOutsetAndInset: function (outsetMap, insetMap) {
     var outsetShadow= stylers._shadowSegment(
         outsetMap.x, outsetMap.y, outsetMap.size,
@@ -264,36 +319,36 @@ var stylers = module.exports = {
   },
 
   /**
-   * Gradient from bottom to top. Injects cross browser values. #todoie (filter)
-   * Use like: style = {background: FaxUi.backgroundBottomUpGradientValue(...)}
-   * Since we don't set a fallback color, this won't work in browsers that don't
-   * support one of the following gradient settings. (Maybe ie6?)
+   * Gradient from bottom to top. Injects cross browser values.
+   * Does not work in browsers that don't support one of the gradient strategies
+   * (possibly ie6/7). Make sure the element that the gradient is being applied
+   * to "hasLayout" (so set zoom:1 in some other css class or reset.)
    */
-  backgroundBottomUpGradientValueParams: function(lR,lG,lB,lA,hR,hG,hB,hA) {
-    return stylers.backgroundBottomUpGradientValue({
+  bgGradientValueForArgs: function(lR,lG,lB,lA,hR,hG,hB,hA) {
+    return stylers.bgGradientValue({
       r: lR, g: lG, b: lB, a: lA
     }, {
       r: hR, g: hG, b: hB, a: hA
     });
   },
 
-  backgroundGradientDodgeValue: function (lMap, deltaHigh) {
-    return stylers.backgroundBottomUpGradientValue(
+  bgGradientValueDodge: function (lMap, deltaHigh) {
+    return stylers.bgGradientValue(
       lMap, stylers.dodgeDelta(lMap, deltaHigh));
   },
 
-  backgroundBottomUpGradientValue: function(lMap, hMap) {
+  bgGradientValue: function(lMap, hMap) {
     var lowWithoutA = F.objExclusion(lMap, {a: true});
     var lowWithoutAString = stylers.rgbaStr(lowWithoutA);
     var lowString = stylers.rgbaStr(lMap);
     var highString = stylers.rgbaStr(hMap);
-    return lowWithoutAString +
-    '; background:-moz-linear-gradient(top, ' + stylers.rgbaStr(hMap) +
-    ',' + stylers.rgbaStr(lMap) + '); background:-webkit-gradient(' +
-    'linear, left top, left bottom, from(' + stylers.rgbaStr(hMap) +
-    '), to(' + stylers.rgbaStr(lMap) +
-    ')); filter: progid:DXImageTransform.Microsoft.Gradient(GradientType=0,StartColorStr="#' +
-    rgbaToFilterHexFromMap(hMap) + '", EndColorStr="#' + rgbaToFilterHexFromMap(lMap)+'")';
+    return GRADIENT_STR.replace('{fallbackBgColor}', lowWithoutAString)
+                      .replace('{highRgba}', stylers.rgbaStr(hMap))
+                      .replace('{lowRgba}', stylers.rgbaStr(lMap))
+                      .replace('{highRgba}', stylers.rgbaStr(hMap))
+                      .replace('{lowRgba}', stylers.rgbaStr(lMap))
+                      .replace('{lowHexDigits}', rgbaToFilterHexFromMap(lMap))
+                      .replace('{highHexDigits}', rgbaToFilterHexFromMap(hMap));
   },
 
   borderValue: function(color) {
@@ -304,10 +359,25 @@ var stylers = module.exports = {
   /* See: http://www.quirksmode.org/css/opacity.html - the order of ie opacity
    * statements matter. */
   opacityValue: function(decimal) {
-    var msOpacity = '' + decimal*100;
-    return decimal +
-        '; -ms-filter:"progid:DXImageTransform.Microsoft.Alpha(Opacity=' +
-        msOpacity + ')";' +
-        'filter: alpha(opacity=' + msOpacity + ')';
+    return OPACITY_STR.replace('{decimal}', decimal)
+        .replace('{msOpacity}', decimal*100)
+        .replace('{msOpacity}', decimal*100);
+  },
+
+  imageBgValue: function(url, t, l, isFixed) {
+    return BACKGROUND_IMAGE_STR.replace('{url}', url)
+        .replace('{t}', t || 0)
+        .replace('{l}', l || 0)
+        .replace('{attachment}', isFixed ? 'fixed' : 'scroll');
+
+  },
+
+  transitionAllValue: function(seconds, motion) {
+    var time = seconds + 's';
+    return replaceAll(
+           replaceAll(TRANSITION_ALL_VALUE, "{seconds}", time),
+           "{motion}", motion || 'ease-in-out');
   }
+
+
 };

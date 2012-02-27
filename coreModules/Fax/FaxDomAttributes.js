@@ -94,6 +94,7 @@ var renameByKey = function(prefix, suffix, propertyDescriptors) {
  */
 var styleFeatureNames = renameByKey(';', ':', {
   boxSizing: HYPHENIZE,
+  transition: HYPHENIZE,
   boxShadow: HYPHENIZE,
   textShadow: HYPHENIZE,
   paddingRight: HYPHENIZE,
@@ -128,7 +129,8 @@ var styleFeatureNames = renameByKey(';', ':', {
   maxHeight: HYPHENIZE,
   minWidth: HYPHENIZE,
   maxWidth: HYPHENIZE,
-  outline: HYPHENIZE
+  outline: HYPHENIZE,
+  verticalAlign: HYPHENIZE
 });
 
 /** Set of attribute names for which we do not append 'px'. */
@@ -600,7 +602,7 @@ var _extractAndSealPosInfoUsingTranslateIe =
  *       If posInfo value is present, that value is coppied over to the result.
  *       If posInfo value is not present, no value is coppied to result.
  */
-var _posOffset = function (posInfo, deltas, forRel) {
+var _posOffset = exports.posOffset = function (posInfo, deltas, forRel) {
   if (!posInfo && deltas) {
     return deltas; // vulnerable to mutation bugs - be careful.
   }
@@ -675,7 +677,7 @@ var _posOffset = function (posInfo, deltas, forRel) {
 /**
  * If a pos info is provided it will offset it, otherwise return the falseyness.
  */
-var _posOffsetIfPosInfo = function (posInfo, deltas, forRel) {
+exports.posOffsetIfPosInfo = function (posInfo, deltas, forRel) {
   return posInfo ? _posOffset(posInfo, deltas, forRel) : posInfo;
 };
 

@@ -49,8 +49,8 @@ exports.projectConfig = {
   projectModules: {
 
     main: { },
-
-    MainModuleName: { },
+    
+    FBaseStyle: { },
 
     FaxUi: { },
 
@@ -62,7 +62,9 @@ exports.projectConfig = {
 
     FButton: { },
 
-    FToggleSwitch: {}
+    FToggleSwitch: { },
+
+    MainModuleName: { }
   }
 };
 

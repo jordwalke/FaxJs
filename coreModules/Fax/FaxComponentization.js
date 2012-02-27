@@ -271,9 +271,9 @@ var controlPhysicalDomByNodeOrId = function (elem,
       } else if(propKey === POS_INFO_KEY) {
         cssText += _extractAndSealPosInfoImpl(prop);
       } else if (controlDirectlyNonIdempotent[propKey]) {
-        currentValue = elem[controlDirectlyNonIdempotent[propKey]];
+        currentValue = elem[propKey];
         if (currentValue !== prop) {
-          elem[controlDirectlyNonIdempotent[propKey]] = prop;
+          elem[propKey] = prop;
         }
       } else if (propKey === DANGEROUSLY_SET_INNER_HTML_KEY) {
         elem.innerHTML = prop;
@@ -511,6 +511,16 @@ var UniversalPrivateMixin = {
   _childAt: function(s) {
   },
 
+  stateUpdaterConstant: function (frag) {
+    var ths = this;
+    if (!frag) {
+      return frag;
+    }
+    return function() {
+      ths.updateState(frag);
+    };
+  },
+
   stateUpdater: function (funcOrFragment) {
     var ths = this;
     if (!funcOrFragment) {
@@ -523,7 +533,6 @@ var UniversalPrivateMixin = {
         function(/*arguments*/) {
           ths.updateState(funcOrFragment);
         };
-    
   },
 
   oneValueStateUpdater: function (singleKeyDescriptionObj) {

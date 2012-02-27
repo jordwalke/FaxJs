@@ -441,7 +441,9 @@ var using = function() {
 
  
 module.exports = Fax = {
-  _abstractEventListenersById : FaxEvent.abstractEventListenersById,
+  disableSelectionGlobally: FaxEvent.disableSelectionGlobally,
+  enableSelectionGlobally: FaxEvent.enableSelectionGlobally,
+  _abstractEventListenersById: FaxEvent.abstractEventListenersById,
   MakeComponentClass: FaxComponentization.MakeComponentClass,
   Componentize: FaxComponentization.Componentize,
   ComponentizeAll: FaxComponentization.ComponentizeAll,

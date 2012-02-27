@@ -14,6 +14,15 @@ var Consts =  {
   textInputHorzPadding: 5
 };
 
+/**
+ * Todo: Add to utils.
+ */
+function invokeWith(f, param) {
+  if (f) {
+    f(param);
+  }
+}
+
 
 /**
  * This text input element provides several conveniences for using a text input,
@@ -30,6 +39,12 @@ var Consts =  {
  *    transforms)
  * http://stackoverflow.com/questions/7347241/
  *    caret-text-cursor-stops-when-translate3d-is-applied
+ *
+ * I believe that in all uses, every ui control should be 'externally' owned
+ * - someone, somewhere outside of this component should hold the truth, and be
+ *   streaming that truth into this component. However, that doesn't demo so
+ *   well (best practices hardly ever do), so we'll support the non-externally
+ *   owned case.
  */
 FTextInput.FTextInput = {
   initState: function(initProps) {
@@ -39,36 +54,18 @@ FTextInput.FTextInput = {
     };
   },
 
-  /**
-   * I believe that in all uses, every ui control should be 'externally' owned
-   * - someone, somewhere outside of this component should hold the truth, and
-   *   be streaming that truth into this component. However, that doesn't demo
-   *   so well (best practices hardly ever do), so we'll support the
-   *   non-externally owned case.
-   */
-  _externallyOwned: function (props) {
-    return F.keyOf({value: 1}) in props;
-  },
-
   /* Todo: We need: OnTabAttempt, OnTextChangeAttempt, OnTabHappened
    * onEnterHappened.  OnEnterDown causing textbox change, should not trigger a
    * textChange on the mouseup.  */
   onKeyDown: function(e) {
     var nativeEvent = e.nativeEvent, keyCode = nativeEvent.keyCode;
-    if (nativeEvent.keyCode === 9) {
-      if (nativeEvent.shiftKey && this.props.onBackTabAttempt) {
-        this.props.onBackTabAttempt(e);
-      } else if (!nativeEvent.shiftKey && this.props.onTabAttempt) {
-        this.props.onTabAttempt(e);
-      }
-    } else if (nativeEvent.keyCode === 38 && this.props.onUpArrowAttempt) {
-      this.props.onUpArrowAttempt(e);
-    } else if (nativeEvent.keyCode === 40 && this.props.onDownArrowAttempt) {
-      this.props.onDownArrowAttempt(e);
-    }
-    if (this.props.onKeyDown) {
-      this.props.onKeyDown(e);
-    }
+    invokeWith(keyCode === 9 &&
+        nativeEvent.shiftKey && this.props.onBackTabAttempt, e);
+    invokeWith(keyCode === 9 &&
+        !nativeEvent.shiftKey && this.props.onTabAttempt, e);
+    invokeWith(keyCode === 38 && this.props.onUpArrowAttempt, e);
+    invokeWith(keyCode === 40 && this.props.onDownArrowAttempt, e);
+    invokeWith(this.props.onKeyDown, e);
   },
 
   /* In some browsers (*cough-Firefox-cough*) the key up event is triggered on a
@@ -81,45 +78,32 @@ FTextInput.FTextInput = {
     var val = e.target.value;
     if (this.props.value !== val && this.state.focused) {
       this.justUpdateState({ userText: val });
-      if (this.props.onTextChange) {
-        this.props.onTextChange(val);
-      }
+      invokeWith(this.props.onTextChange, val);
     }
-    if (this.props.onEnter && nativeEvent.keyCode === 13) {
-      this.props.onEnter(e);
-    }
-    if (this.props.onKeyUp) {
-      this.props.onKeyUp(e);
-    }
+    invokeWith(nativeEvent.keyCode === 13 && this.props.onEnter, e);
+    invokeWith(this.props.onKeyUp, e);
   },
 
   onBlur: function(e) {
-    var val = e.target.value;
-    if (this.props.onBlurValue) {
-      this.props.onBlurValue(val);
-    }
-    if (this.props.onBlur) {
-      this.props.onBlur(e);
-    }
+    invokeWith(this.props.onBlurValue, e.target.value);
+    invokeWith(this.props.onBlur, e);
+
     return {
       focused: false,
-      lastBlurredValue: val
+      lastBlurredValue: e.target.value
     };
   },
 
   onFocus: function (e) {
-    if (this.props.onFocusValue) {
-      this.props.onFocusValue(e.target.value);
-    }
-    if (this.props.onFocus) {
-      this.props.onFocus(e);
-    }
+    invokeWith(this.props.onFocusValue, e.target.value);
+    invokeWith(this.props.onFocus, e);
     return { focused: true };
   },
 
   structure: function() {
-    var P = this.props, S = this.state;
-    var extern = this._externallyOwned(P);
+    var P = this.props,
+        S = this.state,
+        extern = F.keyOf({value:1}) in P;
     var intendedText = extern ? P.value : S.lastBlurredValue;
     var placeHeld = !intendedText && !S.focused;
     var textToShow = placeHeld && P.placeholder ? P.placeholder :
@@ -157,7 +141,7 @@ module.exports.Consts = Consts;
 
 module.exports.styleExports = {
   FTextInputWrapper: {
-    height: FTheme.interfaceControlsTotalHeight,
+    height: FTheme.controlsHeight,
     boxSizing: stylers.boxSizingValue('border-box'),
     display: 'inline-block'
   },
@@ -169,13 +153,17 @@ module.exports.styleExports = {
     'outline-style': 'none',
     boxSizing: stylers.boxSizingValue('border-box'), // Should add to all buttons/selects
     lineHeight: (FTheme.textInputFontSize),
-    backgroundColor: stylers.rgbaStr(FTheme.textInputBackgroundColor),
+    /** There are issues with setting the background color - we need to
+     * guarantee all styles are included in a particular order to get "selected"
+     * typeahead states to not have FTheme.textInputBackgroundColor bg color.
+     * backgroundColor: stylers.rgbaStr(FTheme.textInputBackgroundColor),
+     */
     margin: 0,
     display: 'inline-block',
     paddingLeft: Consts.textInputHorzPadding,
     paddingRight: Consts.textInputHorzPadding,
     border: stylers.borderValue(FTheme.textInputBorderColor),
-    color: stylers.rgbaStr(FTheme.textInputFontColor),
+    color: stylers.rgbaStr(FTheme.textInputTextColor),
     fontWeight: 'normal',
     fontSize: FTheme.textInputFontSize,
     '-webkit-transition': 'box-shadow .25s',
@@ -183,7 +171,7 @@ module.exports.styleExports = {
     transition: 'box-shadow .25s'
   },
   FTextInputPlaceheld: {
-    color: stylers.rgbaStr(FTheme.textInputFontColorPlaceheld)
+    color: stylers.rgbaStr(FTheme.textInputTextColorPlaceheld)
   }
 
 };

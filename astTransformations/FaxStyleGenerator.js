@@ -31,6 +31,7 @@ module.exports = {
           selector.indexOf('~') === -1 &&
           selector.indexOf('[') === -1 &&
           selector.indexOf('#') === -1 &&
+          selector.indexOf(':') === -1 &&
           selector.indexOf('.') === -1 &&
           selector.indexOf(' ') === -1) {
         selector = '.' + selector;

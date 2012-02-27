@@ -9,10 +9,10 @@
  * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
  * sell copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -20,7 +20,7 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
- * 
+ *
  * I am providing code in this repository to you under an open source license.
  * Because this is my personal repository, the license you receive to my code
  * is from me and not from my employer (Facebook).
@@ -56,6 +56,7 @@ FaxUi.Br = FComp.makeDomContainerComponent('br');
 FaxUi.Img = FComp.makeDomContainerComponent('img');
 FaxUi.A = FComp.makeDomContainerComponent('a');
 FaxUi.Li = FComp.makeDomContainerComponent('li');
+FaxUi.I = FComp.makeDomContainerComponent('i');
 FaxUi.H1 = FComp.makeDomContainerComponent('h1');
 FaxUi.H2 = FComp.makeDomContainerComponent('h2');
 FaxUi.H3 = FComp.makeDomContainerComponent('h3');
@@ -104,50 +105,5 @@ FaxUi.MultiDynamic = function(propsParam) {
 
 
 module.exports = FComp.ComponentizeAll(FaxUi);
-
-/**
- * Generate a base stylesheet for features that are very common. (Such as
- * hiding/showing, overflow, positioning, etc.) If using the FaxJs build system,
- * you would include this file at ./buildLib/FaxUi/FaxUi.css.
- */
-module.exports.styleExports = {
-	hdn: { display: 'none' },
-	ib: { display: 'inline-block' },
-	abs: { margin: 0, position: 'absolute' },
-	relZero: { position: 'relative', left:0, right:0 },
-	vStretch: { position: 'absolute', top: 0, bottom: 0 },
-	hStretch:  { position: 'absolute', left:0, right:0 },
-  hVStretch: { display: 'block', padding: 0, margin: 0,
-               position: 'absolute', top: 0, bottom: 0, left:0, right:0},
-  block: {
-    display: 'block'
-  },
-	nover: {
-		'-ms-overflow-x': 'hidden',
-		'-ms-overflow-y': 'hidden',
-		overflow: 'hidden'
-	},
-	over: {
-		'-ms-overflow-x': 'visible',
-		'-ms-overflow-y': 'visible',
-		overflow: 'visible'
-	},
-	cursorPointer: { cursor: 'pointer' },
-	cursorDefault: { cursor: 'default' },
-	cursorColResize: { cursor: 'col-resize' },
-	cursorRowResize: { cursor: 'row-resize' },
-	
-	noSelect: {
-    '-moz-user-select': '-moz-none',
-    '-webkit-user-select': 'none',
-    '-khtml-user-select': 'none',
-    'user-select': 'none'
-  },
-
-  '.noSelect::selection': {
-    'background-color': 'transparent'
-  }
-};
-
 module.exports.stylers = FaxUiStylers;
 
