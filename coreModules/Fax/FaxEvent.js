@@ -28,7 +28,7 @@
  */
 
 /**
- * Fax/FaxEvent.js - FaxUi event system module.
+ * Fax/FaxEvent.js - Fax event system module.
  */
 var FEnv = require('./FEnv');
 

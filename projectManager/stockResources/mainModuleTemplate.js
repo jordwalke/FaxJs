@@ -1,8 +1,8 @@
-var F = require('Fax'), FaxUi = require('FaxUi'), MainModuleName = {};
+var F = require('Fax'), FDom = require('FDom'), MainModuleName = {};
 
 /* 'using(x)' allows "tail constructors" to be used for every component defined
  * inside module 'x'. Tail constructors look like:   { content: 'hi' }.Div() */
-F.using(MainModuleName, FaxUi);
+F.using(MainModuleName, FDom);
 
 /* The project was created with an index.html that instantiates
  * MainModuleName.MainComponent.  'structure()' is the main method of any ui

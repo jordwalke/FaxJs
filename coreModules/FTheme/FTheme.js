@@ -18,8 +18,8 @@
  */
 
 var F = require('Fax'),
-    FaxUi = require('FaxUi'),
-    S = FaxUi.stylers;
+    FDom = require('FDom'),
+    S = FDom.stylers;
 
 var STANDARD_LINE_HEIGHT = 14;
 var WHITE          = { r:255, g:255, b:255 };

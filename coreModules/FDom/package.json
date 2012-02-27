@@ -1,12 +1,12 @@
 {
-  "name"          : "FaxUi",
+  "name"          : "FDom",
   "description"   : "Declarative Base Components",
   "url"           : "http://none.org",
-  "keywords"      : ["fax", "Fax", "FaxUi", "ui", "rendering", "browser"],
+  "keywords"      : ["fax", "Fax", "FDom", "ui", "rendering", "browser"],
   "author"        : "Jordo <jordofx@gmail.com>",
   "contributors"  : [],
   "version"       : "0.0.1",
-  "main"          : "./FaxUi",
+  "main"          : "./FDom",
 	"dependencies"  : {"Fax": "0.0.1"},
   "engines"       : { "node": ">=0.4.0" }
 }

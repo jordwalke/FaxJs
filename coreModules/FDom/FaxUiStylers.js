@@ -191,7 +191,7 @@ var stylers = module.exports = {
 
   /**
    * Packs cross browser values into a single 'value'. Use like:
-   * style = {borderRadius: FaxUi.stylers.roundValue(2)}
+   * style = {borderRadius: FDom.stylers.roundValue(2)}
    */
   roundValue: function(radiusParam) {
 		var radiusPx = (radiusParam || 0) + 'px';
@@ -237,7 +237,7 @@ var stylers = module.exports = {
    * and mixins won't allow two keys of 'background', so we sneak in an extra
    * key/value pair in the value itself. This won't work for udpating values
    * after they've been rendered.  Use like: style = {background:
-   * FaxUi.backgroundColorValue(...)}.
+   * FDom.stylers.backgroundColorValue(...)}.
    * #todoie: Ie 8- do not support rgba. A better fallback is to use a filtered
    * gradient with the same start and end color.
    */
@@ -251,7 +251,7 @@ var stylers = module.exports = {
 	
   /**
    * Gradient from bottom to top. Injects cross browser *keys* and values.
-   * #todoie (filter) Use like: style = {boxShadow: FaxUi.boxShadowValue(...)}
+   * #todoie (filter) Use like: style = {boxShadow: FDom.stylers.boxShadowValue(...)}
    * Good article on box-shadow, and how to simulate in IE8-.
    * http://dev.opera.com/articles/view/cross-browser-box-shadows/
    */

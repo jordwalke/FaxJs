@@ -2,10 +2,12 @@
  * ModuleName:
  */
 var F = require('Fax'),
-    FaxUi = require('FaxUi'),
+    FDom = require('FDom'),
+    Div = FDom.Div,
+    Span = FDom.Span,
     ModuleName = {};
 
-F.using(ModuleName, FaxUi);
+F.using(ModuleName, FDom);
 
 
 /**
@@ -13,12 +15,12 @@ F.using(ModuleName, FaxUi);
  */
 ModuleName.SomeComponent = {
   project : function() {
-    return {
-      classSet: { someComponentOuterDiv: true},
-      containedSpan: {
+    return Div({
+      classSet: { someComponentOuterDiv: true },
+      containedSpan: Span({
         content: 'A component!'
-      }.Span()
-    }.Div();
+      })
+    });
   }
 };
 

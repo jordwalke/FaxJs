@@ -2,7 +2,7 @@
   "name"          : "Fax",
   "description"   : "Declarative Components",
   "url"           : "http://none.org",
-  "keywords"      : ["fax", "Fax", "FaxUi", "ui", "rendering", "browser"],
+  "keywords"      : ["fax", "Fax", "FDom", "ui", "rendering", "browser"],
   "author"        : "Jordo <jordofx@gmail.com>",
   "contributors"  : [],
   "version"       : "0.0.1",

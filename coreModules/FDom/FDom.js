@@ -28,13 +28,13 @@
  */
 
 /**
- * FaxUi/FaxUi.js - core dom module for the FaxJs ui system. Low level building
+ * FDom/FDom.js - core dom module for the FaxJs ui system. Low level building
  * blocks for javascript applications.
  */
 var F = require('Fax'),
     FComp = F.FaxComponentization,
     FaxUiStylers = require('./FaxUiStylers'),
-    FaxUi = {};
+    FDom = {};
 
 
 
@@ -42,44 +42,44 @@ var F = require('Fax'),
  * Native dom "tag" components. Properties that you inject into these projection
  * constructors correspond to actual dom properties, not abstract ones.
  */
-FaxUi.Div = FComp.makeDomContainerComponent('div');
-FaxUi.TextArea = FComp.makeDomContainerComponent('textarea');
-FaxUi.Label = FComp.makeDomContainerComponent('label');
-FaxUi.Ul = FComp.makeDomContainerComponent('ul');
-FaxUi.Dl = FComp.makeDomContainerComponent('dl');
-FaxUi.Dt = FComp.makeDomContainerComponent('dt');
-FaxUi.Dd = FComp.makeDomContainerComponent('Dd');
-FaxUi.P = FComp.makeDomContainerComponent('p');
-FaxUi.Pre = FComp.makeDomContainerComponent('pre');
-FaxUi.Hr = FComp.makeDomContainerComponent('hr');
-FaxUi.Br = FComp.makeDomContainerComponent('br');
-FaxUi.Img = FComp.makeDomContainerComponent('img');
-FaxUi.A = FComp.makeDomContainerComponent('a');
-FaxUi.Li = FComp.makeDomContainerComponent('li');
-FaxUi.I = FComp.makeDomContainerComponent('i');
-FaxUi.H1 = FComp.makeDomContainerComponent('h1');
-FaxUi.H2 = FComp.makeDomContainerComponent('h2');
-FaxUi.H3 = FComp.makeDomContainerComponent('h3');
-FaxUi.H4 = FComp.makeDomContainerComponent('h4');
-FaxUi.H5 = FComp.makeDomContainerComponent('h5');
-FaxUi.H6 = FComp.makeDomContainerComponent('h6');
-FaxUi.Span = FComp.makeDomContainerComponent('span');
-FaxUi.Input = FComp.makeDomContainerComponent('input');
-FaxUi.Button = FComp.makeDomContainerComponent('button');
-FaxUi.Table = FComp.makeDomContainerComponent('table');
-FaxUi.Tr = FComp.makeDomContainerComponent('tr');
-FaxUi.Th = FComp.makeDomContainerComponent('th');
-FaxUi.Td = FComp.makeDomContainerComponent('td');
-FaxUi.IFrame = FComp.makeDomContainerComponent('iframe');
+FDom.Div = FComp.makeDomContainerComponent('div');
+FDom.TextArea = FComp.makeDomContainerComponent('textarea');
+FDom.Label = FComp.makeDomContainerComponent('label');
+FDom.Ul = FComp.makeDomContainerComponent('ul');
+FDom.Dl = FComp.makeDomContainerComponent('dl');
+FDom.Dt = FComp.makeDomContainerComponent('dt');
+FDom.Dd = FComp.makeDomContainerComponent('Dd');
+FDom.P = FComp.makeDomContainerComponent('p');
+FDom.Pre = FComp.makeDomContainerComponent('pre');
+FDom.Hr = FComp.makeDomContainerComponent('hr');
+FDom.Br = FComp.makeDomContainerComponent('br');
+FDom.Img = FComp.makeDomContainerComponent('img');
+FDom.A = FComp.makeDomContainerComponent('a');
+FDom.Li = FComp.makeDomContainerComponent('li');
+FDom.I = FComp.makeDomContainerComponent('i');
+FDom.H1 = FComp.makeDomContainerComponent('h1');
+FDom.H2 = FComp.makeDomContainerComponent('h2');
+FDom.H3 = FComp.makeDomContainerComponent('h3');
+FDom.H4 = FComp.makeDomContainerComponent('h4');
+FDom.H5 = FComp.makeDomContainerComponent('h5');
+FDom.H6 = FComp.makeDomContainerComponent('h6');
+FDom.Span = FComp.makeDomContainerComponent('span');
+FDom.Input = FComp.makeDomContainerComponent('input');
+FDom.Button = FComp.makeDomContainerComponent('button');
+FDom.Table = FComp.makeDomContainerComponent('table');
+FDom.Tr = FComp.makeDomContainerComponent('tr');
+FDom.Th = FComp.makeDomContainerComponent('th');
+FDom.Td = FComp.makeDomContainerComponent('td');
+FDom.IFrame = FComp.makeDomContainerComponent('iframe');
 
 
 /*
- * FaxUi.Ordered: A container of several same-typed subcomponents each element
+ * FDom.Ordered: A container of several same-typed subcomponents each element
  * in the properties passed in must all accept the same properties (in other
  * words implement the same interface.
  */
 var OrderedConstructor = FComp.MakeComponentClass({},[FComp.OrderedComponentMixin]);
-FaxUi.Ordered = function(propsParam) {
+FDom.Ordered = function(propsParam) {
   var props = propsParam || this;
   return {
     props: props,
@@ -89,13 +89,13 @@ FaxUi.Ordered = function(propsParam) {
 
 
 /*
- * FaxUi.MultiDynamic: A container of several same-typed subcomponents each
+ * FDom.MultiDynamic: A container of several same-typed subcomponents each
  * element in the properties passed in must all accept the same properties (in
  * other words implement the same interface.
  */
 var MultiDynamicConstructor =
     FComp.MakeComponentClass({},[FComp.MultiDynamicComponentMixin]);
-FaxUi.MultiDynamic = function(propsParam) {
+FDom.MultiDynamic = function(propsParam) {
   var props = propsParam || this;
   return {
     props: props,
@@ -104,6 +104,5 @@ FaxUi.MultiDynamic = function(propsParam) {
 };
 
 
-module.exports = FComp.ComponentizeAll(FaxUi);
+module.exports = FComp.ComponentizeAll(FDom);
 module.exports.stylers = FaxUiStylers;
-

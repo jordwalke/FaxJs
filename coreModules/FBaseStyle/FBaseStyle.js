@@ -1,6 +1,6 @@
 var F = require('Fax'),
-    FaxUi = require('FaxUi'),
-    stylers = FaxUi.stylers;
+    FDom = require('FDom'),
+    stylers = FDom.stylers;
 
 var FBaseStyle = {};
 

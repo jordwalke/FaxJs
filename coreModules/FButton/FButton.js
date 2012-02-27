@@ -1,10 +1,10 @@
 var F = require('Fax'),
-    FaxUi = require('FaxUi'),
-    stylers = FaxUi.stylers,
+    FDom = require('FDom'),
+    stylers = FDom.stylers,
     T = require('FTheme'),
     FButtonModule = {};
 
-F.using(FaxUi);
+F.using(FDom);
 
 var Types = FButtonModule.Types = F.keyMirror({
   FButtonConfirm: 1,
@@ -14,7 +14,7 @@ var Types = FButtonModule.Types = F.keyMirror({
 FButtonModule.FButton = {
   structure: function() {
     var P = this.props, type = P.type || Types.FButtonOkay;
-    return (P.anchorWithHref ? FaxUi.A : FaxUi.Button)(F.merge(P, {
+    return (P.anchorWithHref ? FDom.A : FDom.Button)(F.merge(P, {
       classSet: {
         FButton: true,
         FButtonConfirm: type === Types.FButtonConfirm,

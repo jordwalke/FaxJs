@@ -3,11 +3,11 @@
  * appropriate interfaces for them.
  */
 var F = require('Fax'),
-    FaxUi = require('FaxUi'),
-    stylers = FaxUi.stylers,
+    FDom = require('FDom'),
+    stylers = FDom.stylers,
     FTheme = require('FTheme'),
-    Input = FaxUi.Input,
-    Div = FaxUi.Div,
+    Input = FDom.Input,
+    Div = FDom.Div,
     FTextInput = {};
 
 var Consts =  {

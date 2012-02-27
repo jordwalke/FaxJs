@@ -1,7 +1,7 @@
-var F = require('Fax'), FaxUi = require('FaxUi'), stylers = FaxUi.stylers,
+var F = require('Fax'), FDom = require('FDom'), stylers = FDom.stylers,
     T = require('FTheme'),
-    Th = FaxUi.Th, Td = FaxUi.Td, Tr = FaxUi.Tr, Div = FaxUi.Div,
-    Table = FaxUi.Table, FBoxes = {};
+    Th = FDom.Th, Td = FDom.Td, Tr = FDom.Tr, Div = FDom.Div,
+    Table = FDom.Table, FBoxes = {};
 
 
 (FBoxes.FBox = {}).structure = function() {

@@ -144,7 +144,7 @@ projectModules: {
   
   TestProject: {  },
   
-  FaxUi: { },
+  FDom: { },
 
   Fax: { },
 
@@ -176,12 +176,12 @@ We'll make a button wrapped inside of a containing div. The button will stretch 
 ```javascript
 // Just set up our environment a bit.
 var F = require('Fax'),
-    FaxUi = require('FaxUi'),
+    FDom = require('FDom'),
     Demo = {};
 
 
 // Allow use of Divs/Spans/etc tail constructor
-F.using(FaxUi);
+F.using(FDom);
 
 Demo.StretchyButton = {
   // Initialize state for this component.

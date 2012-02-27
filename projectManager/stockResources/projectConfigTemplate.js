@@ -6,7 +6,7 @@
  *  2. Make sure there is a package.json file (if needed) to model depencies,
  *  and set the main file.
  *
- * To add a UI module (FaxUi component etc.)
+ * To add a UI module (Fax component etc.)
  *  1. Place in projectDir/lib
  *  2. Make sure there is a package.json (if needed) (as in non-ui modules).
  *  3. Any module that depends on your new module, needs to declare so in
@@ -49,10 +49,12 @@ exports.projectConfig = {
   projectModules: {
 
     main: { },
+
+    FTheme: { },
     
     FBaseStyle: { },
 
-    FaxUi: { },
+    FDom: { },
 
     Fax: { },
 

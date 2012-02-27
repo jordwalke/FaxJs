@@ -1,8 +1,8 @@
 var F = require('Fax'),
-    FaxUi = require('FaxUi'),
-    stylers = FaxUi.stylers,
+    FDom = require('FDom'),
+    stylers = FDom.stylers,
     FTheme = require('FTheme'), T = FTheme,
-    Div = FaxUi.Div,
+    Div = FDom.Div,
     FToggleSwitch = {};
 
 /**
@@ -57,7 +57,7 @@ FToggleSwitch.FToggleSwitch = {
     var perceivedValue = this._externallyOwned(this.props) ? this.props.value :
                          this.state.internalValue;
 
-    return FaxUi.Button({
+    return FDom.Button({
       classSet: { relZero: true, FSwitch: true },
 
       onClick: this.onElementClick.bind(this),
