@@ -1,4 +1,5 @@
-### Check out <a href="http://www.faxjs.org/">faxJs.org</a> for a tutorial and API walkthrough
+### This page contains practical information about getting started. If you just want to learn about FaxJs and what makes it different, go to <a href="http://www.faxjs.org">FaxJs.org</a>.  Come back here to start building!
+
 
 <table cellspacing=0 cellpadding=0 border-style=none border-width=0>
 
@@ -65,37 +66,36 @@ Get node.js using <a href='https://sites.google.com/site/nodejsmacosx/'>the OSX 
 </table>
 <br>
 
-
+<br>
 
 ### Let's Start Hacking!
 
 Open up `./lib/TestProject/TestProject.js` and take a look at the `MainComponent` UI module.
 
 ```javascript
-TestProject.MainComponent = {
+var MainComponent = exports.MainComponent = F.Componentize({
   structure : function() {
-    return {
-      firstPerson: {
+    return Div({
+      firstPerson: PersonDisplayer({
         name: 'Joe Johnson', age: 31,
         interests: 'hacking, eating, sleeping'
-      }.PersonDisplayer(),
+      }),
 
-      secondPerson: {
+      secondPerson: PersonDisplayer({
         name: 'Sally Smith', age: 29,
         interests: 'biking, cooking swiming'
-      }.PersonDisplayer(),
+      }),
 
-      thirdPerson: {
+      thirdPerson: PersonDisplayer({
         name: 'Greg Winston', age: 25,
         interests: 'design and technology'
-      }.PersonDisplayer()
-    }.Div();
+      })
+    });
   }
-};
+});
 ```
 
-`TestProject.MainComponent` is the main component of our app. `TestProject.MainComponent` has a single method inside of it called `structure`.  `structure` is a powerful function that describes what the component looks like at any given point in time.
-Each `PersonDisplayer` is instantiated via a *tail constructor*. (Tail constructors are enabled by a call to Fax.using(). They are also totally optional.).
+`MainComponent` is the main component of our app. `MainComponent` has a single method inside of it called `structure`.  `structure` is a powerful function that describes what the component looks like at any given point in time.
 Look further to see where the `PersonDisplayer` is defined.
 <br>
 <br>
@@ -104,22 +104,22 @@ Look further to see where the `PersonDisplayer` is defined.
 ```javascript
 TestProject.PersonDisplayer = {
   structure : function() {
-    return {
+    return Div({
       classSet: { personDisplayerContainer: true},
 
-      titleDiv: {
+      titleDiv: Div({
         classSet: { personNameTitle: true },
         content: this.props.name
-      }.Div(),
+      }),
 
-      nestedAgeDiv: {
+      nestedAgeDiv: Div({
         content: 'Interests: ' + this.props.interests
-      }.Div(),
+      }),
 
-      ageDiv: {
+      ageDiv: Div({
         content: 'Age: ' + this.props.age
-      }.Div()
-    }.Div();
+      })
+    });
   }
 };
 ```
@@ -163,75 +163,6 @@ Just execute `runBuild.sh` and it will continually do the following:</b>
 1. Continually package and optimize your javascript and serve it on port 8080 (using <a href='https://github.com/tobie/modulr-node'>modulr</a>)
 2. Optimize the AST for any modules that are listed in `projectModules` (in ProjectConfig.js) and are present in `./lib`.
 2. Generate css files from `projectModules` (in ProjectConfig.js) that have `styleExports` and are present in `./lib`. (See example of this in the demo project)
-
-
-<br>
-### Simple example of statefullness, reactivity and events in a component:
-
-We'll make a button wrapped inside of a containing div. The button will stretch to the size of it's container. When we click the inner button, we'll make the outer container change width. The button will, of course, stretch to fit it's container.
-
-        ./lib/StretchyButton/StretchyButton.js   // Also make sure to add an entry in ProjectConfig.js
-        
-
-```javascript
-// Just set up our environment a bit.
-var F = require('Fax'),
-    FDom = require('FDom'),
-    Demo = {};
-
-
-// Allow use of Divs/Spans/etc tail constructor
-F.using(FDom);
-
-Demo.StretchyButton = {
-  // Initialize state for this component.
-  initState: {
-    theContainerWidth: '200px'
-  },
-
-  // Will be used to handle an event.
-  stretchyButtonClicked: function() {
-    this.updateState({
-      theContainerWidth: '500px'
-    });
-  },
-
-  // Returns the view as a function of state/properties. Remember, your job is to define
-  // a function that answers the question: "What do you look like right <i> now </i>
-  structure : function() {
-    return {
-      style: {
-        width: this.state.theContainerWidth  // Automatically updated when theContainerWidth is updated
-      },
-      innerButton: {
-        classSet: {someClassFromCss: true},
-        onClick: this.stretchyButtonClicked.bind(this)
-      }.Button()
-    }.Div();
-  }
-};
-
-// Turns all (one) members of Demo into reusable components
-module.exports = F.ComponentizeAll(Demo);
-
-```
-
-##Explanation of example:
-
-* The `initState` method describes the component's initial state.
-* The `structure` method answers the question: "What do you look like right *now*?". In other words, you describe the structure of your component for an *arbitrary* state/property combination.
-* You don't need separate methods for creation/updating. Just tell FaxJs what your component *always is* and FaxJs take care of creating/updating the DOM when we detect changes.
-* FaxJs will ensure that your component **reacts** to changes in properties/state, by asking your component again: "What do you look like *now*?"
-* The Button's `onClick` method executes an update to this component's state. The
-  containing `Div`'s width will automatically be changed, because the invariant 
-  `structure()` states that the outer container's width should always be equal to what is
-  stored in `this.state.theContainerWidth`.
- 
-What you get by calling F.ComponentizeAll(Demo):
-
-* A reusable component that can be instantiated in the same declarative manner as the *structure* method.
-* No need to declare getters and setters for attributes - it's all just Plain 'Ol Javascript.
-
 
 
 <br>
@@ -336,13 +267,13 @@ construct.
 
 
 ````javascript
-var myDiv = {
+var myDiv = Div({
   classSet: {
     blueDiv: true,
     largeDiv: true
   }
   content: 'hello!'
-}.Div();
+});
 ```
 
 
@@ -361,17 +292,17 @@ been handled at the lower levels.
 
 
 ````javascript
-var myDiv = {
+var myDiv = Div({
   onClickDirect: function() {
     alert('You Clicked on the div directly, not the span!');
   },
   onClickFirstHandler: function() {
     alert("You clicked on the div or some child, but in either case I'm the first to handle it!");
   },
-  childSpan: {
+  childSpan: Span({
     content: 'spanny',
-  }.Span()
-}.Div();
+  })
+});
 ```
 
 
