@@ -1,56 +1,52 @@
-var F = require('Fax'), FDom = require('FDom'), MainModuleName = {};
+var F = require('Fax'),
+    FDom = require('FDom'),
+    Div = FDom.Div;
 
-/* 'using(x)' allows "tail constructors" to be used for every component defined
- * inside module 'x'. Tail constructors look like:   { content: 'hi' }.Div() */
-F.using(MainModuleName, FDom);
-
-/* The project was created with an index.html that instantiates
- * MainModuleName.MainComponent.  'structure()' is the main method of any ui
- * component. It declares what the component 'looks like' - how it's composed.*/
-MainModuleName.MainComponent = {
+var PersonDisplayer = F.Componentize({
   structure: function() {
-    return {
-      firstPerson: {
-        name: 'Joe Johnson', age: 31,
-        interests: 'hacking, eating, sleeping'
-      }.PersonDisplayer(),
-
-      secondPerson: {
-        name: 'Sally Smith', age: 29,
-        interests: 'biking, cooking swiming'
-      }.PersonDisplayer(),
-
-      thirdPerson: {
-        name: 'Greg Winston', age: 25,
-        interests: 'design and technology'
-      }.PersonDisplayer()
-    }.Div();
-  }
-};
-
-MainModuleName.PersonDisplayer = {
-  structure: function() {
-    return {
+    return Div({
       classSet: { personDisplayerContainer: true},
 
-      titleDiv: {
+      titleDiv: Div({
         classSet: { personNameTitle: true },
         content: this.props.name
-      }.Div(),
+      }),
 
-      nestedAgeDiv: {
+      nestedAgeDiv: Div({
         content: 'Interests: ' + this.props.interests
-      }.Div(),
+      }),
 
-      ageDiv: {
+      ageDiv: Div({
         content: 'Age: ' + this.props.age
-      }.Div()
-    }.Div();
+      })
+    });
   }
-};
+});
 
-// Exports and componentizes all members of MainModuleName
-module.exports = F.ComponentizeAll(MainModuleName);
+/* The project was created with an index.html that instantiates a MainComponent.
+ * 'structure()' is the main method of any ui component. It declares what the
+ * component 'looks like' - how it's composed.*/
+var MainComponent = exports.MainComponent = F.Componentize({
+  structure: function() {
+    return Div({
+      firstPerson: PersonDisplayer({
+        name: 'Joe Johnson', age: 31,
+        interests: 'hacking, eating, sleeping'
+      }),
+
+      secondPerson: PersonDisplayer({
+        name: 'Sally Smith', age: 29,
+        interests: 'biking, cooking swiming'
+      }),
+
+      thirdPerson: PersonDisplayer({
+        name: 'Greg Winston', age: 25,
+        interests: 'design and technology'
+      })
+    });
+  }
+});
+
 
 // Style object automatically converted into a css file.
 module.exports.styleExports  = {
