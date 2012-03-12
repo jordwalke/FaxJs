@@ -148,7 +148,7 @@ var cssNumber = exports.cssNumber = {
  * with a description of how they should be referenced when interfacing with the
  * DOM.
  */
-var allTagAttrNames = exports.allTagAttrNames = renameByKey('', '=\'', {
+var allTagAttrPieces = exports.allTagAttrPieces = renameByKey('', '=\'', {
   /* These are always special cased when rendering or controlling. */
   classSet: 0,
   className: 0,
@@ -174,6 +174,8 @@ var allTagAttrNames = exports.allTagAttrNames = renameByKey('', '=\'', {
   src: HYPHENIZE,
   value: HYPHENIZE,
   checked: HYPHENIZE,
+  selected: AS_IS,
+  target: AS_IS,
   scrollTop: AS_IS,
   scrollLeft: AS_IS,
   name: AS_IS,
@@ -192,7 +194,7 @@ var allTagAttrNames = exports.allTagAttrNames = renameByKey('', '=\'', {
  * some of the keys that should not be found, you can store false for those keys
  * and get a perf boost http://jsperf.com/truthinessmaptest
  */
-var allTagAttrsLookup = FUtils.objMap(allTagAttrNames, FUtils.truther);
+var allTagAttrsLookup = FUtils.objMap(allTagAttrPieces, FUtils.truther);
 
 /**
  * ----------------------------------------------------------------------------
@@ -235,7 +237,8 @@ var controlAsInnerMarkup = {
 exports.controlDirectlyNonIdempotent = {
   value: true,
   src: true,
-  checked: true
+  checked: true,
+  selected: true
 };
 
 
@@ -260,6 +263,7 @@ var controlUsingSetAttr = exports.controlUsingSetAttr = {
   height: true,
   className: true,
   href: true,
+  target: true,
   classSet: true /* Special cased */
 };
 
@@ -274,10 +278,10 @@ var controlNever = {
 };
 
 /**
- * @renderSimply: Dom attributes that are simply rendered as name="value" in
- * the opening tag. No escaping, no transforming, no placing as innerHtml of the
- * dom node, and the name is exactly indicated by the allTagAttrNames map, with
- * no special casing done at render time.
+ * @renderSimply: Dom attributes that are simply rendered as name="value" in the
+ * opening tag. No escaping, no transforming, no placing as innerHtml of the dom
+ * node, and the name is exactly indicated by the allTagAttrPieces map, with no
+ * special casing done at render time.
  */
 var renderSimply = exports.renderSimply = {
   margin: true,
@@ -294,12 +298,14 @@ var renderSimply = exports.renderSimply = {
   value: true,
   width: true,
   height: true,
+  target: true,
   type: true,
   href: true,
   src: true,
   name: true,
   htmlFor: true,
-  checked: true
+  checked: true,
+  selected: true
 };
 
 /**

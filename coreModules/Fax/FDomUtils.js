@@ -41,7 +41,7 @@ var FErrors = require('./FErrors');
 var cssNumber = FDomAttributes.cssNumber;
 var styleFeatureNames = FDomAttributes.styleFeatureNames;
 var serializeInlineStyle = FDomAttributes.serializeInlineStyle;
-var allTagAttrNames = FDomAttributes.allTagAttrNames;
+var allTagAttrPieces = FDomAttributes.allTagAttrPieces;
 
 /* FBrowserUtils */
 var escapeTextForBrowser = FBrowserUtils.escapeTextForBrowser;
@@ -70,11 +70,12 @@ exports.singleDomNodeFromMarkup = function(newMarkup) {
 /**
  * tagAttrMarkupFragment: For attributes that should be rendered in the opening
  * tag of a dom node, this will return that little fragment that should be
- * placed in the opening tag - for this single attribute.
+ * placed in the opening tag - for this single attribute. allTagAttrPieces
+ * preconcatenates some of the markup (equals sign).
  */
 var tagAttrMarkupFragment =
 exports.tagAttrMarkupFragment = function(tagAttrName, tagAttrVal) {
-  var accum = allTagAttrNames[tagAttrName];
+  var accum = allTagAttrPieces[tagAttrName];
   accum += escapeTextForBrowser(tagAttrVal);
   accum += "'";
   return accum;

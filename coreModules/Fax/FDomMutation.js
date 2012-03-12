@@ -156,11 +156,11 @@ exports.controlSingleDomNode = function(el, elemId, nextProps, lastProps) {
     } else if (prop !== lastProps[propKey]) {
       el = el || document.getElementById(elemId);
       if (controlUsingSetAttr[propKey]) {
-        el.setAttribute(controlUsingSetAttr[propKey], prop);
+        el.setAttribute(propKey, prop);
       } else if (propKey === CONTENT_KEY) {
         el.textContent = prop;
       } else if (controlSimply[propKey]) {
-        el[controlSimply[propKey]] = prop;
+        el[propKey] = prop;
       } else if (controlDirectlyNonIdempotent[propKey]) {
         /* Unclear if we need to still retrieve these values from dom. */
         currentPhysicalDomValue = el[propKey];
