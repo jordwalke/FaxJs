@@ -1,0 +1,13 @@
+{
+  "name"          : "Typeahead",
+  "description"   : "Declarative Components",
+  "url"           : "http://none.org",
+  "keywords"      : ["fax", "Fax", "Typeahead", "ui", "rendering", "browser"],
+  "author"        : "Jordo <jordofx@gmail.com>",
+  "contributors"  : [],
+  "version"       : "0.0.1",
+  "main"          : "./Typeahead.js",
+	"dependencies"  :
+      {"Fax": "0.0.1", "FDom": "0.0.1", "InputElements": "0.0.1", "TextInput": "0.0.1", "AsyncSearch": "0.0.1" },
+  "engines"       : { "node": ">=0.4.0" }
+}

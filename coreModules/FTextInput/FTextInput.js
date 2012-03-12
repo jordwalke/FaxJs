@@ -153,25 +153,31 @@ module.exports.styleExports = {
     'outline-style': 'none',
     boxSizing: stylers.boxSizingValue('border-box'), // Should add to all buttons/selects
     lineHeight: (FTheme.textInputFontSize),
-    /** There are issues with setting the background color - we need to
-     * guarantee all styles are included in a particular order to get "selected"
-     * typeahead states to not have FTheme.textInputBackgroundColor bg color.
-     * backgroundColor: stylers.rgbaStr(FTheme.textInputBackgroundColor),
-     */
     margin: 0,
     display: 'inline-block',
     paddingLeft: Consts.textInputHorzPadding,
     paddingRight: Consts.textInputHorzPadding,
     border: stylers.borderValue(FTheme.textInputBorderColor),
+    borderRadius: stylers.roundValue(FTheme.controlsRadius),
     color: stylers.rgbaStr(FTheme.textInputTextColor),
     fontWeight: 'normal',
     fontSize: FTheme.textInputFontSize,
-    '-webkit-transition': 'box-shadow .25s',
-    '-moz-transition': '-moz-box-shadow .25s',
-    transition: 'box-shadow .25s'
+    transition: stylers.transitionOneValue('box-shadow', 0.25),
+    boxShadow: stylers.noShadowValue()
   },
+
   FTextInputPlaceheld: {
     color: stylers.rgbaStr(FTheme.textInputTextColorPlaceheld)
   }
-
 };
+
+/**
+ * Will fix bootstrap.
+ */
+module.exports.styleExports['input:focus, textarea:focus'] = {
+  borderColor: stylers.rgbaStr(FTheme.textInputBorderColorFocus),
+  boxShadow: stylers.boxShadowValue(FTheme.textInputFocusOutsetShadowSpec),
+  borderRadius: FTheme.controlsRadius
+};
+
+
