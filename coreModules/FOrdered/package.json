@@ -6,6 +6,6 @@
   "author"        : "Jordo <jordofx@gmail.com>",
   "contributors"  : [],
   "version"       : "0.0.1",
-  "main"          : "./Fax",
+  "main"          : "./FOrdered",
   "engines"       : { "node": ">=0.4.0" }
 }

@@ -61,18 +61,18 @@ var BACKGROUND_IMAGE_STR = "url('{url}');" +
   'background-position:{t}px {l}px;' +
   'background-attachment: {attachment}';
 
-var TRANSITION_ALL_VALUE = '' +
+var TRANSITION_ONE_VALUE = '' +
     'all {seconds} {motion};' +
-    '-webkit-transition: all {seconds} {motion};' +
-    '-moz-transition: all {seconds} {motion};' +
-    '-transition: all {seconds} {motion}';
+    '-webkit-transition: {feature} {seconds} {motion};' +
+    '-moz-transition: {feature} {seconds} {motion};' +
+    '-transition: {feature} {seconds} {motion}';
 
 
 /**
- * FaxUiStylers: A useful set of utility functions for generating css values.
+ * FUiStylers: A useful set of utility functions for generating css values.
  * Most of these opereate on {rgba} maps, but when generating a stylesheet using
- * the FaxJs build system/styleExports, values for css attributes must be in
- * string form. To convert use the rgbaStr functions here.
+ * the build system/styleExports, values for css attributes must be in string
+ * form. To convert use the rgbaStr functions here.
  */
 function convertToHex(x) {
   var CHAR_BANK = "0123456789ABCDEF";
@@ -103,8 +103,8 @@ function makeRgbaMap(r, g, b, a) {
 var stylers = module.exports = {
 
   /**
-   * Since FaxJs works with key minification compilers, you end up having to
-   * make sure you take special precautions when specifying string keys.
+   * Since everything works with key minification compilers, you end up having
+   * to make sure you take special precautions when specifying string keys.
    */
   hoverFocusKey: function (singleMemberKey) {
     return '.' + F.keyOf(singleMemberKey) + ':hover, ' +
@@ -159,19 +159,40 @@ var stylers = module.exports = {
     return stylers.rgbaDelta(rgbaMap, points);
   },
 
+  
+  toneItDown: function(rgbaMap, percentage) {
+    var r = rgbaMap.r, g = rgbaMap.g, b = rgbaMap.b;
+    var avg = this._rgbaAvg(rgbaMap);
+    return {
+      r: r - (r - avg)*percentage,
+      g: g - (g - avg)*percentage,
+      b: b - (b - avg)*percentage,
+      a: rgbaMap.a
+    };
+  },
+
+  _rgbaAvg: function(rgbaMap) {
+    return (rgbaMap.r + rgbaMap.g + rgbaMap.b)/3;
+  },
+
   /**
-   * Alters an rgba map evenly across each color demension by a rate.
+   * Increases brightness by percentage of current brightness. Helps lighten
+   * without ever ruining saturation when color dimensions start clipping.
+   * 1 => black.
+   * .1 => 10% of the current average closer to white.
    */
-  rgbaFactor: function (rgbaMap, rate) {
-    return stylers.rgbaDelta(rgbaMap, 255*rate);
-  },
-
   burnFactor: function (rgbaMap, rate) {
-    return stylers.rgbaFactor(rgbaMap, -1*rate);
+    return stylers.rgbaDelta(rgbaMap, -1*this._rgbaAvg(rgbaMap)*rate);
   },
 
+  /**
+   * Increases darkness by percentage of current darkness.  Helps lighten
+   * without ever ruining saturation when color dimensions start clipping.
+   * 1 => white.
+   * .1 => 10% of the current average closer to black.
+   */
   dodgeFactor: function (rgbaMap, rate) {
-    return stylers.rgbaFactor(rgbaMap, rate);
+    return stylers.rgbaDelta(rgbaMap, (255-this._rgbaAvg(rgbaMap))*rate);
   },
 
   /**
@@ -209,7 +230,7 @@ var stylers = module.exports = {
 	},
 	
 	roundTop: function(radiusParam) {
-		var radius = radiusParam || 3;
+		var radius = (radiusParam || 3) + 'px';
 		return {
 			'border-radius-top-right': radius,
 			'-webkit-border-top-right-radius': radius,
@@ -221,7 +242,7 @@ var stylers = module.exports = {
 	},
 	
 	roundBottom: function(radiusParam) {
-		var radius = radiusParam || 3;
+		var radius = (radiusParam || 3) + 'px';
 		return {
 			'border-radius-bottom-right': radius,
 			'-webkit-border-bottom-right-radius': radius,
@@ -250,17 +271,16 @@ var stylers = module.exports = {
 	},
 	
   /**
-   * Gradient from bottom to top. Injects cross browser *keys* and values.
    * #todoie (filter) Use like: style = {boxShadow: FDom.stylers.boxShadowValue(...)}
    * Good article on box-shadow, and how to simulate in IE8-.
    * http://dev.opera.com/articles/view/cross-browser-box-shadows/
    */
 	boxShadowValueWithParams: function(a, b, c, re, gr, bl, al, inset) {
     var shadow = stylers._shadowSegment(a,b,c,re,gr,bl,al,inset);
-    return stylers._crossBrowserBoxShadow(shadow);
+    return stylers._crossBrowserBoxShadowValue(shadow);
 	},
 
-  _crossBrowserBoxShadow: function (shadowText) {
+  _crossBrowserBoxShadowValue: function (shadowText) {
     return shadowText + ';' +
         'box-shadow:' + shadowText + ';' +
         '-moz-box-shadow:' + shadowText + ';'+
@@ -281,7 +301,7 @@ var stylers = module.exports = {
     return stylers.boxShadowValue(F.merge({r:0, g:0, b:0}, xysa));
   },
 
-  boxShadowOutsetAndInset: function (outsetMap, insetMap) {
+  boxShadowValueOutsetInset: function (outsetMap, insetMap) {
     var outsetShadow= stylers._shadowSegment(
         outsetMap.x, outsetMap.y, outsetMap.size,
         outsetMap.r, outsetMap.g, outsetMap.b, outsetMap.a, false);
@@ -289,11 +309,11 @@ var stylers = module.exports = {
         insetMap.x, insetMap.y, insetMap.size,
         insetMap.r, insetMap.g, insetMap.b, insetMap.a, true);
 
-    return stylers._crossBrowserBoxShadow(outsetShadow + ',' + insetShadow);
-
+    return stylers._crossBrowserBoxShadowValue(
+        outsetShadow + ',' + insetShadow);
   },
 
-  textShadowOutsetAndInset: function (outsetMap, insetMap) {
+  textShadowValueOutsetInset: function (outsetMap, insetMap) {
     var outsetShadow= stylers._shadowSegment(
         outsetMap.x, outsetMap.y, outsetMap.size,
         outsetMap.r, outsetMap.g, outsetMap.b, outsetMap.a, false);
@@ -303,6 +323,10 @@ var stylers = module.exports = {
 
     return outsetShadow + ',' + insetShadow;
 
+  },
+
+  noShadowValue: function() {
+    return stylers._crossBrowserBoxShadowValue('none');
   },
 
   textShadowValue: function (shadowMap) {
@@ -373,11 +397,19 @@ var stylers = module.exports = {
   },
 
   transitionAllValue: function(seconds, motion) {
+    return stylers.transitionOneValue('all', seconds, motion);
+  },
+
+  transitionOneValue: function(feature, seconds, motion) {
     var time = seconds + 's';
     return replaceAll(
-           replaceAll(TRANSITION_ALL_VALUE, "{seconds}", time),
-           "{motion}", motion || 'ease-in-out');
+      replaceAll(
+        replaceAll(TRANSITION_ONE_VALUE, "{feature}", feature),
+        "{seconds}",
+        time
+      ),
+      "{motion}",
+      motion || 'ease-in-out'
+    );
   }
-
-
 };

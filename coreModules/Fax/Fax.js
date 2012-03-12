@@ -36,104 +36,26 @@
  *    \ \_\   \ \_\ \_\ /\_\\ \_\   \ \____/\ `\____\
  *     \/_/    \/_/\/_/ \/_/ \/_/    \/___/  \/_____/
  *
- * Fax/Fax.js - core module for the FaxJs ui system.  Exposes most of the
+ * Fax.js - core module for the FaxJs ui system.  Exposes most of the
  * functionality needed in order to create javascript applications. By
  * convention, call the exported module 'F'.
  *
  * var F = require('Fax');
  *
  */
-var FaxBrowserUtils = require('./FaxBrowserUtils'),
-    FaxEvent = require('./FaxEvent'),
-    FEnv = require('./FEnv'),
-    FaxDomAttributes = require('./FaxDomAttributes'),
-    FaxUtils = require('./FaxUtils'),
-    FaxComponentization = require('./FaxComponentization');
+var FBrowserUtils = require('./FBrowserUtils');
+var FEvent = require('./FEvent');
+var FEnv = require('./FEnv');
+var FErrors = require('./FErrors');
+var FDomAttributes = require('./FDomAttributes');
+var FUtils = require('./FUtils');
+var FStructuredComponent = require('./FStructuredComponent');
+var FDomUtils = require('./FDomUtils');
+var FDomGeneration = require('./FDomGeneration');
+var FDomMutation = require('./FDomMutation');
 
-/* Forward declarations. */
+/* Forward declaration. */
 var Fax;
-
-/**
-  * A note about touch events:  See:
-  * http://www.quirksmode.org/blog/archives/2010/09/click_event_del.html
-  * http://www.quirksmode.org/blog/archives/2010/09/click_event_del.html
-  * Clicks likely require mounting the event listener somewhere deep in
-  * the dom tree (not at doc/window). Though we don't care much about
-  * clicks because they have a 300 ms delay anyways and we roll our own
-  * clicks.  What is supported, is actually very complicated and varies
-  * by version of iOS - please populate and complete this table as you
-  * find more information. On IOS5 overflow:touch-scroll divs, rumor has
-  * it, that if you can listen to bubbled touch events somewhere deep in
-  * the dom (document/one level deep?), if you stop bubbling, you can
-  * prevent the rubber band.
-  *
-  * IOS5:
-  * Using event bubbling - listening on dom element one level deep (away from body):
-  *   Could not get any touch events.
-  * Using event bubbling - listening on dom element two level deep (away from body):
-  *   Could not get any touch events.
-  * Using event bubbling - listening on document:
-  *   Could get touch events, and could prevent default on the touch move.
-  * Using event bubbling - listening on window:
-  *   Could get touch events, and could prevent default on the touch move.
-  *
-  * Trap capture - listening on two deep from body
-  *   Could NOT get touch events, and could NOT prevent default on the touch move.
-  * Trap capture - listening on one deep from body
-  *   Could NOT get touch events, and could NOT prevent default on the touch move.
-  * Trap capture - listening on document
-  *   Could get touch events, and could prevent default on the touch move.
-  * Trap capture - listening on window
-  *   Could get touch events, and could prevent default on the touch move.
-  *
-  * IOS4:
-  * Using event bubbling - listening on dom element one level deep (away from body):
-  *   Could get touch events, and could prevent default on the touch move.
-  * Using event bubbling - listening on dom element two level deep (away from body):
-  *   Could get touch events, and could prevent default on the touch move.
-  * Using event bubbling - listening on document:
-  *   Could get touch events, and could prevent default on the touch move.
-  * Using event bubbling - listening on window:
-  *   Could get touch events, and could prevent default on the touch move.
-  *
-  * Trap capture - listening on two deep from body
-  *   Could get touch events, and could prevent default on the touch move.
-  * Trap capture - listening on one deep from body
-  *   Could get touch events, and could prevent default on the touch move.
-  * Trap capture - listening on document
-  *   Could get touch events, and could prevent default on the touch move.
-  * Trap capture - listening on window
-  *   Could NOT get touch events, and could NOT prevent default on the touch move.
-  *
-  * At least for the iOS world, it seems listening for bubbled touch
-  * events on the document object is actualy the best for compatibility.
-  *
-  * In addition: Firefox v8.01 (and possibly others exhibited strange behavior
-  * when mounting onmousemove events at some node that was not the document
-  * element. The symptoms were that if your mouse is not moving over something
-  * contained within that mount point (for example on the background) the top
-  * level handlers for onmousemove won't be called. However, if you register
-  * the mousemove on the document object, then it will of course catch all
-  * mousemoves. This along with iOS quirks, justifies restricting top level
-  * handlers to the document object only, at least for these movementy types of
-  * events and possibly all events. There seems to be no reason for allowing
-  * arbitrary mount points.
-  *
-  */
-var ERROR_MESSAGES = {
-  NO_TOP_LEVEL_ID: "You must at least specify a top level id to mount at. The second " +
-                   "parameter of renderTopLevelComponentAt must either be a string (the " +
-                   "id to render at) or an object containing a mountAtId field",
-  FAILED_ASSERTION: "Assertion Failed - no error message given",
-  MUST_SPECIFY_TOP_COMP: "You must specify a top level constructor - or component " +
-                         "declarative creation specification - i.e. {something:x}.Div(). " +
-                         "What you specified appears to be null or not specified. If " +
-                         "specifying a declarative block - make sure you execute " +
-                         "Fax.using(moduleContainingTopmostComponent) in the file where " +
-                         "you render the top level component.",
-  NAMESPACE_FALSEY: "Namespace is falsey wtf!"
-};
-
 
 
 /**
@@ -146,6 +68,13 @@ var _Fax = {
   componentCurrentlyProjectingLock: null,
   beforeRendering: [],
   totalInstantiationTime: 0
+};
+
+var renderingStrategies = {
+  standard: 'S',
+  twoPassInteractionOptimized: 'TPVO',
+  onlyInstantiate: 'OI',
+  onlyMarkup: 'OM'
 };
 
 _Fax.Error = function(str) {
@@ -161,9 +90,7 @@ _Fax.Info = function(str) {
 };
 
 function assert(val, errorMsg) {
-  if(!val) {
-    throw errorMsg || ERROR_MESSAGES.FAILED_ASSERTION;
-  }
+  FErrors.throwIf(!val, FErrors.FAILED_ASSERTION);
 }
 
 /**
@@ -178,13 +105,6 @@ function _appendMarkup(elem, newMarkup) {
   }
 }
 
-var releaseMemoryReferences = function () {
-  FaxEvent.releaseMemoryReferences(FaxComponentization.idPrefixesAwaitingClearing);
-  FaxComponentization.idPrefixesAwaitingClearing = {};
-};
-
-
-
 _Fax.clearBeforeRenderingQueue = function() {
   var i;
   if (_Fax.beforeRendering.length) {
@@ -194,19 +114,14 @@ _Fax.clearBeforeRenderingQueue = function() {
   }
 };
 
-_Fax.renderingStrategies = {
-  standard: 'S',
-  twoPassInteractionOptimized: 'TPVO',
-  onlyInstantiate: 'OI',
-  onlyMarkup: 'OM'
-};
-
 /**
- * Merely used to create a nicer form of instantiation when querying an ast.
- * Carries with it a definitative signal that this is a defered construction.
+ * Merely used to create a nicer form of instantiation when querying an AST.
+ * Carries with it a definitive signal that this is a deferred construction.
+ * This is for auto-injected performance AST transformations - the name is not
+ * important.
  */
-_Fax._onlyGenMarkupOnProjection = function(projection, _rootDomId) {
-  return new (projection.maker)(projection.props).genMarkup(_rootDomId, true, false);
+_Fax._onlyGenMarkupOnProjection = function(instance, _rootDomId) {
+  return instance.genMarkup(_rootDomId, true, false);
 };
 
 /* Fetching the scroll values before rendering results in something like a 20%
@@ -218,31 +133,28 @@ _Fax._onlyGenMarkupOnProjection = function(projection, _rootDomId) {
 function preRenderingAnything(mountAt, renderOptions) {
   var useTouchEventsInstead = renderOptions.useTouchEventsInstead;
   FEnv.refreshAuthoritativeViewportValues();
-  FaxEvent.ensureListening(mountAt, useTouchEventsInstead);
+  FEvent.ensureListening(mountAt, useTouchEventsInstead);
   FEnv.ensureBrowserDetected();
-  FaxComponentization.setBrowserOptimalPositionComputation(
+  FDomMutation.setBrowserOptimalPositionComputation(
+    renderOptions.useTransformPositioning);
+  FDomGeneration.setBrowserOptimalPositionComputation(
     renderOptions.useTransformPositioning);
 }
 
 /**
- * Renders a projection at a particular dom node, and returns the component
- * instance that was derived from the projection. In summary here's the flow of
- * data:
- * (ProjectingConstructor(Props))=>Projection
- * Render(Projection)=>ComponentInstance mounted on the dom somewhere.
- * Changes to the component instance will be reflected on the DOM automatically.
+ * @renderAt: Renders a reactive component instance at a particular dom node id,
+ * and returns the instance.
  */
-function renderAt(projection, id, renderOptionsParam) {
-  var renderOptions = renderOptionsParam || {},
-      mountAt = document.getElementById(id),
-      renderingStrategy = renderOptions.renderingStrategy ||
-                          _Fax.renderingStrategies.standard;
-      
+function renderAt(componentInstance, id, renderOptionsParam) {
+  var renderOptions = renderOptionsParam || {};
+  var mountAt = document.getElementById(id);
+  var renderingStrategy = renderOptions.renderingStrategy ||
+                          renderingStrategies.standard;
+
   _Fax.clearBeforeRenderingQueue();
   preRenderingAnything(mountAt, renderOptions);
 
-  
-  /**
+  /*
    * If doing two pass optimal rendering - we perform an initial pass that does
    * not concern itself with registering events - instead only generating
    * markup. The user's experience will not be blocked by event handlers being
@@ -253,22 +165,20 @@ function renderAt(projection, id, renderOptionsParam) {
   var start = (new Date()).getTime();
   var nextSibling = mountAt.nextSibling,
       parent = mountAt.parentNode,
-      componentInstance = (new (projection.maker)(
-          projection.props, projection.instantiator)),
       shouldGenMarkupFirstPass =
-          renderingStrategy !== _Fax.renderingStrategies.onlyInstantiate,
+          renderingStrategy !== renderingStrategies.onlyInstantiate,
       shouldRegHandlersFirstPass =
-          renderingStrategy === _Fax.renderingStrategies.standard ||
-          renderingStrategy === _Fax.renderingStrategies.onlyInstantiate,
+          renderingStrategy === renderingStrategies.standard ||
+          renderingStrategy === renderingStrategies.onlyInstantiate,
       markup = componentInstance.genMarkup(
           '.top', shouldGenMarkupFirstPass, shouldRegHandlersFirstPass);
 
   _Fax.totalInstantiationTime += ((new Date()).getTime() - start);
 
   /*
-   * In some browsers, you'd be better off *not* removing the element
-   * before setting the innerHTML - surprising - as much as a 20% difference in
-   * total rendering time!
+   * In some browsers, you'd be better off *not* removing the element before
+   * setting the innerHTML - surprising - as much as a 20% difference in total
+   * rendering time! Todo: Make this configurable in the renderOptions.
    */
   parent.removeChild(mountAt);
   mountAt.innerHTML = markup;
@@ -278,17 +188,20 @@ function renderAt(projection, id, renderOptionsParam) {
     parent.appendChild(mountAt);
   }
 
-  /**
+  /*
    * If we are performing an optimized rendering, then the first pass would have
    * generated the markup and dumped it into the DOM. In that case we still need
    * event handlers attached to the top level, and objects properly allocated.
    * The setTimeout might not make a difference - but I could imagine some
    * browsers waiting until the 'next' event loop to actually display the
-   * complete content - and we wouldn't want to block that. No harm defering
+   * complete content - and we wouldn't want to block that. No harm deferring
    * either way.
    */
-  if (renderingStrategy === _Fax.renderingStrategies.twoPassInteractionOptimized) {
-    setTimeout(function() { componentInstance.genMarkup('.top', false, true); }, 10);
+  if (renderingStrategy === renderingStrategies.twoPassInteractionOptimized) {
+    setTimeout(function() {
+        componentInstance.genMarkup('.top', false, true);
+      }, 10
+    );
   }
 
   return componentInstance;
@@ -298,23 +211,25 @@ function renderAt(projection, id, renderOptionsParam) {
 /**
  * Simple utility method that renders a new instance of a component (as
  * indicated by the constructor reference passed as first arg) at some id on the
- * dom. This is different than renderAt, because it 'wires in' some global
+ * dom. This is different than @renderAt, because it 'wires in' some global
  * signals as properties of that component instance. Meaning, you can imaging
- * the browser itself projecting out a projection that is of your component
- * type. This means that your component can expect top level browser attributes
- * such as browser dimensions, cookies and can expect to be reprojected when
- * these things change. The main use case is your main application component.
- * Careful not to read the viewport dims unless we know the window actually
- * changed, so as not to trigger a reflow needlessly.
+ * the browser itself streaming props into your component instance.  This means
+ * that your component can expect top level browser attributes such as browser
+ * dimensions, cookies and can expect to be restructured/reconciled/re-rendered
+ * when these things change. Make your main application component the top level
+ * component.  We're careful not to read the viewport dims unless we know the
+ * window actually changed, so as not to trigger a reflow needlessly.  You may
+ * want to extend/mimic this process for data from the server, so that you can
+ * write components that accept props that are the latest "server truth".
  */
-function renderTopLevelComponentAt(ProjectionOrProjectionConstructor,
-                                          renderOptions) {
+function renderTopLevelComponentAt(instanceOrConstructor,
+                                   renderOptions) {
   var mountAtId = renderOptions && (renderOptions.charAt ? renderOptions :
                       renderOptions.mountAtId);
-  var dims = FaxBrowserUtils.getViewportDims();
-  var cookies = FaxBrowserUtils.readCookie() || {};
-  assert(mountAtId, ERROR_MESSAGES.NO_TOP_LEVEL_ID);
-  assert(ProjectionOrProjectionConstructor, ERROR_MESSAGES.MUST_SPECIFY_TOP_COMP);
+  var dims = FBrowserUtils.getViewportDims();
+  var cookies = FBrowserUtils.readCookie() || {};
+  assert(mountAtId, FErrors.NO_TOP_LEVEL_ID);
+  assert(instanceOrConstructor, FErrors.MUST_SPECIFY_TOP_COMP);
 
   var baseTopLevelProps = {
     chromeHeight : dims.viewportHeight,
@@ -322,15 +237,18 @@ function renderTopLevelComponentAt(ProjectionOrProjectionConstructor,
     cookies: cookies
   };
 
-  /* The caller did not actually call the projection constructor - they just gave
-   * us a reference to that projection constructor - we'll do it for them. */
-  var callerPassedInProjection = ProjectionOrProjectionConstructor.maker;
-  var topLevelCreateData = FaxUtils.mergeStuff(
+  /*
+   * The caller did not actually instantiate a reactive component, they just
+   * gave us a reference to the convenience constructor - we'll instantiate it
+   * on their behalf.
+   */
+  var callerPassedInInstance = instanceOrConstructor.props;
+  var topLevelCreateData = FUtils.mergeStuff(
         baseTopLevelProps,
-        callerPassedInProjection ? ProjectionOrProjectionConstructor.props : {}),
-      topLevelProjection =
-        (callerPassedInProjection ? ProjectionOrProjectionConstructor :
-         ProjectionOrProjectionConstructor(topLevelCreateData));
+        callerPassedInInstance ? instanceOrConstructor.props : {});
+  var topLevelInstance =
+        (callerPassedInInstance ? instanceOrConstructor :
+         instanceOrConstructor(topLevelCreateData));
 
   if (renderOptions &&
       renderOptions.appStyle &&
@@ -338,7 +256,7 @@ function renderTopLevelComponentAt(ProjectionOrProjectionConstructor,
     document.body.className += ' nover';
   }
   var renderedComponentInstance =
-      renderAt(topLevelProjection, mountAtId, renderOptions);
+      renderAt(topLevelInstance, mountAtId, renderOptions);
 
   /**
    * Refresher function that does a control on the rendered dom node whenever
@@ -346,36 +264,36 @@ function renderTopLevelComponentAt(ProjectionOrProjectionConstructor,
    * existing handler.
    */
   if (renderOptions.applicationResizeBatchTimeMs) {
-    FaxEvent.applicationResizeBatchTimeMs =
+    FEvent.applicationResizeBatchTimeMs =
         renderOptions.applicationResizeBatchTimeMs;
   }
 
   /**
-   * For all of these browser events - we need to gracefully merge in the properties
-   * that were already set (and merged in) by the top level.
+   * For all of these browser events - we need to gracefully merge in the
+   * properties that were already set (and merged in) by the top level.
    */
-  FaxEvent.applicationResizeListener = function() {
+  FEvent.applicationResizeListener = function() {
     var updateProps = {
       chromeHeight : FEnv.viewportHeight,
       chromeWidth : FEnv.viewportWidth,
       cookies: cookies
     };
     renderedComponentInstance.doControl(
-        FaxUtils.mergeStuff(updateProps, renderedComponentInstance.props));
+        FUtils.mergeStuff(updateProps, renderedComponentInstance.props));
   };
 
   /**
    * We don't requery the dims when the cookie changes.
    */
-  FaxBrowserUtils._onCookieChange = function () {
-    cookies = FaxBrowserUtils.readCookie() || {};
+  FBrowserUtils._onCookieChange = function() {
+    cookies = FBrowserUtils.readCookie() || {};
     var updateProps = {
       chromeHeight : FEnv.viewportHeight,
       chromeWidth: FEnv.viewportWidth,
       cookies: cookies
     };
     renderedComponentInstance.doControl(
-      FaxUtils.mergeStuff(updateProps, renderedComponentInstance.props));
+      FUtils.mergeStuff(updateProps, renderedComponentInstance.props));
   };
 
   return renderedComponentInstance;
@@ -385,14 +303,15 @@ function renderTopLevelComponentAt(ProjectionOrProjectionConstructor,
 
 
 
-/*
- * Copies all Components from a package to namespace for declarative use.
- * Ensures that each member has been transformed into a component constructor,
- * if hasn't already been done.
+/**
+ * _usingInImpl: Deprecated if never using tail constructors.  Copies all
+ * Components from a package to namespace for declarative use.  Ensures that
+ * each member has been transformed into a component constructor, if hasn't
+ * already been done.
  */
 var _usingInImpl = function(namespace, uiPackages) {
   if (!namespace) {
-    _Fax.Error(ERROR_MESSAGES.NAMESPACE_FALSEY);
+    _Fax.Error(FErrors.NAMESPACE_FALSEY);
   }
   var _appendAll = function() {
     var i, uiComponent;
@@ -403,12 +322,13 @@ var _usingInImpl = function(namespace, uiPackages) {
         if (!uiPackage.hasOwnProperty(uiComponent)) {
           continue;
         }
-        /* might already be a constructor. Otherwise it might be a
-         * random data blob that is exported as part of the package. */
+        /* might already be a constructor. Otherwise it might be a random data
+         * blob that is exported as part of the package. */
         if (typeof packageVal === 'function') {
           namespace[uiComponent] = packageVal;
         } else if(packageVal && packageVal.structure !== undefined) {
-          namespace[uiComponent] = FaxComponentization.Componentize(packageVal);
+          namespace[uiComponent] =
+            FStructuredComponent.Componentize(packageVal);
         }
       }
     }
@@ -424,6 +344,9 @@ var _usingInImpl = function(namespace, uiPackages) {
   _Fax.beforeRendering.push(_appendAll);
 };
 
+/**
+ * @using: Deprecated if never using tail constuctors.
+ */
 var using = function() {
   var uiPackages = [],
       i;
@@ -439,76 +362,82 @@ var using = function() {
   _usingInImpl(ns, uiPackages);
 };
 
- 
+
 module.exports = Fax = {
-  disableSelectionGlobally: FaxEvent.disableSelectionGlobally,
-  enableSelectionGlobally: FaxEvent.enableSelectionGlobally,
-  _abstractEventListenersById: FaxEvent.abstractEventListenersById,
-  MakeComponentClass: FaxComponentization.MakeComponentClass,
-  Componentize: FaxComponentization.Componentize,
-  ComponentizeAll: FaxComponentization.ComponentizeAll,
+  disableSelectionGlobally: FEvent.disableSelectionGlobally,
+  enableSelectionGlobally: FEvent.enableSelectionGlobally,
+  _abstractEventListenersById: FEvent.abstractEventListenersById,
+  MakeHighLevelComponentClass: FStructuredComponent.MakeHighLevelComponentClass,
+  Componentize: FStructuredComponent.Componentize,
+  ComponentizeAll: FStructuredComponent.ComponentizeAll,
   forceClientRendering: true,
   renderAt: renderAt,
-  crossProduct: FaxBrowserUtils.crossProduct,
   using: using,
   populateNamespace: null,
   STRETCH: {top: 0, left: 0, right: 0, bottom: 0, position: 'absolute'},
   appendMarkup: _appendMarkup,
-  getViewportDims: FaxBrowserUtils.getViewportDims,
+  getViewportDims: FBrowserUtils.getViewportDims,
   clearBeforeRenderingQueue: _Fax.clearBeforeRenderingQueue,
-  renderingStrategies: _Fax.renderingStrategies,
+  renderingStrategies: renderingStrategies,
   _onlyGenMarkupOnProjection: _Fax._onlyGenMarkupOnProjection,
   getTotalInstantiationTime: function() { return _Fax.totalInstantiationTime; },
-  releaseMemoryReferences: releaseMemoryReferences,
+  releaseMemoryReferences: FDomMutation.releaseMemoryReferences,
 
-  /** FaxUtils reexport */
-  mergeStuff: FaxUtils.mergeStuff,
-  curryOne: FaxUtils.curryOne,
-  bindNoArgs: FaxUtils.bindNoArgs,
-  curryOnly: FaxUtils.curryOnly,
-  maybeInvoke: FaxUtils.maybeInvoke,
-  objMap: FaxUtils.objMap,
-  oMap: FaxUtils.objMap,
-  arrPull: FaxUtils.arrPull,
-  arrPullJoin: FaxUtils.arrPullJoin,
-  arrCategorize: FaxUtils.arrCategorize,
-  map: FaxUtils.map,
-  mapRange: FaxUtils.mapRange,
-  mapSlice: FaxUtils.mapSlice,
-  mapSubSequence: FaxUtils.mapSubSequence,
-  mapIndices: FaxUtils.mapIndices,
-  arrToObj: FaxUtils.arrToObj,
-  reduce: FaxUtils.reduce,
-  objMapToArray: FaxUtils.objMapToArray,
-  objMapFilter: FaxUtils.objMapFilter,
-  arrMapToObj: FaxUtils.arrMapToObj,
-  arrMapToObjAutoKey: FaxUtils.arrMapToObjAutoKey,
-  keys: FaxUtils.keys,
-  keyCount: FaxUtils.keyCount,
-  objSubset: FaxUtils.objSubset,
-  objExclusion: FaxUtils.objExclusion,
-  copyProps: FaxUtils.copyProps,
-  shallowClone: FaxUtils.shallowClone,
-  merge: FaxUtils.merge,
-  mergeThree: FaxUtils.mergeThree,
-  mergeDeep: FaxUtils.mergeDeep,
-  clone: FaxUtils.clone,
-  indexOfStruct: FaxUtils.indexOfStruct,
-  structExists: FaxUtils.structExists,
-  keyMirror: FaxUtils.keyMirror,
-  keyOf: FaxUtils.keyOf,
+  /* FUtils reexport */
+  mergeStuff: FUtils.mergeStuff,
+  curryOne: FUtils.curryOne,
+  bindNoArgs: FUtils.bindNoArgs,
+  curryOnly: FUtils.curryOnly,
+  maybeInvoke: FUtils.maybeInvoke,
+  objMap: FUtils.objMap,
+  oMap: FUtils.objMap,
+  arrPull: FUtils.arrPull,
+  arrPullJoin: FUtils.arrPullJoin,
+  arrCategorize: FUtils.arrCategorize,
+  map: FUtils.map,
+  mapRange: FUtils.mapRange,
+  mapSlice: FUtils.mapSlice,
+  mapSubSequence: FUtils.mapSubSequence,
+  mapIndices: FUtils.mapIndices,
+  arrToObj: FUtils.arrToObj,
+  reduce: FUtils.reduce,
+  objMapToArray: FUtils.objMapToArray,
+  objMapFilter: FUtils.objMapFilter,
+  arrMapToObj: FUtils.arrMapToObj,
+  arrMapToObjAutoKey: FUtils.arrMapToObjAutoKey,
+  keys: FUtils.keys,
+  keyCount: FUtils.keyCount,
+  objSubset: FUtils.objSubset,
+  objExclusion: FUtils.objExclusion,
+  copyProps: FUtils.copyProps,
+  shallowClone: FUtils.shallowClone,
+  merge: FUtils.merge,
+  mergeThree: FUtils.mergeThree,
+  mergeDeep: FUtils.mergeDeep,
+  clone: FUtils.clone,
+  indexOfStruct: FUtils.indexOfStruct,
+  structExists: FUtils.structExists,
+  keyMirror: FUtils.keyMirror,
+  keyOf: FUtils.keyOf,
   renderTopLevelComponentAt: renderTopLevelComponentAt,
 
-  /** FaxDomAttributes reexport */
-  posOffset: FaxDomAttributes.posOffset,
-  posOffsetIfPosInfo: FaxDomAttributes.posOffsetIfPosInfo,
-  serializeInlineStyle: FaxDomAttributes.serializeInlineStyle,
+  /* FDomAttributes reexport */
+  posOffset: FDomAttributes.posOffset,
+  posOffsetIfPosInfo: FDomAttributes.posOffsetIfPosInfo,
+  serializeInlineStyle: FDomUtils.serializeInlineStyle,
 
-  /** Allow access of FaxComponentization through export. */
-  FaxComponentization: FaxComponentization
+  /* Export sub modules. */
+  FUtils: FUtils,
+  FDomUtils: FDomUtils,
+  FStructuredComponent: FStructuredComponent,
+  FErrors: FErrors,
+  FEvent: FEvent,
+  FDomGeneration: FDomGeneration,
+  FDomMutation: FDomMutation,
+  FDomAttributes: FDomAttributes
 };
 /**
- * Members used to work around object key minification are the only entry
- * points that need to avoid object key minification.
+ * Members used to work around object key minification are the only entry points
+ * that need to avoid object key minification.
  */
-Fax['keyOf'] = FaxUtils.keyOf;
+Fax['keyOf'] = FUtils.keyOf;

@@ -48,15 +48,19 @@ exports.projectConfig = {
    */
   projectModules: {
 
+    Fax: { },
+
+    FDom: { },
+
+    FOrdered: { },
+
+    FMulti: { },
+
     main: { },
 
     FTheme: { },
     
     FBaseStyle: { },
-
-    FDom: { },
-
-    Fax: { },
 
     FTextInput: { },
 

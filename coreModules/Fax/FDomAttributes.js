@@ -28,27 +28,29 @@
  */
 
 /**
- * FaxDomAttributes: Module for reasoning about dom attributes and rendering
+ * @FDomAttributes: Module for reasoning about dom attributes and rendering
  * these attributes into markup or interfacing with the dom in terms of these
  * logical attributes.
  *
- * #todoperf: I don't believe all marked as needing setAttribute actually
- * need to be controled using setAttribute. setAttribute is slower than direct
+ * #todoperf: I don't believe all marked as needing setAttribute actually need
+ * to be controlled using setAttribute. setAttribute is slower than direct
  * access.
  */
-var FaxBrowserUtils = require('./FaxBrowserUtils'),
-    FaxUtils = require('./FaxUtils'),
-    FaxEvent = require('./FaxEvent'),
+var FBrowserUtils = require('./FBrowserUtils'),
+    FUtils = require('./FUtils'),
+    FEvent = require('./FEvent'),
     FEnv = require('./FEnv');
 
-/* Warm up sets with false literals for keys that tend to be names of children */
+/*
+ * Warm up sets with false literals for keys that tend to be names of children.
+ */
 var SET_MISS_WARM_UP = true;
 
 
-/**
+/*
  * ----------------------------------------------------------------------------
- * Atribute Naming::
- * We have logical names for attributes, and the versions that the dom accepts.
+ * Attribute Naming:: We have logical names for attributes, and the versions
+ * that the dom accepts.
  * ----------------------------------------------------------------------------
  */
 
@@ -56,15 +58,15 @@ var SET_MISS_WARM_UP = true;
 /**
  * Resolved key names. (See keyOf).
  */
-var T_KEY = FaxUtils.keyOf({ t: true });
-var L_KEY = FaxUtils.keyOf({ l: true });
-var B_KEY = FaxUtils.keyOf({ b: true });
-var R_KEY = FaxUtils.keyOf({ r: true });
-var H_KEY = FaxUtils.keyOf({ h: true });
-var W_KEY = FaxUtils.keyOf({ w: true });
+var T_KEY = FUtils.keyOf({ t: true });
+var L_KEY = FUtils.keyOf({ l: true });
+var B_KEY = FUtils.keyOf({ b: true });
+var R_KEY = FUtils.keyOf({ r: true });
+var H_KEY = FUtils.keyOf({ h: true });
+var W_KEY = FUtils.keyOf({ w: true });
 
 
-/**
+/*
  * A simple token to represent that the attribute name when communicating with
  * the dom should simply be a hyphenated version of the key. This saves a very
  * surprising amount of bytes. When using HYPHENIZE, the key must be something
@@ -73,26 +75,25 @@ var W_KEY = FaxUtils.keyOf({ w: true });
  * include the string name of the dom attribute.
  * Todo: force even these keys to be renamed - referencing only an offset into
  * some getComputedStyle array so we won't need to pay the price of each of
- * these 'unminifiable' keys on each file/package.
- * Note: 'content' isn't key minified
+ * these 'unminifiable' keys on each file/package.  Note: 'content' isn't key
+ * minified
  */
 var HYPHENIZE = 8, AS_IS = 9;
 var DEFAULT_DOM_PROP = [HYPHENIZE, 0];
 var AS_IS_PROP = [AS_IS, 0];
 var renameByKey = function(prefix, suffix, propertyDescriptors) {
-  return FaxUtils.objMap(propertyDescriptors, function(k, v) {
+  return FUtils.objMap(propertyDescriptors, function(k, v) {
     return prefix +
-           (v === HYPHENIZE ? FaxUtils.hyphenize(k) : v === AS_IS ? k : v) +
+           (v === HYPHENIZE ? FUtils.hyphenize(k) : v === AS_IS ? k : v) +
            suffix;
   });
 };
 
-/**
- * Css Attributes Interface::
- * Enumeration of all valid properties, along with a description of how they
- * should be referenced when interfacing with the DOM.
+/*
+ * Css Attributes Interface: Enumeration of all valid properties, along with a
+ * description of how they should be referenced when interfacing with the DOM.
  */
-var styleFeatureNames = renameByKey(';', ':', {
+var styleFeatureNames = exports.styleFeatureNames = renameByKey(';', ':', {
   boxSizing: HYPHENIZE,
   transition: HYPHENIZE,
   boxShadow: HYPHENIZE,
@@ -110,7 +111,7 @@ var styleFeatureNames = renameByKey(';', ':', {
   cursor: HYPHENIZE,
   direction: HYPHENIZE,
   border: HYPHENIZE,
-  borderTop: HYPHENIZE,
+  borderRadius: HYPHENIZE,
   fontSize: HYPHENIZE,
   fontWeight: HYPHENIZE,
   fontFamily: HYPHENIZE,
@@ -120,6 +121,7 @@ var styleFeatureNames = renameByKey(';', ':', {
   textDecoration: HYPHENIZE,
   textAlign: HYPHENIZE,
   borderLeft: HYPHENIZE,
+  borderTop: HYPHENIZE,
   borderRight: HYPHENIZE,
   borderBottom: HYPHENIZE,
   borderColor: HYPHENIZE,
@@ -133,18 +135,18 @@ var styleFeatureNames = renameByKey(';', ':', {
   verticalAlign: HYPHENIZE
 });
 
-/** Set of attribute names for which we do not append 'px'. */
-var cssNumber = {
+/* Set of attribute names for which we do not append 'px'. */
+var cssNumber = exports.cssNumber = {
   textDecoration: true, zoom: true, fillOpacity: true,
   fontWeight: true, opacity: true, orphans: true,
   zIndex: true, outline: true
 };
 
 
-/**
- * Dom Element Attributes Interface::
- * Enumeration of all valid properties, along with a description of how they
- * should be referenced when interfacing with the DOM.
+/*
+ * Dom Element Attributes Interface:: Enumeration of all valid properties, along
+ * with a description of how they should be referenced when interfacing with the
+ * DOM.
  */
 var allTagAttrNames = exports.allTagAttrNames = renameByKey('', '=\'', {
   /* These are always special cased when rendering or controlling. */
@@ -183,15 +185,14 @@ var allTagAttrNames = exports.allTagAttrNames = renameByKey('', '=\'', {
 
 /**
  * Perf tip: It's faster to check for presence in a map when the values in that
- * map are exactly === true, vs. if they are "truthy" objects.
- * Similarly, it's faster to discover that something is *not* a member of some
- * set, if that set explicitly declares that some key maps to false. So if you
- * know you'll be checking membership in these sets in performance critical
- * paths, and you know some of the keys that should not be found, you can store
- * false for those keys and get a perf boost
- * http://jsperf.com/truthinessmaptest
+ * map are exactly === true, vs. if they are "truthy" objects.  Similarly, it's
+ * faster to discover that something is *not* a member of some set, if that set
+ * explicitly declares that some key maps to false. So if you know you'll be
+ * checking membership in these sets in performance critical paths, and you know
+ * some of the keys that should not be found, you can store false for those keys
+ * and get a perf boost http://jsperf.com/truthinessmaptest
  */
-var allTagAttrsLookup = FaxUtils.objMap(allTagAttrNames, FaxUtils.truther);
+var allTagAttrsLookup = FUtils.objMap(allTagAttrNames, FUtils.truther);
 
 /**
  * ----------------------------------------------------------------------------
@@ -213,7 +214,7 @@ var controlSimply = exports.controlSimply = {
 
 /**
  * These tend to be special cased in control paths. Content is escaped,
- * dangerouslySetInnerHtml is not. Only here for documentation puposes.
+ * dangerouslySetInnerHtml is not. Only here for documentation purposes.
  */
 var controlAsInnerMarkup = {
   content: true,
@@ -239,10 +240,10 @@ exports.controlDirectlyNonIdempotent = {
 
 
 /**
- * Logical attribute names that should be controlled via setAttribute, as
- * opposed to on the dom itself - we need to audit these to ensure that it
- * really is the case that we can't update the dom nodes themselves - there
- * would be big perf wins if that was tolerated.
+ * @controlUsingSetAttr: Logical attribute names that should be controlled via
+ * setAttribute, as opposed to on the dom itself - we need to audit these to
+ * ensure that it really is the case that we can't update the dom nodes
+ * themselves - there would be big perf wins if that was tolerated.
  */
 var controlUsingSetAttr = exports.controlUsingSetAttr = {
   margin: true,
@@ -264,8 +265,8 @@ var controlUsingSetAttr = exports.controlUsingSetAttr = {
 
 
 /**
- * Never controlled properties - these only make sense at creation time.
- * Here for documentation purposes.
+ * @controlNever: Never controlled properties - these only make sense at
+ * creation time.  Here for documentation purposes.
  */
 var controlNever = {
   type: true,
@@ -273,10 +274,10 @@ var controlNever = {
 };
 
 /**
- * Fax.renderSimply: Dom attributes that are simply rendered as name="value"
- * in the opening tag. No escaping, no transforming, no placing as innerHtml of
- * the dom node, and the name is exactly indicated by the allTagAttrNames map, with no
- * special casing done at render time.
+ * @renderSimply: Dom attributes that are simply rendered as name="value" in
+ * the opening tag. No escaping, no transforming, no placing as innerHtml of the
+ * dom node, and the name is exactly indicated by the allTagAttrNames map, with
+ * no special casing done at render time.
  */
 var renderSimply = exports.renderSimply = {
   margin: true,
@@ -302,8 +303,9 @@ var renderSimply = exports.renderSimply = {
 };
 
 /**
- * Only for documentation purposes. All of the attributes that didn't make the
- * cut to belong in renderSimple - with some indication as to why they didn't.
+ * @renderedAsInnerMarkup: Only for documentation purposes. All of the
+ * attributes that didn't make the cut to belong in renderSimple - with some
+ * indication as to why they didn't.
  */
 var renderedAsInnerMarkup = {
   content: true,
@@ -320,59 +322,10 @@ var renderedAsClassSpecialCasedNameAndProcessing = {
 };
 
 
-/**
- * Convert a value into the proper css writable value. We shouldn't need to
- * convert NaN/null because we shouldn't have even gotten this far. The
- * attribute name should be logical (no hyphens).
- */
-var _styleValue = function (logicalStyleAttrName, attrVal) {
-  if(!isNaN(attrVal)) {
-    return cssNumber[logicalStyleAttrName] ? attrVal : (attrVal + 'px');
-  }
-  if(attrVal !== 0 && !attrVal) {
-    return '';
-  }
-  return attrVal;
-};
-
 
 /**
- * tagAttrMarkupFragment: For attributes that should be rendered in the
- * opening tag of a dom node, this will return that little fragment that should
- * be placed in the opening tag - for this single attribute.
- */
-var tagAttrMarkupFragment = exports.tagAttrMarkupFragment = function(tagAttrName, tagAttrVal) {
-  var accum = allTagAttrNames[tagAttrName];
-  accum += FaxBrowserUtils.escapeTextForBrowser(tagAttrVal);
-  accum += "'";
-  return accum;
-};
-
-/**
- * _tagStyleAttrsFragment:
- * {width: '200px', height:0} => " style='width:200px;height:0'". Undefined
- * values in the style object are completely ignored. That makes declarative
- * programming easier.
- */
-var serializeInlineStyle = exports.serializeInlineStyle = function(styleObj) {
-  var accum = '', logStyleAttrName, styleAttrVal;
-  for (logStyleAttrName in styleObj) {
-    if (!styleObj.hasOwnProperty(logStyleAttrName)) {
-      continue;
-    }
-    styleAttrVal = styleObj[logStyleAttrName];
-    if (styleAttrVal !== undefined) {
-      accum += styleFeatureNames[logStyleAttrName] || (';' + logStyleAttrName + ':') ;
-      accum += _styleValue(logStyleAttrName, styleAttrVal);
-    }
-  }
-  return accum;
-};
-
-/**
- * Same as above but generates a style string for use with cssText or
- * inline style attributes. Should make a version for when we know the
- * values are numeric.
+ * @extractAndSealPosInfo: Should make a version for when we know the values are
+ * numeric.
  */
 var extractAndSealPosInfo = exports.extractAndSealPosInfo = function(obj) {
   if(!obj) { return ''; }
@@ -428,26 +381,28 @@ var _makeExtractAndSealerUsingVendorTransform =
     function(prefix, suffixForString, suffixForNum, suffixForNothing) {
 
   /**
-   * Optimized for css engines that support translations. An absolutely positioned
-   * element with a (top, left, width, height) is equivalent to an absolutely
-   * positioned element with (width, height, translate3d(left, top, 0)). When a
-   * position info includes a right value, things are more complicated.
-   * t:1, l:1, w:20, h:20 => transform(1,1), w:20, h:20
+   * Optimized for css engines that support translations. An absolutely
+   * positioned element with a (top, left, width, height) is equivalent to an
+   * absolutely positioned element with (width, height, translate3d(left, top,
+   * 0)). When a position info includes a right value, things are more
+   * complicated.  t:1, l:1, w:20, h:20 => transform(1,1), w:20, h:20
    *
    * t:1, l:1, r:10, b:10 => transform(1,1), r: 10+1, b:10+1
    *
    * see: http://jsfiddle.net/3HzTC/1/
    *
-   * We need to trick certain webkit implementations into kicking the computations
-   * to the GPU by using a 3d transform even though this is only a 2d operation.
+   * We need to trick certain webkit implementations into kicking the
+   * computations to the GPU by using a 3d transform even though this is only a
+   * 2d operation.
    */
   return function(obj) {
     if(!obj) { return ''; }
     var ret = ';', w = obj.w, h = obj.h, l = obj.l,
         t = obj.t, b = obj.b, r = obj.r, z = obj.z;
 
-    /** I with we didn't have to do these checks. Oh well, in the event that we're
-     * using css3 to position, the javascript isn't going to likely be our
+    /**
+     * I with we didn't have to do these checks. Oh well, in the event that
+     * we're using css3 to position, the javascript isn't going to likely be our
      * bottleneck anyways. Going forward, we should use posInfo: to represent
      * absolutely positioned coords such that no boundary is 'auto'
      */
@@ -473,8 +428,10 @@ var _makeExtractAndSealerUsingVendorTransform =
         ret += 'px;';
       }
     }
-    // Updates if the browser supports transforms are so much faster
-    // than merely absolute positioning.
+    /*
+     * Updates if the browser supports transforms are so much faster than merely
+     * absolute positioning.
+     */
     if (l === 0 || l || t === 0 || t) {
       ret += prefix;
       if (l === 0 || l) {
@@ -501,8 +458,8 @@ var _makeExtractAndSealerUsingVendorTransform =
 
     /**
      * We must add the height and left values to bottom and top respectively
-     * because the left and top values are going to act as translate. Can't
-     * help you out with percentages, though.
+     * because the left and top values are going to act as translate. Can't help
+     * you out with percentages, though.
      */
     if (b === 0 || b) {
       if (t === 0 || (t && !t.charAt)) {
@@ -577,32 +534,31 @@ var _extractAndSealPosInfoUsingTranslateIe =
  * just don't include a delta for the field you want to keep default 'auto'
  * behavior.
  *
- * Note that if an element is relatively positioned with a left and right
- * value, this won't do what you want (similarly to transforms). We handle
- * transforms because we know that we need to work around a relatively
- * positioned system, whereas when using this function, we're not sure if the
- * object at hand is using absolute or relatively positioned. We default to
- * absolute.
+ * Note that if an element is relatively positioned with a left and right value,
+ * this won't do what you want (similarly to transforms). We handle transforms
+ * because we know that we need to work around a relatively positioned system,
+ * whereas when using this function, we're not sure if the object at hand is
+ * using absolute or relatively positioned. We default to absolute.
  *
  * Summary: if you have a parent with an abs child and a rel child, using this
- * function to offset the rel child with respect to the abs child's posInfo
- * will not act strangly when that posInfo has both a right and a left.  You
- * need to manually compensate for that situation (so pass in forRel=true)
- * Correction: When position: 'relative' is used, you cannot seem to compensate
- * at all for right, right has no effect, because the element will first be
- * statically positioned, then the top and left values only will be used to
- * offset it. The forRel may still be useful when doing 3d transforms on abs
- * positioned elements.
+ * function to offset the rel child with respect to the abs child's posInfo will
+ * not act strangely when that posInfo has both a right and a left.  You need to
+ * manually compensate for that situation (so pass in forRel=true) Correction:
+ * When position: 'relative' is used, you cannot seem to compensate at all for
+ * right, right has no effect, because the element will first be statically
+ * positioned, then the top and left values only will be used to offset it. The
+ * forRel may still be useful when doing 3d transforms on abs positioned
+ * elements.
  *
  * Todo: Let the transform code use this.
  *
  * In deltas:
  *   omitted: No field in result.
  *   Included and delta value zero:
- *       If posInfo value is present, that value is coppied over to the result.
- *       If posInfo value is not present, no value is coppied to result.
+ *       If posInfo value is present, that value is copied over to the result.
+ *       If posInfo value is not present, no value is copied to result.
  */
-var _posOffset = exports.posOffset = function (posInfo, deltas, forRel) {
+var _posOffset = exports.posOffset = function(posInfo, deltas, forRel) {
   if (!posInfo && deltas) {
     return deltas; // vulnerable to mutation bugs - be careful.
   }
@@ -677,7 +633,7 @@ var _posOffset = exports.posOffset = function (posInfo, deltas, forRel) {
 /**
  * If a pos info is provided it will offset it, otherwise return the falseyness.
  */
-exports.posOffsetIfPosInfo = function (posInfo, deltas, forRel) {
+exports.posOffsetIfPosInfo = function(posInfo, deltas, forRel) {
   return posInfo ? _posOffset(posInfo, deltas, forRel) : posInfo;
 };
 
@@ -689,20 +645,24 @@ var getBrowserPositionComputation =
 exports.getBrowserPositionComputation =
 function(useTransformPositioning) {
   return !useTransformPositioning ? extractAndSealPosInfo :
-    FEnv.browserInfo.browser === 'Chrome' || FEnv.browserInfo.browser === 'Safari' ?
+    FEnv.browserInfo.browser === 'Chrome' ||
+    FEnv.browserInfo.browser === 'Safari' ?
       _extractAndSealPosInfoUsingTranslateWebkit :
-    FEnv.browserInfo.browser === 'Firefox' ? _extractAndSealPosInfoUsingTranslateMoz :
+    FEnv.browserInfo.browser === 'Firefox' ?
+      _extractAndSealPosInfoUsingTranslateMoz :
     FEnv.browserInfo.browser === 'MSIE' &&
-     (FEnv.browserInfo.version === '9.0' || FEnv.browserInfo.version === '10.0') ?
+     (FEnv.browserInfo.version === '9.0' ||
+     FEnv.browserInfo.version === '10.0') ?
       _extractAndSealPosInfoUsingTranslateIe : extractAndSealPosInfo;
 };
 
 
-/** Turn lookups that we know will be tested, yet return falsey, into lookups
+/**
+ * Turn lookups that we know will be tested, yet return falsey, into lookups
  * that will return false. It would be a good idea, to look at your most
- * commonly named chidlren of dom attributes for a given project and prime this
+ * commonly named children of dom attributes for a given project and prime this
  * lookup map with false values for it - do a benchmark to see if there is any
- * noticable improvement in render/update time.
+ * noticeable improvement in render/update time.
  */
 if (SET_MISS_WARM_UP) {
   /*{insertSetMessWarmUpOptimizationsHere}*/
@@ -714,12 +674,11 @@ if (SET_MISS_WARM_UP) {
 }
 
 /**
- * A quick lookup to determine if a field in a tag projection construction is
- * something supported by the dom, as opposed to a child member.
+ * A quick lookup to determine if a field in an FDom property is something
+ * supported by the dom, as opposed to a child member.
  */
-var allTagAttrsAndHandlerNamesLookup =
-    exports.allTagAttrsAndHandlerNamesLookup =
-        FaxUtils.merge(allTagAttrsLookup,
-          FaxUtils.objMap(FaxEvent.abstractHandlerTypes, FaxUtils.truther));
+exports.allTagAttrsAndHandlerNames =
+    FUtils.merge(allTagAttrsLookup,
+      FUtils.objMap(FEvent.abstractHandlers, FUtils.truther));
 
 

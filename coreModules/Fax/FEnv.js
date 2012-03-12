@@ -28,9 +28,9 @@
  */
 
 /**
- * Fax/FEnv.js - Environment module.
+ * FEnv.js - Environment module.
  */
-var FaxBrowserUtils = require('./FaxBrowserUtils');
+var FBrowserUtils = require('./FBrowserUtils');
 
 var FEnv = module.exports = {
   currentScrollLeft: 0,
@@ -45,12 +45,12 @@ var FEnv = module.exports = {
       document.body.scrollTop + document.documentElement.scrollTop;
   },
   refreshAuthoritativeViewportValues: function() {
-    var dims = FaxBrowserUtils.getViewportDims();
+    var dims = FBrowserUtils.getViewportDims();
     FEnv.viewportHeight = dims.viewportHeight;
     FEnv.viewportWidth = dims.viewportWidth;
   },
   ensureBrowserDetected: function() {
-    FEnv.browserInfo = FaxBrowserUtils.browserDetection();
+    FEnv.browserInfo = FBrowserUtils.browserDetection();
   }
   
 };

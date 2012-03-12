@@ -27,9 +27,7 @@
  *
  */
 
-var ERROR_MESSAGES = {
-  MERGE_DEEP_ARRAYS: 'Cannot mergeDeep arrays'
-};
+var FErrors = require('./FErrors');
 
 /**
  * If we use this, then a shim is absolutely required.
@@ -47,9 +45,9 @@ exports.serialize = function(o) {
 };
 
 /**
- * Merges into an existing object - as in "merges" then "stuffs" into ths.
- * Since we have the luxury of mutating ths, we can apply a shortcut when we see
- * that merge is falsey - we can just return ths!
+ * Merges into an existing object - as in "merges" then "stuffs" into ths. Since
+ * we have the luxury of mutating ths, we can apply a shortcut when we see that
+ * merge is falsey - we can just return ths!
  */
 exports.mergeStuff = function(ths, merge) {
   var aKey;
@@ -86,7 +84,8 @@ exports.merge = function(one, two) {
 
 /**
  * Merges all parameters together into a new object - shallowly of course. This
- * is slower because it uses the arguments keyword. Don't use in the critical path.
+ * is slower because it uses the arguments keyword. Don't use in the critical
+ * path.
  */
 exports.mergeAll = function(/*arguments*/) {
   var i, key, arg, ret = {};
@@ -129,9 +128,8 @@ exports.mergeThree = function(one, two, three) {
  */
 exports.mergeDeep = function(obj1, obj2) {
   var obj2Key;
-  if(obj1 instanceof Array || obj2 instanceof Array) {
-    throw ERROR_MESSAGES.MERGE_DEEP_ARRAYS;
-  }
+  FErrors.throwIf(obj1 instanceof Array || obj2 instanceof Array,
+    FErrors.MERGE_DEEP_ARRAYS);
   var obj2Terminal =
     obj2 === undefined || obj2 === null || typeof obj2 === 'string' ||
     typeof obj2 === 'number' || typeof obj2 === 'function' || obj2 === true ||
@@ -162,23 +160,12 @@ exports.mergeDeep = function(obj1, obj2) {
 };
 
 /**
- * Could reuse mixinExcluded but these loops block rendering - let's just have
- * code duplication.
+ * Simply copies properties to the prototype.
  */
 exports.mixin = function(constructor, methodBag) {
   var methodName;
   for (methodName in methodBag) {
     if (!methodBag.hasOwnProperty(methodName)) {continue;}
-    constructor.prototype[methodName] = methodBag[methodName];
-  }
-};
-
-var mixinExcluded =
-exports.mixinExcluded = function(constructor, methodBag, blackList) {
-  var methodName;
-  for (methodName in methodBag) {
-    if (!methodBag.hasOwnProperty(methodName)) {continue;}
-    if (blackList[methodName]) {continue;}
     constructor.prototype[methodName] = methodBag[methodName];
   }
 };
@@ -379,13 +366,12 @@ exports.reduce = function(arr, fun, init, context) {
 };
 
 /**
- * Fax.objMapFilter:
- * Same as objMap, but filters out any undef result of callback invocation. The
- * returned object won't even have keys for keys that the callback returns
- * undefined.  Note, you *must* return undefined, to indicate that the key
- * should have no presence in the final object and not false/null. Accepts a
- * prefilter as well, indicating a map (keys) to avoid invoking the callback
- * for.
+ * @objMapFilter: Same as objMap, but filters out any undef result of callback
+ * invocation. The returned object won't even have keys for keys that the
+ * callback returns undefined.  Note, you *must* return undefined, to indicate
+ * that the key should have no presence in the final object and not false/null.
+ * Accepts a prefilter as well, indicating a map (keys) to avoid invoking the
+ * callback for.
  */
 exports.objMapFilter = function(obj, fun, preFilter) {
   var mapped, key;
@@ -427,15 +413,17 @@ exports.arrPullJoin = function(arr, key) {
   return res;
 };
 
-/* Returns an object map of the form: valueOfByKey => [items where byKey equals
- * valueOfByKey]. Note, if the value in byKey for any item is an object, it
- * will be automatically stringified by the system since we're creating a
- * 'JSON' style map as the return value. A more detailed (and slower)
- * implementation would map categorize by structural value. We could create a
- * similar function that allows us to 'tag' objects, allowing an item to exist
- * in more than one category. Will filter out objects that are null or
- * undefined. All objects that have nothing for that key will be categorized by
- * the 'undefined' category. */
+/*
+ * Returns an object map of the form: valueOfByKey => [items where byKey equals
+ * valueOfByKey]. Note, if the value in byKey for any item is an object, it will
+ * be automatically stringified by the system since we're creating a 'JSON'
+ * style map as the return value. A more detailed (and slower) implementation
+ * would map categorize by structural value. We could create a similar function
+ * that allows us to 'tag' objects, allowing an item to exist in more than one
+ * category. Will filter out objects that are null or undefined. All objects
+ * that have nothing for that key will be categorized by the 'undefined'
+ * category.
+ */
 exports.arrCategorize = function(arr, byKey) {
   var i, item, ret = {};
   if (!arr) {
@@ -458,9 +446,9 @@ exports.arrCategorize = function(arr, byKey) {
 
 /**
  * Mapper should just return the value for which this function will create
- * string keys for. Each straing key will not appear to be numeric, and
- * therefore will experience order preservation. You can't decide the key
- * though, it will simply be 'nNumber' (so as not to appear numeric).
+ * string keys for. Each string key will not appear to be numeric, and therefore
+ * will experience order preservation. You can't decide the key though, it will
+ * simply be 'nNumber' (so as not to appear numeric).
  */
 exports.arrMapToObjAutoKey = function(arr, mapper) {
   var ret = {}, i, len = arr.length;
@@ -472,7 +460,7 @@ exports.arrMapToObjAutoKey = function(arr, mapper) {
 
 
 /**
- * Fax._keys: #todoperf reduce to native when available #todocustombuild
+ * @keys: #todoperf reduce to native when available #todocustombuild
  */
 exports.keys = function(obj) {
   var ret = [], aKey;
@@ -489,7 +477,7 @@ exports.keyCount = function(obj) {
 };
 
 /**
- * Fax.objSubset - selects a subset of object fields as indicated by the select
+ * @objSubset: selects a subset of object fields as indicated by the select
  * map.  Any truthy value in the corresponding select map will indicate that the
  * corresponding object field should be sliced off into the return value.
  * #todoperf reduce to native when available. #todocustombuild.
