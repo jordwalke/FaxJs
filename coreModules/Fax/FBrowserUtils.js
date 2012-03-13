@@ -59,9 +59,11 @@ var browserDetection = null;
 function initializeAndReturnBrowserDetection(someVar) {
   var BrowserDetect = {
     init: function () {
-      this.browser = this.searchString(this.dataBrowser) || "An unknown platform";
+      this.browser = this.searchString(this.dataBrowser) ||
+          "An unknown platform";
       this.version = this.searchVersion(navigator.userAgent) ||
-                     this.searchVersion(navigator.appVersion) || "An unknown platform";
+                     this.searchVersion(navigator.appVersion) ||
+                     "An unknown platform";
       this.OS = this.searchString(this.dataOS) || "An unknown platform";
     },
     searchString: function (data) {
@@ -85,7 +87,9 @@ function initializeAndReturnBrowserDetection(someVar) {
       if (index === -1) {
         return;
       }
-      return parseFloat(dataString.substring(index+this.versionSearchString.length+1));
+      return parseFloat(
+        dataString.substring(index+this.versionSearchString.length+1)
+      );
     },
 
     /* Taking obscure browsers out of here to reduce gzipped size. You can
@@ -178,7 +182,8 @@ module.exports = {
    * Will likely cause reflow.
    */
   getViewportDims : function() {
-    /** Better browsers (IE7/mozilla/netscape/opera) use window.innerWidth/innerHeight*/
+    /* Better browsers (IE7/mozilla/netscape/opera) use
+     * window.innerWidth/innerHeight*/
     if (typeof window.innerWidth !== 'undefined') {
       return {
         viewportWidth : window.innerWidth,

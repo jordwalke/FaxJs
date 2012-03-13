@@ -152,7 +152,7 @@ var abstractHandlers = {
   onTouchDrag: 6, onTouchDragDone: 7, onClick: 8, onDragDone: 9,
   onDrag: 10, onMouseWheel: 11, onKeyUp: 12, onKeyDown: 13,
   onKeyPress: 14, onFocus: 15, onBlur: 16, onMouseIn: 17, onMouseOut: 18,
-  onMouseDown: 19, onMouseUp: 20,
+  onMouseDown: 19, onMouseUp: 20, onChange: 21,
 
   /* Direct handlers */
   onScrollDirect: 101, onTouchTapDirect: 102, onTouchEndDirect: 103,
@@ -162,7 +162,7 @@ var abstractHandlers = {
   onMouseWheelDirect: 111, onKeyUpDirect: 112, onKeyDownDirect: 113,
   onKeyPressDirect: 114, onFocusDirect: 115, onBlurDirect: 116,
   onMouseInDirect: 117, onMouseOutDirect: 118, onMouseDownDirect: 119,
-  onMouseUpDirect: 120,
+  onMouseUpDirect: 120, onChangeDirect: 121,
 
   /* First handlers */
   onScrollFirstHandler: 201, onTouchTapFirstHandler: 202,
@@ -174,7 +174,8 @@ var abstractHandlers = {
   onKeyDownFirstHandler: 213, onKeyPressFirstHandler: 214,
   onFocusFirstHandler: 215, onBlurFirstHandler: 216,
   onMouseInFirstHandler: 217, onMouseOutFirstHandler: 218,
-  onMouseDownFirstHandler: 219, onMouseUpFirstHandler: 220
+  onMouseDownFirstHandler: 219, onMouseUpFirstHandler: 220,
+  onChangeFirstHandler: 221
 };
 
 
@@ -198,7 +199,8 @@ var topLevelEvents = {
   keyDown: {type: 14, mappedToAbstractHandler: abstractHandlers.onKeyDown},
   focus: {type: 15, mappedToAbstractHandler:  abstractHandlers.onFocus},
   blur: {type: 16, mappedToAbstractHandler: abstractHandlers.onBlur},
-  scroll: {type: 17, mappedToAbstractHandler: abstractHandlers.onScroll}
+  scroll: {type: 17, mappedToAbstractHandler: abstractHandlers.onScroll},
+  change: {type: 18, mappedToAbstractHandler: abstractHandlers.onChange}
 };
 
 
@@ -219,6 +221,7 @@ function _constructAbstractEventDirectlyFromTopLevel(topLevelEventType,
       data = FEvent._normalizeAbstractScrollEventData(nativeEvent, target);
       break;
     case topLevelEvents.click:
+    case topLevelEvents.change:
     case topLevelEvents.mouseDown:
     case topLevelEvents.mouseUp:
     case topLevelEvents.touchMove:
@@ -1185,6 +1188,8 @@ FEvent.registerTopLevelListeners = function(mountAt, touchInsteadOfMouse) {
   FEvent.trapBubbledEvent(
       topLevelEvents.keyDown, 'onkeydown', mountAt || document);
 
+  FEvent.trapBubbledEvent(topLevelEvents.click, 'onchange',
+                          mountAt || document);
 
 
   /* http://www.quirksmode.org/dom/events/tests/scroll.html (Firefox needs to
