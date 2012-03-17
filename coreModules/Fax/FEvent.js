@@ -1188,7 +1188,7 @@ FEvent.registerTopLevelListeners = function(mountAt, touchInsteadOfMouse) {
   FEvent.trapBubbledEvent(
       topLevelEvents.keyDown, 'onkeydown', mountAt || document);
 
-  FEvent.trapBubbledEvent(topLevelEvents.click, 'onchange',
+  FEvent.trapBubbledEvent(topLevelEvents.change, 'onchange',
                           mountAt || document);
 
 
