@@ -10,9 +10,27 @@ var ENTITY_INFO_LEFT = 66;
 var HEADER_TOP_MARGIN = 4;
 var HEADER_HEIGHT = 20;
 
+var IMAGE_MARGIN = 3;
+
 function NAME_EXTRACTOR(entity) {
   return entity.name;
 }
+
+var SelectionDisplay = F.Componentize({
+  structure: function() {
+    return Div({
+      classSet: {SelectionDisplay: true},
+      image: FDom.Img({
+        classSet: {SelectionDisplayImg: true},
+        src: this.props.selectedEntity.picture
+      }),
+      clearButton: Div({
+        classSet: {SelectionDisplayClear: true, cursorPointer: true},
+        onClick: this.props.onUserClear
+      })
+    });
+  }
+});
 
 var Header = F.Componentize({
   structure: function() {
@@ -81,9 +99,10 @@ var EntityPresenter = F.Componentize({
           EntitySetArrowByBackground: P.hideGroupHeaders
         }
       }),
-      presentation: Div(F.merge({
-        classSet: { EntitySet: true }
-      }, TypeaheadUtils.constructGroups(Header, EntityLink, P)))
+      presentation: Div({
+        classSet: { EntitySet: true },
+        childSet: TypeaheadUtils.constructGroups(Header, EntityLink, P)
+      })
     });
   }
 });
@@ -99,6 +118,11 @@ var EntityPresenter = F.Componentize({
 module.exports = {
   Presenter: EntityPresenter,
 
+  /* Constructor of component to inject into the container along side the text
+   * box. (To show an x, or some other display about the selection). Accepts
+   * props of the form {entity: E, onUserClear: F} . */
+  SelectionDisplay: SelectionDisplay,
+
   extractEntityDisplayText: NAME_EXTRACTOR,
 
   inputClassSet: {
@@ -107,7 +131,8 @@ module.exports = {
 
   selectedInputClassSet: {
     EntitySetInputSelected: true
-  }
+  },
+
 
 };
 
@@ -238,7 +263,40 @@ module.exports.styleExports = {
 
   EntitySetInputSelected: {
     backgroundColor: stylers.rgbaStr(T.tokenBgColor),
-    border: stylers.borderValue(T.tokenBorderColor)
+    border: stylers.borderValue(T.tokenBorderColor),
+
+    /* We'll now have an image that is as wide (including margins) as the text
+     * box is tall - but still add the standard left padding of 5 */
+    paddingLeft: T.controlsHeight
+  },
+
+  SelectionDisplay: {
+    boxSizing: stylers.boxSizingValue('border-box'),
+    position: 'absolute',
+    top: 0, left: 0, bottom: 0, right: 0
+  },
+
+  SelectionDisplayClear: {
+    position: 'absolute',
+    opacity: 0.3,
+    lineHeight: T.textInputFontSize,
+    bottom: 0,
+    width: 20,
+    right: 3,
+    top: 0,
+		'background-repeat': 'no-repeat',
+		'background-position': 'center center',
+		backgroundImage: 'url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAcAAAAHCAYAAADEUlfTAAAANElEQVQImYWNOwoAMAhDX3r/WY9rJ0EDpVlCyA8ggGKjgJAZS2skHdIQvvBvPj8PkPbfnBdBpgtgztbSTgAAAABJRU5ErkJggg==)'
+  },
+
+  SelectionDisplayImg: {
+    boxSizing: stylers.boxSizingValue('border-box'),
+    position: 'absolute',
+    top: IMAGE_MARGIN,
+    bottom: IMAGE_MARGIN,
+    left: IMAGE_MARGIN,
+    height: T.controlsHeight - 2*IMAGE_MARGIN,
+    width: T.controlsHeight - 2*IMAGE_MARGIN
   }
 
 };

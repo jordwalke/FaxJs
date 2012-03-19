@@ -115,35 +115,73 @@ var appendMarkup = exports.appendMarkup = function(elem, newMarkup) {
   }
 };
 
+/*
+ */
 
 /**
- * Renders keys into a string of classNames. Currently supports trees, but that
- * should be deprecated in favor of a new attributes called classSets (plural)
+ * @renderClassSets: Renders a list of class sets. Useful when wanting to merge
+ * a class set with one or more class sets provided by another software layer.
+ * Inlines the renderClassSet method for performance reasons.
+ *
+ * -Key-value objects are leaf nodes in an array based tree. Arrays may contain
+ *  arrays, but key-value className objects may not contain arrays.
+ * -
+ * -  classSets: [
+ * -     {BigButton: true, AlertButton: true},
+ * -     [{RedButton: this.props.isRed}, this.props.passedInClassSet]
+ * -  ];
  */
-var renderClassSet = exports.renderClassSet = function(namedSet) {
-  var accum = '', nameOfClass;
-  for (nameOfClass in namedSet) {
-    if (!namedSet.hasOwnProperty(nameOfClass)) {
-      continue;
-    }
-    var val = namedSet[nameOfClass];
-    // Intentionally check double equals == true to catch number 1 || true
-    if(val == true) {
-      accum += nameOfClass;
-      accum += ' ';
-    } else if(nameOfClass) {
-      /* This type of classSet value should be deprecated because it encourages
-       * using strings which will not be minifiable.*/
-      if (typeof val === 'string') {
-        accum += val;
-        accum += ' ';
-      } else {
-        accum += renderClassSet(val);
+var renderClassSets = exports.renderClassSets = function(classSetList) {
+  var accum = '', shouldInclude, childSet, nameOfClass, i;
+  if (!classSetList) {
+    return '';
+  }
+  for (i=0; i < classSetList.length; i=i+1) {
+    childSet = classSetList[i];
+    /* It's not a key-value object, rather a nested array. */
+    if (childSet instanceof Array) {
+      accum += renderClassSets(childSet);
+    } else {
+      for (nameOfClass in childSet) {
+        if (!childSet.hasOwnProperty(nameOfClass)) {
+          continue;
+        }
+        shouldInclude = childSet[nameOfClass];
+        if (shouldInclude) {
+          accum += nameOfClass;
+          accum += ' ';
+        }
       }
     }
   }
   return accum;
 };
+
+/**
+ * @renderClassSet: Entry point for rendering css class strings. ProTip: For
+ * class sets that are constant, declare a variable at the top of your file to
+ * avoid an additional object being allocated upon each "structure()"
+ * invocation.
+ */
+var renderClassSet = exports.renderClassSet = function(namedSet) {
+  if (namedSet instanceof Array) {
+    return renderClassSets(namedSet); /*plural*/
+  }
+  var accum = '', nameOfClass, shouldInclude;
+  for (nameOfClass in namedSet) {
+    if (!namedSet.hasOwnProperty(nameOfClass)) {
+      continue;
+    }
+    shouldInclude = namedSet[nameOfClass];
+    if (shouldInclude) {
+      accum += nameOfClass;
+      accum += ' ';
+    }
+  }
+  return accum;
+};
+
+
 
 /**
  * Convert a value into the proper css writable value. We shouldn't need to

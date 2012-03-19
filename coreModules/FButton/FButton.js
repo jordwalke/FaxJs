@@ -15,12 +15,12 @@ FButtonModule.FButton = {
   structure: function() {
     var P = this.props, type = P.type || Types.FButtonOkay;
     return (P.anchorWithHref ? FDom.A : FDom.Button)(F.merge(P, {
-      classSet: {
-        FButton: true,
-        FButtonConfirm: type === Types.FButtonConfirm,
-        FButtonOkay: type === Types.FButtonOkay,
-        classSet: this.props.classSet
-      },
+      classSet: [
+        { FButton: true,
+          FButtonConfirm: type === Types.FButtonConfirm,
+          FButtonOkay: type === Types.FButtonOkay },
+        this.props.classSet
+      ],
       content: this.props.labelText,
       href: this.props.anchorWithHref
     }));
@@ -44,23 +44,29 @@ var styleExports = module.exports.styleExports = {
     display: 'inline-block',
     cursor: 'pointer',
     'vertical-align': 'middle',
-    transition: stylers.transitionAllValue(0.10)
+    transition: stylers.transitionAllValue(0.02)
   },
 
   FButtonOkay: {
     border: stylers.borderValue(T.okayBorderColor),
     borderBottom: stylers.borderValue(T.okayBorderBottomColor),
-    backgroundColor: stylers.rgbaStr(T.okayBgColor),
+    backgroundColor: stylers.bgGradientValueDodge(T.okayBgColor, 10),
     color: stylers.rgbaStr(T.okayTextColor),
-    boxShadow: stylers.blackBoxShadowValue(T.okayShadowSpec)
+    boxShadow: stylers.boxShadowValueOutsetInset(
+      F.merge(T.okayShadowSpec, T.black),
+      F.merge(T.okayShadowSpecInset, T.white)
+    )
   },
 
   FButtonConfirm: {
     border: stylers.borderValue(T.confirmBorderColor),
     borderBottom: stylers.borderValue(T.confirmBorderBottomColor),
-    backgroundColor: stylers.rgbaStr(T.confirmBgColor),
+    backgroundColor: stylers.bgGradientValueDodge(T.confirmBgColor, 10),
     color: stylers.rgbaStr(T.confirmTextColor),
-    boxShadow: stylers.blackBoxShadowValue(T.confirmShadowSpec)
+    boxShadow: stylers.boxShadowValueOutsetInset(
+      F.merge(T.confirmShadowSpec, T.black),
+      F.merge(T.confirmShadowSpecInset, T.white)
+    )
   }
 };
 
@@ -75,9 +81,12 @@ styleExports[stylers.hoverFocusKey({FButton: true})] = {
 styleExports[stylers.hoverFocusKey({FButtonOkay: true})] = {
   border: stylers.borderValue(T.okayBorderColorHovered),
   borderBottom: stylers.borderValue(T.okayBorderBottomColorHovered),
-  backgroundColor: stylers.rgbaStr(T.okayBgColorHovered),
+  backgroundColor: stylers.bgGradientValueDodge(T.okayBgColorHovered, 2),
   color: stylers.rgbaStr(T.okayTextColor),
-  boxShadow: stylers.blackBoxShadowValue(T.okayShadowSpecHovered)
+  boxShadow: stylers.boxShadowValueOutsetInset(
+    F.merge(T.okayShadowSpecHovered, T.black),
+    F.merge(T.okayShadowSpecInsetHovered, T.white)
+  )
 };
 
 /**
@@ -86,7 +95,7 @@ styleExports[stylers.hoverFocusKey({FButtonOkay: true})] = {
 styleExports[stylers.activeKey({FButtonOkay: true})] = {
   border: stylers.borderValue(T.okayBorderColorActive),
   borderBottom: stylers.borderValue(T.okayBorderBottomColorActive),
-  backgroundColor: stylers.rgbaStr(T.okayBgColorActive),
+  backgroundColor: stylers.bgGradientValueDodge(T.okayBgColorActive, 0),
   color: stylers.rgbaStr(T.okayTextColor),
   boxShadow: stylers.blackBoxShadowValue(T.okayShadowSpecActive)
 };
@@ -97,9 +106,12 @@ styleExports[stylers.activeKey({FButtonOkay: true})] = {
 styleExports[stylers.hoverFocusKey({FButtonConfirm: true})] = {
   border: stylers.borderValue(T.confirmBorderColorHovered),
   borderBottom: stylers.borderValue(T.confirmBorderBottomColorHovered),
-  backgroundColor: stylers.rgbaStr(T.confirmBgColorHovered),
+  backgroundColor: stylers.bgGradientValueDodge(T.confirmBgColorHovered, 2),
   color: stylers.rgbaStr(T.confirmTextColor),
-  boxShadow: stylers.blackBoxShadowValue(T.confirmShadowSpecHovered)
+  boxShadow: stylers.boxShadowValueOutsetInset(
+    F.merge(T.confirmShadowSpecHovered, T.black),
+    F.merge(T.confirmShadowSpecInsetHovered, T.white)
+  )
 };
 
 /**
@@ -108,7 +120,7 @@ styleExports[stylers.hoverFocusKey({FButtonConfirm: true})] = {
 styleExports[stylers.activeKey({FButtonConfirm: true})] = {
   border: stylers.borderValue(T.confirmBorderColorActive),
   borderBottom: stylers.borderValue(T.confirmBorderBottomColorActive),
-  backgroundColor: stylers.rgbaStr(T.confirmBgColorActive),
+  backgroundColor: stylers.bgGradientValueDodge(T.confirmBgColorActive, 0),
   color: stylers.rgbaStr(T.confirmTextColor),
   boxShadow: stylers.blackBoxShadowValue(T.confirmShadowSpecActive)
 };

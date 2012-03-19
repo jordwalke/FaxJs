@@ -13,10 +13,10 @@ var TypeaheadUtils = module.exports = {
       if (!P.hideGroupHeaders) {
         all[groupKey] = headerConstructor({ groupInfo: groupInfo });
       }
-      F.mapRange(P.results.ordered, function(res, i) {
+      F.mapRange(P.results.ordered, function(entity, i) {
         all[groupKey + i] = entityConstructor({
-          highlighted: P.highlightedResult === res,
-          entity: res.entity,
+          highlighted: P.highlightedEntity === entity,
+          entity: entity,
           entityLinkOnMouseIn: F.curryOnly(P.onEntityMouseInIndex, i),
           entityLinkOnMouseOut: F.curryOnly(P.onEntityMouseOutIndex, i),
           entityLinkOnClick: F.curryOnly(P.onEntityClickedIndex, i)

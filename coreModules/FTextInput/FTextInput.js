@@ -23,6 +23,24 @@ function invokeWith(f, param) {
   }
 }
 
+/*
+ * As long as no mutation occurs on this, it's more memory efficient to refer to
+ * a single object. We should seal this object so it will alarm us of attempts
+ * to modify it in modern browsers.
+ */
+var WRAPPER_CLASS_SET = {
+  FTextInputWrapper: true
+};
+
+var INPUT_CLASS_SET = {
+  FTextInput: true
+};
+
+var INPUT_PLACEHELD_CLASS_SET = {
+  FTextInput: true,
+  FTextInputPlaceheld: true
+};
+
 
 /**
  * This text input element provides several conveniences for using a text input,
@@ -112,17 +130,16 @@ FTextInput.FTextInput = {
     /* http://stackoverflow.com/questions/4577344/
      *        getting-firefox-to-stretch-an-input-properly */
     return Div({
-      classSet: {
-        FTextInputWrapper: true,
-        ownerProvidedWrapperClassSet: P.wrapperClassSet
-      },
+      classSet: [
+        WRAPPER_CLASS_SET,
+        P.wrapperClassSet
+      ],
       posInfo: P.posInfo,
       actualInput: Input({
-        classSet: {
-          FTextInput: true,
-          FTextInputPlaceheld: !!placeHeld,
-          ownerProvidedInputClassSet: P.inputClassSet
-        },
+        classSet: [
+          placeHeld ? INPUT_PLACEHELD_CLASS_SET : INPUT_CLASS_SET,
+          P.inputClassSet
+        ],
         tabIndex: P.tabIndex,
         type: 'text',
         value: textToShow,
