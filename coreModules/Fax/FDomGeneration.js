@@ -95,35 +95,35 @@ exports.setBrowserOptimalPositionComputation = function(useTransforms) {
  */
 var generateDomChildrenByKey = exports.generateDomChildrenByKey =
 function(idRoot, childStructures, doMarkup, doHandlers) {
-  var childIdRoot, childKey, potentialChild, accum = '',
+  var childIdRoot, childKey, child, accum = '',
       myChildren = this.domChildSet = {};
 
   if (doMarkup) {
     for (childKey in childStructures) {
       if (!childStructures.hasOwnProperty(childKey)) { continue; }
-      potentialChild = childStructures[childKey];
+      child = childStructures[childKey];
       childIdRoot = idRoot;
       childIdRoot += '.';
       childIdRoot += childKey;
-      if (potentialChild) {
-        FErrors.throwIf(potentialChild._rootDomId, FErrors.USING_CHILD_TWICE);
-        myChildren[childKey] = potentialChild;
-        accum += potentialChild.genMarkup(childIdRoot, doMarkup, doHandlers);
+      if (child) {
+        FErrors.throwIf(child._rootDomId, FErrors.USING_CHILD_TWICE);
+        myChildren[childKey] = child;
+        accum += child.genMarkup(childIdRoot, doMarkup, doHandlers);
       }
     }
     return accum;
   } else {
     for (childKey in childStructures) {
       if (!childStructures.hasOwnProperty(childKey)) { continue; }
-      potentialChild = childStructures[childKey];
+      child = childStructures[childKey];
       childIdRoot = idRoot;
       childIdRoot += '.';
       childIdRoot += childKey;
-      if (potentialChild) {
-        FErrors.throwIf(potentialChild._rootDomId, FErrors.USING_CHILD_TWICE);
-        myChildren[childKey] = potentialChild;
-        potentialChild.genMarkup(childIdRoot, doMarkup, doHandlers);
-      } else if(!potentialChild && typeof potentialChild !== 'undefined') {
+      if (child) {
+        FErrors.throwIf(child._rootDomId, FErrors.USING_CHILD_TWICE);
+        myChildren[childKey] = child;
+        child.genMarkup(childIdRoot, doMarkup, doHandlers);
+      } else if(!child && typeof child !== 'undefined') {
         myChildren[childKey] = null;
       }
     }
@@ -137,33 +137,33 @@ function(idRoot, childStructures, doMarkup, doHandlers) {
  */
 var generateDomChildrenByArray = exports.generateDomChildrenByArray =
 function(idRoot, newChildrenParam, doMarkup, doHandlers) {
-  var childIdRoot, i, potentialChild, accum = '',
+  var childIdRoot, i, child, accum = '',
       myChildren = this.domChildList = [],
       newChildren = newChildrenParam || [];
 
   if (doMarkup) {
     for (i=0; i < newChildren.length; i=i+1) {
-      potentialChild = newChildren[i];
+      child = newChildren[i];
       childIdRoot = idRoot;
       childIdRoot += '.';
       childIdRoot += i;
-      if (potentialChild) {
-        FErrors.throwIf(potentialChild._rootDomId, FErrors.USING_CHILD_TWICE);
-        myChildren[i] = potentialChild;
-        accum += potentialChild.genMarkup(childIdRoot, doMarkup, doHandlers);
+      if (child) {
+        FErrors.throwIf(child._rootDomId, FErrors.USING_CHILD_TWICE);
+        myChildren[i] = child;
+        accum += child.genMarkup(childIdRoot, doMarkup, doHandlers);
       }
     }
     return accum;
   } else {
     for (i=0; i < newChildren.length; i=i+1) {
-      potentialChild = newChildren[i];
+      child = newChildren[i];
       childIdRoot = idRoot;
       childIdRoot += '.';
       childIdRoot += i;
-      if (potentialChild) {
-        FErrors.throwIf(potentialChild._rootDomId, FErrors.USING_CHILD_TWICE);
-        myChildren[i] = potentialChild;
-        potentialChild.genMarkup(childIdRoot, doMarkup, doHandlers);
+      if (child) {
+        FErrors.throwIf(child._rootDomId, FErrors.USING_CHILD_TWICE);
+        myChildren[i] = child;
+        child.genMarkup(childIdRoot, doMarkup, doHandlers);
       }
     }
   }
