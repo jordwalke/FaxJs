@@ -252,17 +252,15 @@ var AllStructuredComponentsHave = {
   /**
    * @_genMarkup: (Comment 1): One thing we need to be careful about is the fact
    * that people can declare "CONSTANT" components such as: "var CONST_DIV =
-   * Div({content: 'Welcome'})". This causes pain - do not do this. There are
-   * solutions to the problem, but they involve doing deep clones every time we
-   * create (even if the component *isn't* used more than once).
+   * Div({content: 'Welcome'})". We block this from happening, since it's
+   * difficult to implement a system that can quickly determine if a safe copy
+   * needs to be cloned, and then perform the clone.
    */
   _genMarkup: function(idSpaceSoFar, gen, events) {
     structuringInstanceLock = this;
     var structure = this.structure();
     structuringInstanceLock = null;
-    FErrors.throwIf(
-        structure._rootDomId,
-        FErrors.USING_CHILD_TWICE);
+    FErrors.throwIf( structure._rootDomId, FErrors.USING_CHILD_TWICE);
 
     /* See (Comment 1) */
     this.child = structure;

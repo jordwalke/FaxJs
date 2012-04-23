@@ -181,8 +181,8 @@ function(idRoot, newChildrenParam, doMarkup, doHandlers) {
  *  for each member of the props are in order of likeliness to occur:
  * -Call with context 'this' equaling the instance of dom component that you
  *  want to materialize.
- * -(Comment 1) Since the FDom API allows named children to be embedded inside
- *  of the attributes, not needing to place then in childSet/childList we
+ * -(Comment 1) Since the FDom API allows named children to be embedded
+ *  inside of the attributes, not needing to place then in childSet/childList we
  *  accumulate embedded (non-dom attributes) that we encounter. Embedded
  *  children will take precedence over childSet/childList.
  * -- Lazily allocates the object that accumulates embedded children.

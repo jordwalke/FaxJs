@@ -209,15 +209,11 @@ exports.controlSingleDomNode = function(el, elemId, nextProps, lastProps) {
  *  deallocated) but also be recreated.  It may have been falsey in the first
  *  place in which case it will be idempotently deleted before recreating.
  * -Comment 2: Ensure no-longer-existing children resources are deallocated.
- * -Comment 4: Allocate new children that were not previously present.
- * -Comment 4: Since we want to keep this child. Delete it from the list of id
- *  prefixes awaiting clearing.) - it could have been pending a clear, but then
- *  re-added as a child before we had the opportunity to clean up memory.
  * -Comment 5: We should clear out memory waiting to be freed here. Otherwise, a
  *  child could have switched constructor types and still have event handlers
  *  registered on it's rootmost dom node that were left over from the old type.
  * -Comment 6: Since all memory freeing happens the moment we remove an element
- *  or a set of elements. It's worth thinking about ways to defer the search of
+ *  or a set of elements, it's worth thinking about ways to defer the search of
  *  dead handlers until a later moment. A prior implementation of these
  *  reconcilers would deffer all cleanup until a later time, but that creates
  *  subtle bugs when swapping out old child instances with new instances of a
@@ -278,8 +274,8 @@ exports.reconcileDomChildrenByKey = function(nextChildrenParam, ignore, only) {
       lastIteratedDomNodeId = newChildId;
     } else if(newChild && newChild.props) {
       FErrors.throwIf(newChild._rootDomId, FErrors.USING_CHILD_TWICE);
-      myChildren[childKey] = newChild;
       newMarkup = newChild.genMarkup(newChildId, true, true);
+      myChildren[childKey] = newChild;
       var newDomNode = singleDomNodeFromMarkup(newMarkup);
       insertNodeAfterNode(
             this.rootDomNode ||
@@ -317,8 +313,8 @@ exports.reconcileDomChildrenByArray = function(nextChildrenParam) {
     newChildId = rootDomIdDot + kk;
     newChild = nextChildren[kk];
     FErrors.throwIf(newChild._rootDomId, FErrors.USING_CHILD_TWICE);
-    myChildren[kk] = newChild;
     newMarkup = newChild.genMarkup(newChildId, true, true);
+    myChildren[kk] = newChild;
     appendMarkup(document.getElementById(rootDomId), newMarkup);
   }
 
@@ -339,8 +335,8 @@ exports.reconcileDomChildrenByArray = function(nextChildrenParam) {
     domToRemove = document.getElementById(removeId);
     FErrors.throwIf(!domToRemove, FErrors.NO_DOM_TO_HIDE);
     FErrors.throwIf(theNewChild._rootDomId, FErrors.USING_CHILD_TWICE);
-    myChildren[jj] = theNewChild;
     newMarkup = theNewChild.genMarkup(newChildId, true, true);
+    myChildren[jj] = theNewChild;
     domToInsert = singleDomNodeFromMarkup(newMarkup);
     domToRemove.parentNode.replaceChild(domToInsert, domToRemove);
   }
