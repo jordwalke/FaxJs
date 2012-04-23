@@ -260,7 +260,10 @@ var AllStructuredComponentsHave = {
     structuringInstanceLock = this;
     var structure = this.structure();
     structuringInstanceLock = null;
-    FErrors.throwIf(structure._rootDomId, FErrors.USING_CHILD_TWICE);
+    FErrors.throwIf(
+        structure._rootDomId,
+        FErrors.USING_CHILD_TWICE);
+
     /* See (Comment 1) */
     this.child = structure;
     return structure.genMarkup(idSpaceSoFar, gen, events);

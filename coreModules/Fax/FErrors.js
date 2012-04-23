@@ -38,7 +38,8 @@ module.exports = {
     "F.using(moduleContainingTopmostComponent) in the file where " +
     "you render the top level component.",
   NAMESPACE_FALSEY: "Namespace is falsey wtf!",
-  CLASS_NOT_COMPLETE: "Class does not implement required functions!",
+  CLASS_NOT_COMPLETE: "Class does not implement required functions! " +
+      "Implement the 'structure' function.",
   NO_DOM_TO_HIDE: "No DOM node to hide!",
   CONTROL_WITHOUT_BACKING_DOM: "Trying to control a native dom element " +
                                "without a backing id",

@@ -656,7 +656,7 @@ function(useTransformPositioning) {
       _extractAndSealPosInfoUsingTranslateWebkit :
     FEnv.browserInfo.browser === 'Firefox' ?
       _extractAndSealPosInfoUsingTranslateMoz :
-    FEnv.browserInfo.browser === 'MSIE' &&
+    FEnv.browserInfo.browser === 'Explorer' &&
      (FEnv.browserInfo.version === '9.0' ||
      FEnv.browserInfo.version === '10.0') ?
       _extractAndSealPosInfoUsingTranslateIe : extractAndSealPosInfo;
