@@ -49,9 +49,6 @@ var DANGEROUSLY_SET_INNER_HTML_KEY = keyOf({dangerouslySetInnerHtml: null});
 var INNER_HTML_KEY = keyOf({innerHtml: null});
 var DYNAMIC_HANDLERS_KEY = keyOf({dynamicHandlers: true});
 
-var CHILD_SET_KEY = keyOf({childSet: null});
-var CHILD_LIST_KEY = keyOf({childList: null});
-
 /* FDomAttributes */
 var _extractAndSealPosInfoImpl = FDomAttributes.extractAndSealPosInfo;
 var controlUsingSetAttr = FDomAttributes.controlUsingSetAttr;
@@ -197,7 +194,7 @@ exports.controlSingleDomNode = function(el, elemId, nextProps, lastProps) {
 /**
  * @reconcileDomChildrenByKey: Reconciles new, deallocates old, and sets
  * properties on remaining children. Invoke with 'this' or use as a mixin.
- * Expects children in this.children, node id this._rootDomId, the node at
+ * Expects children in this.domChildren, node id this._rootDomId, the node at
  * this.rootDomNode (or will place it there).
  * -Comment 0: Identical constructor type means we'll control the existing child
  *  by that name, and therefore preserve their instance state.
@@ -216,14 +213,27 @@ exports.controlSingleDomNode = function(el, elemId, nextProps, lastProps) {
  * -Comment 4: Since we want to keep this child. Delete it from the list of id
  *  prefixes awaiting clearing.) - it could have been pending a clear, but then
  *  re-added as a child before we had the opportunity to clean up memory.
+ * -Comment 5: We should clear out memory waiting to be freed here. Otherwise, a
+ *  child could have switched constructor types and still have event handlers
+ *  registered on it's rootmost dom node that were left over from the old type.
+ * -Comment 6: Since all memory freeing happens the moment we remove an element
+ *  or a set of elements. It's worth thinking about ways to defer the search of
+ *  dead handlers until a later moment. A prior implementation of these
+ *  reconcilers would deffer all cleanup until a later time, but that creates
+ *  subtle bugs when swapping out old child instances with new instances of a
+ *  different type - to avoid bugs, cleanup needs to happen before the new child
+ *  is attached. A solution to explore, is encoding the component constructor
+ *  type in the top level handler id <component_type>some.id.space@onclick.
  */
-exports.reconcileDomChildrenByKey = function(nextChildren, ignore, only) {
-  var myChildren = this.children || (this.children = {}),
+exports.reconcileDomChildrenByKey = function(nextChildrenParam, ignore, only) {
+  var myChildren = this.domChildSet || (this.domChildSet = {}),
+      nextChildren = nextChildrenParam || {},
       removeChildren = {},
+      idPrefixesToFreeNow = {},
       childKey, newMarkup,
       rootDomId = this._rootDomId, rootDomIdDot = rootDomId + '.',
       removeId, domToRemove, lastIteratedDomNodeId = null;
-  var curChild, newChild, newChildId, removeChild;
+  var curChild, potentialChild, newChildId, removeChild;
   FErrors.throwIf(!this._rootDomId, FErrors.CONTROL_WITHOUT_BACKING_DOM);
 
   for (childKey in myChildren) {
@@ -232,10 +242,10 @@ exports.reconcileDomChildrenByKey = function(nextChildren, ignore, only) {
       continue;
     }
     curChild = myChildren[childKey];
-    newChild = nextChildren[childKey];
-    if(curChild && newChild && newChild.props &&
-        newChild.constructor === curChild.constructor) {
-      curChild.doControl(newChild.props);  // Comment 0
+    potentialChild = nextChildren[childKey];
+    if(curChild && potentialChild && potentialChild.props &&
+        potentialChild.constructor === curChild.constructor) {
+      curChild.doControl(potentialChild.props);  // Comment 0
     } else {
       removeChildren[childKey] = curChild; // Comment 1
     }
@@ -250,23 +260,26 @@ exports.reconcileDomChildrenByKey = function(nextChildren, ignore, only) {
         removeChild.rootDomNode || document.getElementById(removeId);
       domToRemove.parentNode.removeChild(domToRemove);
       delete myChildren[childKey];
-      idPrefixesAwaitingFreeing[removeId] = true;
+      idPrefixesToFreeNow[removeId] = true;
     }
   }
+
+  /* See (Comment 5) */
+  FEvent.releaseMemoryReferences(idPrefixesToFreeNow);
 
   for (childKey in nextChildren) {      // Comment 3
     if (!nextChildren.hasOwnProperty(childKey) ||
         only && !only[childKey] || ignore && ignore[childKey]) {
       continue;
     }
-    newChild = nextChildren[childKey];
+    potentialChild = nextChildren[childKey];
     newChildId = rootDomIdDot + childKey;
-    delete idPrefixesAwaitingFreeing[newChildId]; // See Comment 4
     if (myChildren[childKey]) {
       lastIteratedDomNodeId = newChildId;
-    } else if(newChild && newChild.props) {
-      newMarkup = newChild.genMarkup(newChildId, true, true);
-      myChildren[childKey] = newChild;
+    } else if(potentialChild && potentialChild.props) {
+      FErrors.throwIf(potentialChild._rootDomId, FErrors.USING_CHILD_TWICE);
+      myChildren[childKey] =  potentialChild ;
+      newMarkup = potentialChild.genMarkup(newChildId, true, true);
       var newDomNode = singleDomNodeFromMarkup(newMarkup);
       insertNodeAfterNode(
             this.rootDomNode ||
@@ -279,52 +292,81 @@ exports.reconcileDomChildrenByKey = function(nextChildren, ignore, only) {
 
 /**
  * @reconcileDomChildrenByArray:
- * (Comment 1): As with the key/val version - is not intended for use with
- * tables (yet).
- * (Comment 2): There's a subtle issue when the list shrinks, then grows again
- * before we have a chance to clear out memory with this id prefix space. There
- * may be handlers from the first instance that only apply to it - not the
- * replacement. If the array is entirely homogeneous, if won't matter because
- * the new entry will replace all of the handlers, but if they differ in the set
- * of handlers attached - there could be issues. The solution would be to clear
- * out all handlers every time the array shrinks. This issue doesn't exist with
- * the key/val based api, because an items identity is entirely determined by
- * it's key. So when we see the array shrink - we perform our own memory clean
- * up here, instead of using the general cleanup 'idPrefixesAwaitingFreeing'.
+ * -(Comment 1): As with the key/val version - is not intended for use with
+ *  tables (yet).
  */
-exports.reconcileDomChildrenByArray = function(nextChildren) {
-  var myChildren = this.children || (this.children = []),
-      child, newChild, newMarkup,
-      jj, ii, kk, domToRemove, removeId,
+exports.reconcileDomChildrenByArray = function(nextChildrenParam) {
+  var myChildren = this.domChildList || (this.domChildList = []),
+      nextChildren = nextChildrenParam || [],
+      child, potentialChild, newMarkup,
+      jj, ii, kk, domToRemove, domToInsert, removeId,
+      rootDomId = this._rootDomId,
       rootDomIdDot = this._rootDomId + '.', newChildId,
       idPrefixesToFreeNow = {},
       numToRemain = Math.min(myChildren.length, nextChildren.length);
 
-  for (jj = 0; jj < numToRemain; jj++) {
-    child = myChildren[jj];
-    child.doControl(nextChildren[jj].props);
-  }
-
-  /*
-   * Delete all resources for children that are observed to be missing. Manage
-   * our own memory freeing due to the issue raised in (Comment 1);
-   */
-  for (ii = nextChildren.length; ii < myChildren.length; ii++) {
+  function remove(ii) {
     removeId = rootDomIdDot + ii;
     idPrefixesToFreeNow[removeId] = true;
     domToRemove = document.getElementById(rootDomIdDot + ii);
     FErrors.throwIf(!domToRemove, FErrors.NO_DOM_TO_HIDE);
     domToRemove.parentNode.removeChild(domToRemove);
   }
+
+  function append(kk) {
+    newChildId = rootDomIdDot + kk;
+    potentialChild = nextChildren[kk];
+    FErrors.throwIf(potentialChild._rootDomId, FErrors.USING_CHILD_TWICE);
+    myChildren[kk] = potentialChild;
+    newMarkup = potentialChild.genMarkup(newChildId, true, true);
+    appendMarkup(document.getElementById(rootDomId), newMarkup);
+  }
+
+  /*
+   * Immediately releases memory for old instance, then allocates new instance,
+   * swapping dom resources. Cannot call out to remove() - must be done in a
+   * particular way, by clearing out memory before clobbering with the
+   * replacement to avoid dangling handlers.
+   */
+  function clobber(jj, newPotentialChild) {
+    newChildId = removeId = rootDomIdDot + jj;
+
+    /* Clear out any old handlers */
+    idPrefixesToFreeNow[removeId] = true;
+    FEvent.releaseMemoryReferences(idPrefixesToFreeNow);
+    idPrefixesToFreeNow = {};
+
+    domToRemove = document.getElementById(removeId);
+    FErrors.throwIf(!domToRemove, FErrors.NO_DOM_TO_HIDE);
+    FErrors.throwIf(newPotentialChild._rootDomId, FErrors.USING_CHILD_TWICE);
+    myChildren[jj] = newPotentialChild;
+    newMarkup = newPotentialChild.genMarkup(newChildId, true, true);
+    domToInsert = singleDomNodeFromMarkup(newMarkup);
+    domToRemove.parentNode.replaceChild(domToInsert, domToRemove);
+  }
+
+  /*
+   * Go through prior indices, controlling or swapping out elements.
+   */
+  for (jj = 0; jj < numToRemain; jj++) {
+    potentialChild = nextChildren[jj];
+    child = myChildren[jj];
+    if (child && potentialChild &&
+        potentialChild.constructor === child.constructor) {
+      child.doControl(potentialChild.props);
+    } else {
+      FErrors.throwIf(!potentialChild, FErrors.MISSING_ARRAY_CHILD);
+      clobber(jj, potentialChild);
+    }
+  }
+
+  for (ii = nextChildren.length; ii < myChildren.length; ii++) {
+    remove(ii);
+  }
   FEvent.releaseMemoryReferences(idPrefixesToFreeNow);
 
   for (kk = numToRemain; kk < nextChildren.length; kk++) {
-    newChild = nextChildren[kk];
-    newChildId = rootDomIdDot + kk;
-    newMarkup = newChild.genMarkup(newChildId, true, true);
-    delete idPrefixesAwaitingFreeing[newChildId];
-    myChildren[kk] = newChild;
-    appendMarkup(document.getElementById(this._rootDomId), newMarkup);
+    append(kk);
   }
   myChildren.length = nextChildren.length;
 };

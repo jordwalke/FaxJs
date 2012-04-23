@@ -50,6 +50,23 @@ module.exports = {
     "id to render at) or an object containing a mountAtId field",
   MERGE_DEEP_ARRAYS: 'Cannot mergeDeep arrays',
 
+  /*
+   * Currently don't support the case where children[0] was previously non-empty
+   * yet became empty - or if was originally empty yet became non-empty. This
+   * won't be too difficult to support but all the edge cases need to be
+   * considered. For the time being, think of childList as an array of children
+   * that grows in a single direction - though we support the case where
+   * children change types/instances.
+   */
+  MISSING_ARRAY_CHILD: 'Holes in arrays not allowed',
+
+  /* For those who are curious. The alternative is to clone only if we see a
+   * child structure that has already been mounted on the dom. It's more complex
+   * that it seems - but we should look into making it work eventually.
+   */
+  USING_CHILD_TWICE: 'Cannot reuse child twice - for performance reasons. ' +
+    'Make a factory function if it makes your code more readable.',
+
   throwIf: function(b, err) {
     if (b) { throw err; }
   }

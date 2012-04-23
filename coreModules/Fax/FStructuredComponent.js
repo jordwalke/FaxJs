@@ -249,12 +249,21 @@ var AllStructuredComponentsHave = {
     this.child.doControl(structure.props);
   },
 
+  /**
+   * @_genMarkup: (Comment 1): One thing we need to be careful about is the fact
+   * that people can declare "CONSTANT" components such as: "var CONST_DIV =
+   * Div({content: 'Welcome'})". This causes pain - do not do this. There are
+   * solutions to the problem, but they involve doing deep clones every time we
+   * create (even if the component *isn't* used more than once).
+   */
   _genMarkup: function(idSpaceSoFar, gen, events) {
     structuringInstanceLock = this;
     var structure = this.structure();
     structuringInstanceLock = null;
+    FErrors.throwIf(structure._rootDomId, FErrors.USING_CHILD_TWICE);
+    /* See (Comment 1) */
     this.child = structure;
-    return this.child.genMarkup(idSpaceSoFar, gen, events);
+    return structure.genMarkup(idSpaceSoFar, gen, events);
   },
 
   _controlDomNode: function(path, domAttrs) {

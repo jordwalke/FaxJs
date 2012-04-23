@@ -232,8 +232,30 @@ exports.indexOfStruct = function(searchArr, obj) {
   return -1;
 };
 
-exports.structExists = function (searchArr, obj) {
+exports.structExists = function(searchArr, obj) {
   return exports.indexOfStruct(searchArr, obj) !== -1;
+};
+
+exports.canFind = function(searchArr, cb) {
+  return exports.firstFound(searchArr, cb) !== -1;
+};
+
+/**
+ * @firstFound: Better than using .filter() because no additional array needs to
+ * be allocated.
+ * @cb: A test to be attempted against each element - if true, we return that
+ * index immediately.
+ */
+exports.firstFound = function(searchArr, cb) {
+  var i;
+  if (searchArr && cb) {
+    for (i=0; i < searchArr.length; i=i+1) {
+      if (cb(searchArr[i], i)) {
+        return i;
+      }
+    }
+  }
+  return -1;
 };
 
 /**
@@ -276,7 +298,7 @@ exports.objMapToArray = function(obj, mapper, context) {
  * Mapper must return {key: x, value: y} If mapper returns undefined, no entry
  * in the ret will be made.  It must not return null.
  */
-exports.arrMapToObj = function(arr, mapper) {
+exports.arrMapToKeyVal = function(arr, mapper) {
   var ret = {}, res, i, len = arr.length;
   for(i=0; i < len; i++) {
     res = mapper(arr[i], i);
@@ -284,6 +306,24 @@ exports.arrMapToObj = function(arr, mapper) {
   }
   return ret;
 };
+exports.arrMapToObj = function(arr, mapper, keyExtractor) {
+  var ret = {}, i, len = arr.length;
+  for(i=0; i < len; i++) {
+    ret[
+      keyExtractor ? keyExtractor(arr[i], i) : ('n' + i)
+    ] = mapper(arr[i], i);
+  }
+  return ret;
+};
+
+/**
+ * Mapper should just return the value for which this function will create
+ * string keys for. Each string key will not appear to be numeric, and therefore
+ * will experience order preservation. You can't decide the key though, it will
+ * simply be 'nNumber' (so as not to appear numeric).
+ */
+exports.arrMapToObjAutoKey = exports.arrMapToObj;
+
 
 exports.map = function(arr, fun, context) {
   var i, res = [];
@@ -442,21 +482,6 @@ exports.arrCategorize = function(arr, byKey) {
   return ret;
 };
 
-
-
-/**
- * Mapper should just return the value for which this function will create
- * string keys for. Each string key will not appear to be numeric, and therefore
- * will experience order preservation. You can't decide the key though, it will
- * simply be 'nNumber' (so as not to appear numeric).
- */
-exports.arrMapToObjAutoKey = function(arr, mapper) {
-  var ret = {}, i, len = arr.length;
-  for(i=0; i < len; i++) {
-    ret['n' + i] = mapper(arr[i], i);
-  }
-  return ret;
-};
 
 
 /**

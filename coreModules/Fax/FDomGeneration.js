@@ -87,39 +87,43 @@ exports.setBrowserOptimalPositionComputation = function(useTransforms) {
 /**
  * -@generateDomChildrenByKey: Computes markup for/allocates child structures.
  *  Invoke with the proper context of 'this', or add to your class as a mixin.
- * -Allocates this.children = {} - where it stores new children.  Note that this
- *  function and generateDomChildrenByArray are very similar, but this one takes
- *  a set of key value specified children. Any attempt to abstract the two into
- *  a common function would likely hurt performance.
+ * -Allocates this.domChildren= {} - where it stores new children.  Note that
+ *  this function and generateDomChildrenByArray are very similar, but this one
+ *  takes a set of key value specified children. Any attempt to abstract the two
+ *  into a common function would likely hurt performance.
+ * -See (Comment 1) in @_genMarkup in FStructuredComponent.
  */
 var generateDomChildrenByKey = exports.generateDomChildrenByKey =
 function(idRoot, childStructures, doMarkup, doHandlers) {
-  var childIdRoot, childKey, child, accum = '', myChildren = this.children = {};
+  var childIdRoot, childKey, potentialChild, accum = '',
+      myChildren = this.domChildSet = {};
 
   if (doMarkup) {
     for (childKey in childStructures) {
       if (!childStructures.hasOwnProperty(childKey)) { continue; }
-      child = childStructures[childKey];
+      potentialChild = childStructures[childKey];
       childIdRoot = idRoot;
       childIdRoot += '.';
       childIdRoot += childKey;
-      if (child) {
-        myChildren[childKey] = child;
-        accum += child.genMarkup(childIdRoot, doMarkup, doHandlers);
+      if (potentialChild) {
+        FErrors.throwIf(potentialChild._rootDomId, FErrors.USING_CHILD_TWICE);
+        myChildren[childKey] = potentialChild;
+        accum += potentialChild.genMarkup(childIdRoot, doMarkup, doHandlers);
       }
     }
     return accum;
   } else {
     for (childKey in childStructures) {
       if (!childStructures.hasOwnProperty(childKey)) { continue; }
-      child = childStructures[childKey];
+      potentialChild = childStructures[childKey];
       childIdRoot = idRoot;
       childIdRoot += '.';
       childIdRoot += childKey;
-      if (child) {
-        myChildren[childKey] = child;
-        child.genMarkup(childIdRoot, doMarkup, doHandlers);
-      } else if(!child && typeof child !== 'undefined') {
+      if (potentialChild) {
+        FErrors.throwIf(potentialChild._rootDomId, FErrors.USING_CHILD_TWICE);
+        myChildren[childKey] = potentialChild;
+        potentialChild.genMarkup(childIdRoot, doMarkup, doHandlers);
+      } else if(!potentialChild && typeof potentialChild !== 'undefined') {
         myChildren[childKey] = null;
       }
     }
@@ -128,36 +132,38 @@ function(idRoot, childStructures, doMarkup, doHandlers) {
 
 /**
  * @generateDomChildrenByArray: Allocates and computes markup for child
- * structures via an array of specified children. Allocates this.children = []
- * where it stores new child instances.
+ * structures via an array of specified children. Allocates this.domChildList =
+ * [] where it stores new child instances.
  */
 var generateDomChildrenByArray = exports.generateDomChildrenByArray =
 function(idRoot, newChildrenParam, doMarkup, doHandlers) {
-  var childIdRoot, i, child, accum = '',
-      myChildren = this.children = [],
+  var childIdRoot, i, potentialChild, accum = '',
+      myChildren = this.domChildList = [],
       newChildren = newChildrenParam || [];
 
   if (doMarkup) {
     for (i=0; i < newChildren.length; i=i+1) {
-      child = newChildren[i];
+      potentialChild = newChildren[i];
       childIdRoot = idRoot;
       childIdRoot += '.';
       childIdRoot += i;
-      if (child) {
-        myChildren[i] = child;
-        accum += child.genMarkup(childIdRoot, doMarkup, doHandlers);
+      if (potentialChild) {
+        FErrors.throwIf(potentialChild._rootDomId, FErrors.USING_CHILD_TWICE);
+        myChildren[i] = potentialChild;
+        accum += potentialChild.genMarkup(childIdRoot, doMarkup, doHandlers);
       }
     }
     return accum;
   } else {
     for (i=0; i < newChildren.length; i=i+1) {
-      child = newChildren[i];
+      potentialChild = newChildren[i];
       childIdRoot = idRoot;
       childIdRoot += '.';
       childIdRoot += i;
-      if (child) {
-        myChildren[i] = child;
-        child.genMarkup(childIdRoot, doMarkup, doHandlers);
+      if (potentialChild) {
+        FErrors.throwIf(potentialChild._rootDomId, FErrors.USING_CHILD_TWICE);
+        myChildren[i] = potentialChild;
+        potentialChild.genMarkup(childIdRoot, doMarkup, doHandlers);
       }
     }
   }
