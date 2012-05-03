@@ -38,23 +38,34 @@ var FEvent = F.FEvent;
 var FDomGeneration = F.FDomGeneration;
 var FDomAttributes = F.FDomAttributes;
 var FDomMutation = F.FDomMutation;
-var FDom = {};
+var FDomTraversal = F.FDomTraversal;
+var FDom = exports;
 
 /* FDomGeneration */
-var generateDomNodeAndChildren = FDomGeneration.generateDomNodeAndChildren;
+var generateSingleDomAttributes = FDomGeneration.generateSingleDomAttributes;
+var generateDomChildren = FDomGeneration.generateDomChildren;
+
+/* FDomTraversal */
+var extractChildrenLegacy = FDomTraversal.extractChildrenLegacy;
 
 /* FDomMutation */
-var reconcileDomChildrenByKey = FDomMutation.reconcileDomChildrenByKey;
-var reconcileDomChildrenByArray = FDomMutation.reconcileDomChildrenByArray;
 var controlSingleDomNode = FDomMutation.controlSingleDomNode;
+var reconcileDomChildren = FDomMutation.reconcileDomChildren;
 
 /* FDomAttributes */
 var allTagAttrsAndHandlerNames = FDomAttributes.allTagAttrsAndHandlerNames;
 
+
+/* Runtime resolved keys */
+var CHILD_SET_KEY = F.keyOf({childSet: null});
+var CHILD_LIST_KEY = F.keyOf({childList: null});
+var CONTENT_KEY = F.keyOf({content: null});
+var DANGEROUSLY_SET_INNER_HTML_KEY = F.keyOf({dangerouslySetInnerHtml: null});
+
 /**
  * @makeDomContainerComponent: Creates a new javascript Class that is reactive,
- * and idempotent, capable of containing other reactive components.  It has the
- * capabilities of accepting event handlers and dom attributes. In general the
+ * and idempotent, capable of containing other reactive components. It has the
+ * capabilities of accepting event handlers and dom attributes. In general, the
  * properties of a native tag component that is created are as follows: Event
  * handlers currently use top level event delegation exclusively in order to
  * divorce markup generation from controlling the dom (has other performance
@@ -75,35 +86,32 @@ var allTagAttrsAndHandlerNames = FDomAttributes.allTagAttrsAndHandlerNames;
  *
  * -Contained Children:
  *
- * -All native tag components can contain any amount of child components. The
- *  parent of the native tag component should just drop children in under any
- *  name they wish in the properties, right along side style and event
- *  handlers, so long as that name does is not reserved width/className/onClick
- *  etc..
- *
  * -Methods of specifying children: (Choose *only* one method per use)
- * --anyNameYouWant: SomeChild({..})     or
+ * --@deprecated -> anyNameYouWant: SomeChild({..})
  * --childList: [SomeChild({}), AnotherChild({})]
  * --childSet: {anyNameYouWant: SomeChild({}), anyOtherName: Another({})
  *
  * -childSet is highly encouraged as it is much more powerful in terms of
  *  expressiveness (objects carry information about order and also item
  *  identity by key**)
- * -<tag id='x' ${optionalTagText} >...</tag>
  * -**Aside from one issue in Chrome browser only where keys are numeric (but
  *  you wouldn't do that anyways.
  */
 var makeDomContainerComponent = exports.makeDomContainerComponent =
 function(tag, optionalTagTextPar) {
-  var optionalTagText =  optionalTagTextPar || '',
-      tagOpen = "<" + tag + optionalTagText + " id='",
-      tagClose = "</" + tag + ">",
-      headTextTagClose = ">";
+  var optionalTagText =  optionalTagTextPar || '';
+  var tagOpen = "<" + tag + optionalTagText;
+  var tagClose = "</" + tag + ">";
 
   var NativeComponentConstructor = function(initProps) {
     this.props = initProps;
   };
 
+  /**
+   * @ConvenienceConstructor: When you instantiate a div({}), there's actually
+   * a backing class called 'ActualDivClass'. Executing the div function simply
+   * calls new ActualDivClass(props).
+   */
   var ConvenienceConstructor = function(propsParam) {
     var props = propsParam || this;
     return new NativeComponentConstructor(props);
@@ -112,55 +120,61 @@ function(tag, optionalTagTextPar) {
   /**
    * @doControl: Controls a native dom component after it has already been
    * allocated and attached to the dom.
+   * - First reconcile the dom node itself.
+   * - Then reconcile the children.
    */
   NativeComponentConstructor.prototype.doControl = function(nextProps) {
-    if (!this._rootDomId) { throw FErrors.CONTROL_WITHOUT_BACKING_DOM; }
-    if (!nextProps._dontControlTopMostDom) {
-      this.rootDomNode = controlSingleDomNode(
-          this.rootDomNode, this._rootDomId, nextProps, this.props);
-    }
+    FErrors.throwIf(!this._rootDomId, FErrors.CONTROL_WITHOUT_BACKING_DOM);
+
+    /* Control the header (and any content property) */
+    this.rootDomNode = controlSingleDomNode(
+        this.rootDomNode,
+        this._rootDomId,
+        nextProps,
+        this.props);
+
+    /* Mutate the properties. */
     this.props = nextProps;
-    if (this.props._dontControlExistingChildren) {
-      return;
-    }
 
-    if (nextProps.dynamicHandlers) {
-      FEvent.registerHandlers(this._rootDomId, nextProps.dynamicHandlers);
-    }
-
-    if (nextProps.childSet) {
-      reconcileDomChildrenByKey.call(
-          this,
-          nextProps.childSet, null,
-          nextProps._onlyControlChildKeys);
-    } else if(nextProps.childList) {
-      reconcileDomChildrenByArray.call(this, nextProps.childList);
-    } else {
-      reconcileDomChildrenByKey.call(
-          this,
-          nextProps, allTagAttrsAndHandlerNames,
-          nextProps._onlyControlChildKeys);
-    }
+    /* Control the children */
+    reconcileDomChildren.call(
+      this,
+      nextProps[CHILD_LIST_KEY]
+          || nextProps[CHILD_SET_KEY]
+          || extractChildrenLegacy(nextProps)
+    );
   };
 
   /**
-   * @genMarkup: todo: The doControl method is the one responsible for
-   * dispatching control to *byKey, *byArray, *. The same should be done here,
-   * but it's going to be difficult to do that without sacrificing rendering
-   * perf. (It would consist of breaking generateDomNodeAndChildren into two
-   * methods - one for the generating the tag, and one for generating the
-   * contained markup.
+   * @genMarkup:
+   * - First generate the tag header markup itself.
+   * - Then generate the children markup.
+   * Some notes:
+   * - The two properties .childList and .childSet could be unified into
+   *   a single property called .children.
+   * - The code path for extracting "legacy" children could be removed when
+   *   no components are using that child specification format.
    */
-  NativeComponentConstructor.prototype.genMarkup =
-  function(idRoot, doMarkup, doHandlers) {
-    /* Will also populate this._rootDomId - since it "generates node" */
-    return generateDomNodeAndChildren.call(
-        this,
-        tagOpen,
-        tagClose,
-        idRoot,
-        doMarkup,
-        doHandlers);
+  NativeComponentConstructor.prototype.genMarkup = function(idRoot) {
+    var props = this.props;
+
+    /* The open tag (and anything from content key) */
+    var markup = tagOpen + generateSingleDomAttributes.call(this, idRoot);
+
+    /* Children */
+    markup += generateDomChildren.call(
+      this,
+      idRoot,
+      props[CHILD_LIST_KEY] ||
+          props[CHILD_SET_KEY] ||
+          extractChildrenLegacy(props)
+    );
+
+    /* The footer */
+    markup += tagClose;
+
+    return markup;
+
   };
 
   return ConvenienceConstructor;
@@ -205,4 +219,3 @@ FDom.Select = makeDomContainerComponent('select');
 FDom.Option = makeDomContainerComponent('option');
 FDom.Checkbox = makeDomContainerComponent('checkbox');
 FDom.stylers = FUiStylers;
-module.exports = FDom;

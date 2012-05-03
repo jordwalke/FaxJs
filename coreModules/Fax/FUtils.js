@@ -280,6 +280,10 @@ exports.swapKeyOrder = function(obj, singleKeyed, anotherSingleKeyed) {
   // todo
 };
 
+exports.enforceKeyOrder = function(obj, orderedKeys) {
+  // todo
+};
+
 /**
  * Accepts an object, and for each own property, calls mapper, while
  * constructing an array to return.

@@ -27,6 +27,7 @@
  *
  */
 
+
 /**
  * FDomGeneration: Materializes the lowest level building blocks of
  * applications. Current implementation uses string concatenation - alternative
@@ -46,9 +47,7 @@ var STYLE_KEY = keyOf({style: null});
 var POS_INFO_KEY = keyOf({posInfo: null});
 var CONTENT_KEY = keyOf({content: null});
 var DANGEROUSLY_SET_INNER_HTML_KEY = keyOf({dangerouslySetInnerHtml: null});
-var INNER_HTML_KEY = keyOf({innerHtml: null});
 var DYNAMIC_HANDLERS_KEY = keyOf({dynamicHandlers: true});
-
 var CHILD_SET_KEY = keyOf({childSet: null});
 var CHILD_LIST_KEY = keyOf({childList: null});
 
@@ -71,6 +70,9 @@ var renderClassSet = FDomUtils.renderClassSet;
 var tagAttrMarkupFragment = FDomUtils.tagAttrMarkupFragment;
 var serializeInlineStyle = FDomUtils.serializeInlineStyle;
 
+/* FDomTraversal */
+var FDomTraversal = require('./FDomTraversal');
+var traverseChildStructures = FDomTraversal.traverseChildStructures;
 
 /**
  * @setBrowserOptimalPositionComputation: Before the initial render, call this
@@ -81,190 +83,167 @@ var serializeInlineStyle = FDomUtils.serializeInlineStyle;
 var setBrowserOptimalPositionComputation =
 exports.setBrowserOptimalPositionComputation = function(useTransforms) {
   _extractAndSealPosInfoImpl =
-      FDomAttributes.getBrowserPositionComputation(useTransforms);
+  FDomAttributes.getBrowserPositionComputation(useTransforms);
 };
 
 /**
- * -@generateDomChildrenByKey: Computes markup for/allocates child structures.
- *  Invoke with the proper context of 'this', or add to your class as a mixin.
- * -Allocates this.domChildren= {} - where it stores new children.  Note that
- *  this function and generateDomChildrenByArray are very similar, but this one
- *  takes a set of key value specified children. Any attempt to abstract the two
- *  into a common function would likely hurt performance.
- * -See (Comment 1) in @_genMarkup in FStructuredComponent.
- */
-var generateDomChildrenByKey = exports.generateDomChildrenByKey =
-function(idRoot, childStructures, doMarkup, doHandlers) {
-  var childIdRoot, childKey, child, accum = '',
-      myChildren = this.domChildSet = {};
-
-  if (doMarkup) {
-    for (childKey in childStructures) {
-      if (!childStructures.hasOwnProperty(childKey)) { continue; }
-      child = childStructures[childKey];
-      childIdRoot = idRoot;
-      childIdRoot += '.';
-      childIdRoot += childKey;
-      if (child) {
-        FErrors.throwIf(child._rootDomId, FErrors.USING_CHILD_TWICE);
-        myChildren[childKey] = child;
-        accum += child.genMarkup(childIdRoot, doMarkup, doHandlers);
-      }
-    }
-    return accum;
-  } else {
-    for (childKey in childStructures) {
-      if (!childStructures.hasOwnProperty(childKey)) { continue; }
-      child = childStructures[childKey];
-      childIdRoot = idRoot;
-      childIdRoot += '.';
-      childIdRoot += childKey;
-      if (child) {
-        FErrors.throwIf(child._rootDomId, FErrors.USING_CHILD_TWICE);
-        myChildren[childKey] = child;
-        child.genMarkup(childIdRoot, doMarkup, doHandlers);
-      } else if(!child && typeof child !== 'undefined') {
-        myChildren[childKey] = null;
-      }
-    }
-  }
-};
-
-/**
- * @generateDomChildrenByArray: Allocates and computes markup for child
- * structures via an array of specified children. Allocates this.domChildList =
- * [] where it stores new child instances.
- */
-var generateDomChildrenByArray = exports.generateDomChildrenByArray =
-function(idRoot, newChildrenParam, doMarkup, doHandlers) {
-  var childIdRoot, i, child, accum = '',
-      myChildren = this.domChildList = [],
-      newChildren = newChildrenParam || [];
-
-  if (doMarkup) {
-    for (i=0; i < newChildren.length; i=i+1) {
-      child = newChildren[i];
-      childIdRoot = idRoot;
-      childIdRoot += '.';
-      childIdRoot += i;
-      if (child) {
-        FErrors.throwIf(child._rootDomId, FErrors.USING_CHILD_TWICE);
-        myChildren[i] = child;
-        accum += child.genMarkup(childIdRoot, doMarkup, doHandlers);
-      }
-    }
-    return accum;
-  } else {
-    for (i=0; i < newChildren.length; i=i+1) {
-      child = newChildren[i];
-      childIdRoot = idRoot;
-      childIdRoot += '.';
-      childIdRoot += i;
-      if (child) {
-        FErrors.throwIf(child._rootDomId, FErrors.USING_CHILD_TWICE);
-        myChildren[i] = child;
-        child.genMarkup(childIdRoot, doMarkup, doHandlers);
-      }
-    }
-  }
-};
-
-/**
- * @generateDomNodeAndChildren:
- * -Dispatches to proper child allocation function (detects array children vs.
- *  key based children vs. embedded children.)
+ * @generateSingleDomAttributes:
+ * -Does not return children markup.
+ * -In this context, 'content'/'dangerouslySetInnerHtml' are not considered
+ *  children, though they end up being child text nodes.
  * -Generates properties of a physical dom node for the open tag - this is
- *  analogous to reconcilePhysicalDomNode : <div {...here...>} </div>
+ *  analogous to controlSingleDomNode.
+ * -Generates the content that goes:
+ *        /----------here-----------\
+ *    <div (attributes)> content/markup </div>
+ * -content/markup should soon be modeled as children and at that point, this
+ *  function should stop reasoning about them and deal strictly with the tag
+ *  attributes.
  * -Performance explanation: If no one has augmented Object.prototype, iterating
  *  through object properties is faster, even if you know the range of values
  *  that might be found. See http://jsperf.com/obj-vs-arr-iteration . The checks
  *  for each member of the props are in order of likeliness to occur:
  * -Call with context 'this' equaling the instance of dom component that you
  *  want to materialize.
- * -(Comment 1) Since the FDom API allows named children to be embedded
- *  inside of the attributes, not needing to place then in childSet/childList we
- *  accumulate embedded (non-dom attributes) that we encounter. Embedded
- *  children will take precedence over childSet/childList.
- * -- Lazily allocates the object that accumulates embedded children.
+ * -The legacy child structure api would allow for children to be
+ *  embedded as named attributes. We will discourage this, but not fail if we
+ *  encounter them. An external process may extract these out and place them as
+ *  childSet/childList.
  */
-exports.generateDomNodeAndChildren =
-function(tagOpen, tagClose, idRoot, doMarkup, doHandlers) {
-  var tagAttrAccum = '', innerMarkup, finalRet = '', cssText =  '',
-      header = tagOpen;
+exports.generateSingleDomAttributes = function(idRoot) {
   var propKey, prop, props = this.props;
-  var embeddedChildren, childList;
-  header += idRoot;
-  header += "' ";
+  var finalRet = ' id="';
+  var cssText = '';
 
+  finalRet += idRoot;
+  finalRet += '" ';
   this._rootDomId = idRoot;
 
-  /* Handler pack - if all handlers in a single group  */
-  if (doHandlers && props[DYNAMIC_HANDLERS_KEY]) {
-    registerHandlers(idRoot, props[DYNAMIC_HANDLERS_KEY]);
-  }
   for (propKey in props) {
-    if (!props.hasOwnProperty(propKey)) { continue; }
+    if (!props.hasOwnProperty(propKey)) {
+      continue;
+    }
     prop = props[propKey];
-    if (prop === null || typeof prop === 'undefined') { continue; }
+    if (prop === null || typeof prop === 'undefined') {
+      continue;
+    }
 
-    if (doHandlers && abstractHandlers[propKey]) {
+    if (propKey === CLASS_SET_KEY) {
+      finalRet += 'class="';
+      finalRet += renderClassSet(prop);
+      finalRet += '"';
+    } else if (renderSimply[propKey]) {
+      finalRet += tagAttrMarkupFragment(propKey, prop);
+    } else if (propKey === STYLE_KEY) {
+      cssText += escapeTextForBrowser(serializeInlineStyle(prop));
+    } else if (propKey === POS_INFO_KEY) {
+      cssText += escapeTextForBrowser(_extractAndSealPosInfoImpl(prop));
+    } else if (abstractHandlers[propKey]) {
       registerHandlerByName(idRoot, propKey, prop);
     }
-    if (doMarkup) {
-      if (propKey === CLASS_SET_KEY) {
-        tagAttrAccum += "class='";
-        tagAttrAccum += renderClassSet(prop);
-        tagAttrAccum += "'";
-      } else if (renderSimply[propKey]) {
-        tagAttrAccum += tagAttrMarkupFragment(propKey, prop);
-      } else if (propKey === STYLE_KEY) {
-        cssText += escapeTextForBrowser(serializeInlineStyle(prop));
-      } else if (propKey === POS_INFO_KEY) {
-        cssText += escapeTextForBrowser(_extractAndSealPosInfoImpl(prop));
-      } else if (propKey === CONTENT_KEY) {
-        innerMarkup = escapeTextForBrowser(prop);
-      } else if (propKey === DANGEROUSLY_SET_INNER_HTML_KEY) {
-        innerMarkup = prop;
-      } else if (propKey === INNER_HTML_KEY) {
-        throw FErrors.CANNOT_SET_INNERHTML;
-      } else if (prop.props) {   // See (Comment 1)
-        if (!embeddedChildren) {
-          embeddedChildren = {};
-        }
-        embeddedChildren[propKey] = prop;
-      }
-    } else {
-      if (prop.props) {
-        if (!embeddedChildren) {
-          embeddedChildren = {};
-        }
-        embeddedChildren[propKey] = prop;
-      }
-    }
   }
 
-  if (embeddedChildren || props.childSet) {
-    innerMarkup = generateDomChildrenByKey.call(
-        this, idRoot, embeddedChildren || props.childSet, doMarkup, doHandlers);
-  } else if (props.childList) {
-    innerMarkup = generateDomChildrenByArray.call(
-        this, idRoot, props.childList, doMarkup, doHandlers);
+  if (cssText) {
+    finalRet += " style='";
+    finalRet += cssText;
+    finalRet += "'";
   }
+  finalRet += '>';
 
-  if (doMarkup) {
-    finalRet += header;
-    finalRet += tagAttrAccum;
-    if (cssText) {
-      finalRet += " style='";
-      finalRet += cssText;
-      finalRet += "'";
-    }
-    finalRet += '>';
-    if (innerMarkup) {
-      finalRet += innerMarkup;
-    }
-    finalRet += tagClose;
-    return finalRet;
+  if (props[CONTENT_KEY]) {
+    finalRet += escapeTextForBrowser(props[CONTENT_KEY]);
+  } else if (props[DANGEROUSLY_SET_INNER_HTML_KEY]) {
+    /* This should actually be disabled entirely */
+    finalRet += props[DANGEROUSLY_SET_INNER_HTML_KEY];
   }
+  return finalRet;
 };
+
+
+/*
+ * @generateDomChildren: The master generator. Will allocate, store references
+ * to, and compute markup for all children of dom node with id @idRoot. It
+ * will not compute markup or allocate children for any components other than
+ * its immediate children. @childStructures represents the logical children
+ * that this component needs to instantiate and track. If you were to look at
+ * @childStructures, you'd see that it may be quite deep - but all of that depth
+ * is flattened as we store references to those children.
+ *
+ * One thing that's a bit confusing is that we're dealing with two types of
+ * "structures".
+ *
+ * 1. The structure of the "childStructures" param of this function.
+ * 2. Actual dom structure of the dom nodes that eventually end up on the page:
+ * (relationships between parent and children dom nodes).
+ *
+ * The structure of #1, may not be the same as #2. For example, someone could
+ * specify children:
+ * [ someSpan, { red: divOne, blue: divTwo } ]
+ *
+ * All of these children would become siblings, flattened into a single list.
+ * If the parent's @idRoot is 'a', then the parent will have three children with
+ * the following dom node id's:
+ * Name of first child  : a.[0]         // Will contain someSpan
+ * Name of second child : a.[1]{red}    // Will contain divOne
+ * Name of third child  : a.[1]{blue}   // Will contain divTwo
+ *
+ * By convention '.' provides information about the DOM hierarchy. In this
+ * example, the ids of the children will reflect that they are children of 'a'.
+ * Everything that is is not a '.' only conveys the @childName that a parent may
+ * reference a child by. The parent only sees these three children as:
+ *
+ * Name of first child  : a.X    (where X = "[0]")
+ * Name of second child : a.Y    (where Y = "[1]{red}")
+ * Name of third child  : a.Z    (where Z = "[0]{blue}")
+ *
+ * From the parent's perspective, the text that appears to be structured
+ * "[1]{red}", is just a flat name by which it may reference a particular child.
+ *
+ * When you see those special names to the right of a "." -- you know that the
+ * parent will store references to those children in @parent.logicalChildren
+ * under those names. In this case, @parent.logicalChildren["[0]"] will have a
+ * reference to the child that has a complete dom node id of "a.[0]".
+ *
+ * The special form of naming children encodes the form that the programmer
+ * provided the children in.
+ * 
+ * [brackets] imply that a child was specified in an array - and at which index.
+ * {braces} imply that a child was specified in an object - and with which key.
+ *
+ * Encoding the form that was provided by the programmer is a convention that
+ * helps determine programmer intent at "reconciliation time".
+ *
+ */
+
+var generateDomChildren = function(idRoot, childStructures) {
+  if (!childStructures) {
+    return '';
+  }
+
+  var logicalChildren = this.logicalChildren = [];
+  /*
+   * If keeping track of child indices on generation slows down rendering
+   * significantly, computation of childIndices may be removed from this
+   * function. If so, the reconciliation process will realize this information
+   * is missing and compute it lazily.
+   */
+  var childIndices = this.childIndices = {};  
+  var accum = '';
+  var onChildFound = function(child, name, index) {
+    FErrors.throwIf(child._rootDomId, FErrors.USING_CHILD_TWICE);
+    child.name = name;
+    logicalChildren.push(child);
+    accum += child.genMarkup(idRoot + '.' + name, true, true);
+    childIndices[name] = index;
+  };
+  var onEmptyChildFound = function(name, index) {
+    logicalChildren.push(null);
+    childIndices[name] = index;
+  };
+  traverseChildStructures(childStructures, onChildFound, onEmptyChildFound);
+  return accum;
+};
+
+
+exports.generateDomChildren = generateDomChildren;
 

@@ -48,6 +48,7 @@ var FEvent = require('./FEvent');
 var FEnv = require('./FEnv');
 var FErrors = require('./FErrors');
 var FDomAttributes = require('./FDomAttributes');
+var FDomTraversal = require('./FDomTraversal');
 var FUtils = require('./FUtils');
 var FStructuredComponent = require('./FStructuredComponent');
 var FDomUtils = require('./FDomUtils');
@@ -437,7 +438,8 @@ module.exports = Fax = {
   FEvent: FEvent,
   FDomGeneration: FDomGeneration,
   FDomMutation: FDomMutation,
-  FDomAttributes: FDomAttributes
+  FDomAttributes: FDomAttributes,
+  FDomTraversal: FDomTraversal
 };
 /**
  * Members used to work around object key minification are the only entry points
