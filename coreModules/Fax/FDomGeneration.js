@@ -206,7 +206,7 @@ exports.generateSingleDomAttributes = function(idRoot) {
  *
  * The special form of naming children encodes the form that the programmer
  * provided the children in.
- * 
+ *
  * [brackets] imply that a child was specified in an array - and at which index.
  * {braces} imply that a child was specified in an object - and with which key.
  *
@@ -227,7 +227,7 @@ var generateDomChildren = function(idRoot, childStructures) {
    * function. If so, the reconciliation process will realize this information
    * is missing and compute it lazily.
    */
-  var childIndices = this.childIndices = {};  
+  var childIndices = this.childIndices = {};
   var accum = '';
   var onChildFound = function(child, name, index) {
     FErrors.throwIf(child._rootDomId, FErrors.USING_CHILD_TWICE);

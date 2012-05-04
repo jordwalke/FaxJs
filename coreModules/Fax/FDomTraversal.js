@@ -32,15 +32,15 @@ var FDomAttributes = require('./FDomAttributes');
 
 
 /**
- * @extractChildrenLegacy: In the legacy specification, dom components may accept
- * named attributes that are not in the reserved attribue names (such as onClick/
- * classSet) and these would be interpreted as named children (instead of using
- * childSet/childList). The new dom children specification accepts a structure
- * that is an array/object tree that is flattened by the rendering/reconciliation
- * engine. This allows users of the old format to be compatible with the newer
- * rendering/reconciliation engine that performs flattening. We don't need to be
- * too concerned about the performance of this as old code should be migrated to
- * the new specification.
+ * @extractChildrenLegacy: In the legacy specification, dom components may
+ * accept named attributes that are not in the reserved attribue names (such
+ * as onClick/ classSet) and these would be interpreted as named children
+ * (instead of using childSet/childList). The new dom children specification
+ * accepts a structure that is an array/object tree that is flattened by the
+ * rendering/reconciliation engine. This allows users of the old format to be
+ * compatible with the newer rendering/reconciliation engine that performs
+ * flattening. We don't need to be too concerned about the performance of this
+ * as old code should be migrated to the new specification.
  */
 var extractChildrenLegacy = function(props) {
   if (props.content) {
@@ -75,10 +75,10 @@ exports.extractChildrenLegacy = extractChildrenLegacy;
  * genMarkup. We don't need to make the user of this function perform that check
  * again.
  *
- * The pattern of having callbacks that mutate their environment is not desirable
- * but it may be the only efficient way to implement a very general traverser
- * that is performs well for markup generation, and reconcilation (reconciliation
- * being a mutative process.)
+ * The pattern of having callbacks that mutate their environment is not
+ * desirable but it may be the only efficient way to implement a very general
+ * traverser that is performs well for markup generation, and reconcilation
+ * (reconciliation being a mutative process.)
  *
  */
 var traverseChildStructures = function(childStructures, cb, emptyCb) {

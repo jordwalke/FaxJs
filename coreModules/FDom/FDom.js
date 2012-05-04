@@ -1,5 +1,5 @@
 /*
- * FJs User Interface toolkit.
+ * FaxJs User Interface toolkit.
  *
  * Copyright (c) 2011 Jordan Walke
  *
@@ -39,7 +39,6 @@ var FDomGeneration = F.FDomGeneration;
 var FDomAttributes = F.FDomAttributes;
 var FDomMutation = F.FDomMutation;
 var FDomTraversal = F.FDomTraversal;
-var FDom = exports;
 
 /* FDomGeneration */
 var generateSingleDomAttributes = FDomGeneration.generateSingleDomAttributes;
@@ -139,9 +138,9 @@ function(tag, optionalTagTextPar) {
     /* Control the children */
     reconcileDomChildren.call(
       this,
-      nextProps[CHILD_LIST_KEY]
-          || nextProps[CHILD_SET_KEY]
-          || extractChildrenLegacy(nextProps)
+      nextProps[CHILD_LIST_KEY] ||
+          nextProps[CHILD_SET_KEY] ||
+          extractChildrenLegacy(nextProps)
     );
   };
 
@@ -186,36 +185,40 @@ function(tag, optionalTagTextPar) {
  * convenience constructors correspond to either dom properties, or named
  * children. See the extensive comments above.
  */
-FDom.Div = makeDomContainerComponent('div');
-FDom.TextArea = makeDomContainerComponent('textarea');
-FDom.Label = makeDomContainerComponent('label');
-FDom.Ul = makeDomContainerComponent('ul');
-FDom.Dl = makeDomContainerComponent('dl');
-FDom.Dt = makeDomContainerComponent('dt');
-FDom.Dd = makeDomContainerComponent('Dd');
-FDom.P = makeDomContainerComponent('p');
-FDom.Pre = makeDomContainerComponent('pre');
-FDom.Hr = makeDomContainerComponent('hr');
-FDom.Br = makeDomContainerComponent('br');
-FDom.Img = makeDomContainerComponent('img');
-FDom.A = makeDomContainerComponent('a');
-FDom.Li = makeDomContainerComponent('li');
-FDom.I = makeDomContainerComponent('i');
-FDom.H1 = makeDomContainerComponent('h1');
-FDom.H2 = makeDomContainerComponent('h2');
-FDom.H3 = makeDomContainerComponent('h3');
-FDom.H4 = makeDomContainerComponent('h4');
-FDom.H5 = makeDomContainerComponent('h5');
-FDom.H6 = makeDomContainerComponent('h6');
-FDom.Span = makeDomContainerComponent('span');
-FDom.Input = makeDomContainerComponent('input');
-FDom.Button = makeDomContainerComponent('button');
-FDom.Table = makeDomContainerComponent('table');
-FDom.Tr = makeDomContainerComponent('tr');
-FDom.Th = makeDomContainerComponent('th');
-FDom.Td = makeDomContainerComponent('td');
-FDom.IFrame = makeDomContainerComponent('iframe');
-FDom.Select = makeDomContainerComponent('select');
-FDom.Option = makeDomContainerComponent('option');
-FDom.Checkbox = makeDomContainerComponent('checkbox');
-FDom.stylers = FUiStylers;
+var FDom = {
+  Div: makeDomContainerComponent('div'),
+  TextArea: makeDomContainerComponent('textarea'),
+  Label: makeDomContainerComponent('label'),
+  Ul: makeDomContainerComponent('ul'),
+  Dl: makeDomContainerComponent('dl'),
+  Dt: makeDomContainerComponent('dt'),
+  Dd: makeDomContainerComponent('Dd'),
+  P: makeDomContainerComponent('p'),
+  Pre: makeDomContainerComponent('pre'),
+  Hr: makeDomContainerComponent('hr'),
+  Br: makeDomContainerComponent('br'),
+  Img: makeDomContainerComponent('img'),
+  A: makeDomContainerComponent('a'),
+  Li: makeDomContainerComponent('li'),
+  I: makeDomContainerComponent('i'),
+  H1: makeDomContainerComponent('h1'),
+  H2: makeDomContainerComponent('h2'),
+  H3: makeDomContainerComponent('h3'),
+  H4: makeDomContainerComponent('h4'),
+  H5: makeDomContainerComponent('h5'),
+  H6: makeDomContainerComponent('h6'),
+  Span: makeDomContainerComponent('span'),
+  Input: makeDomContainerComponent('input'),
+  Button: makeDomContainerComponent('button'),
+  Table: makeDomContainerComponent('table'),
+  Tr: makeDomContainerComponent('tr'),
+  Th: makeDomContainerComponent('th'),
+  Td: makeDomContainerComponent('td'),
+  IFrame: makeDomContainerComponent('iframe'),
+  Select: makeDomContainerComponent('select'),
+  Option: makeDomContainerComponent('option'),
+  Checkbox: makeDomContainerComponent('checkbox'),
+  stylers: FUiStylers
+};
+
+module.exports = FDom;
