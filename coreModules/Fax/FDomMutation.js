@@ -563,11 +563,6 @@ var reconcileDomChildren = function(childStructures) {
       placeChildAtIndex(next, cursor);
       domCursor = insertNewChildInstance(rootDomNode, next, nextId, domCursor);
     } else {
-      /* There is a previously existing instance with same type and the name
-       * somewhere. Control it and make sure it's "placed" at the cursor.  */
-      placeChildAtIndex(currentInstance, cursor);
-      currentInstance.doControl(next.props);
-
       if (currentIndex === EVICTION_INDEX) {
         domCursor = unevictChildTo(currentInstance, cursor, domCursor);
       } else if (currentIndex !== cursor) {
@@ -577,6 +572,12 @@ var reconcileDomChildren = function(childStructures) {
         /* No DOM movements needed! Just move the DOM cursor along. */
         domCursor = domCursor ? domCursor.nextSibling : rootDomNode.firstChild;
       }
+      /* There is a previously existing instance with same type and the name
+       * somewhere. Control it and make sure it's "placed" at the cursor. We
+       * must be careful to control the current instance only after we've
+       * unevicted any potential dom nodes back into the dom. */
+      placeChildAtIndex(currentInstance, cursor);
+      currentInstance.doControl(next.props);
     }
     lastCursor = cursor;
   };
