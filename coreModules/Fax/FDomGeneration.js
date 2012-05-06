@@ -83,7 +83,7 @@ var traverseChildStructures = FDomTraversal.traverseChildStructures;
 var setBrowserOptimalPositionComputation =
 exports.setBrowserOptimalPositionComputation = function(useTransforms) {
   _extractAndSealPosInfoImpl =
-  FDomAttributes.getBrowserPositionComputation(useTransforms);
+    FDomAttributes.getBrowserPositionComputation(useTransforms);
 };
 
 /**
@@ -162,10 +162,10 @@ exports.generateSingleDomAttributes = function(idRoot) {
 
 /*
  * @generateDomChildren: The master generator. Will allocate, store references
- * to, and compute markup for all children of dom node with id @idRoot. It
- * will not compute markup or allocate children for any components other than
- * its immediate children. @childStructures represents the logical children
- * that this component needs to instantiate and track. If you were to look at
+ * to, and compute markup for all children of dom node with id @idRoot. It will
+ * not compute markup or allocate children for any components other than its
+ * immediate children. @childStructures represents the logical children that
+ * this component needs to instantiate and track. If you were to look at
  * @childStructures, you'd see that it may be quite deep - but all of that depth
  * is flattened as we store references to those children.
  *

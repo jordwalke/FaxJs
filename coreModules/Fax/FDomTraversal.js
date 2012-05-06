@@ -82,17 +82,18 @@ exports.extractChildrenLegacy = extractChildrenLegacy;
  *
  */
 var traverseChildStructures = function(childStructures, cb, emptyCb) {
-  var key, i, indexIntoFlattened = 0;
+  var indexIntoFlattened = 0;
   /**
    * @traverseImpl: Eliminates the need to continuously pass the cb and emptyCb
    * to each recursive call.
    */
   var traverseImpl = function(structures, prefix) {
+    var key, i;
     if (structures instanceof Array) {
       for (i = 0; i < structures.length; i++) {
         traverseImpl(structures[i], prefix + '[' + i + ']');
       }
-    } else if (!structures && emptyCb) {
+    } else if (!structures) {
       emptyCb(prefix, indexIntoFlattened);
       indexIntoFlattened++;
     } else if (structures.genMarkup) {

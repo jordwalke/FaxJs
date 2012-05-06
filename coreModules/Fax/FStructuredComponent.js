@@ -99,9 +99,9 @@ var AllStructuredComponentsHave = {
    * a bottle neck for rendering!  So make sure you don't have very large
    * objects for components that are instantiated thousands of times.
    */
-  genMarkup: function(idRoot, gen, events) {
+  genMarkup: function(idRoot) {
     var ret, initState;
-    if(!events && this._optimizedRender) {
+    if(this._optimizedRender) {
       return this._optimizedRender(idRoot);
     } else {
       initState = this.initState;
@@ -113,7 +113,7 @@ var AllStructuredComponentsHave = {
         }
       }
       this._rootDomId = idRoot;
-      return this._genMarkup(idRoot, gen, events);
+      return this._genMarkup(idRoot);
     }
   },
 
@@ -256,7 +256,7 @@ var AllStructuredComponentsHave = {
    * difficult to implement a system that can quickly determine if a safe copy
    * needs to be cloned, and then perform the clone.
    */
-  _genMarkup: function(idSpaceSoFar, gen, events) {
+  _genMarkup: function(idSpaceSoFar) {
     structuringInstanceLock = this;
     var structure = this.structure();
     structuringInstanceLock = null;
@@ -264,7 +264,7 @@ var AllStructuredComponentsHave = {
 
     /* See (Comment 1) */
     this.child = structure;
-    return structure.genMarkup(idSpaceSoFar, gen, events);
+    return structure.genMarkup(idSpaceSoFar);
   },
 
   _controlDomNode: function(path, domAttrs) {
@@ -276,6 +276,7 @@ var AllStructuredComponentsHave = {
         domAttrs,
         null);
   },
+
   _childDom: function(path) {
     var normalized = path.replace('structure', '');
     return document.getElementById(this._rootDomId + normalized);

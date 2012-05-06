@@ -49,6 +49,7 @@ var POS_INFO_KEY = keyOf({posInfo: null});
 var CONTENT_KEY = keyOf({content: null});
 var DANGEROUSLY_SET_INNER_HTML_KEY = keyOf({dangerouslySetInnerHtml: null});
 var INNER_HTML_KEY = keyOf({innerHtml: null});
+var DOESNT_MATTER_KEY = keyOf({ifItWasNullBeforeItDoesntMatterWhatItsNameWas:null});
 
 /* FDomAttributes */
 var _extractAndSealPosInfoImpl = FDomAttributes.extractAndSealPosInfo;
@@ -177,158 +178,6 @@ var computeNameIndices = function(arr) {
 };
 
 /**
- * @reconcileDomChildren: Reconciles dom children with the provided
- * @childStructure - new child structure that should exist.
- * -(Comment 1) We memoize these child indices for use in the next reconciliation.
- *  nextChildIndices[t] = curChildIndices[t+1]
- */
-var reconcileDomChildrenMultiPass = function(childStructures) {
-  if (!childStructures && !this.logicalChildren) {
-    return;
-  }
-  var currentChildren = (childStructures && !this.logicalChildren) ?
-    this.logicalChildren = [] :
-    this.logicalChildren;
-
-  var cleanUp = {};
-  function release () {
-    FEvent.releaseMemoryReferences(cleanUp);
-    cleanUp = {};
-  }
-
-  var nextChildren = [];
-  var nextChildIndices = {};   // See (Comment 1)
-  var curChildIndices = {};
-  var nextCount = 0;
-  var onChildFound = function(nextChild, name) {
-    nextChild.name = name;
-    nextChildren.push(nextChild);
-    nextChildIndices[name] = nextCount;
-    nextCount++;
-  };
-
-  var onEmptyChildFound = function(name) {
-    nextChildren.push(null);
-    nextChildIndices[name] = nextCount;
-    nextCount++;
-  };
-
-  traverseChildStructures(childStructures, onChildFound, onEmptyChildFound);
-
-  /*
-   * When rendering - we compute curChildIndices - but we could easily rip that
-   * computation out of the render path and fall back on this.
-   *
-   * -(Comment 1) If we need to allocate new resources because the name was
-   * previously used to represent a different type of component.
-   */
-  curChildIndices = this.curChildIndices || computeNameIndices(currentChildren);
-
-  var rootDomNode = this.rootDomNode;
-  var newChildren = [];
-  var domCursor = null;
-  var max = Math.max(currentChildren.length, nextChildren.length);
-  for (var j=0; j < max; j++) {
-    var cur = currentChildren[j];
-    var next = nextChildren[j];
-    if (next) {
-      var nextName = next.name;
-      var nextId = this._rootDomId + '.' + nextName;
-      var nextUsedToBeAt = curChildIndices[nextName];
-      var nextUsedToBe = currentChildren[nextUsedToBeAt];
-      /* Condition for needing to allocate new resources. */
-      if (!nextUsedToBe ||
-          nextUsedToBe && nextUsedToBe.constructor !== next.constructor) {
-        /* See (Comment 1) */
-        if (nextUsedToBe && nextUsedToBe.constructor !== next.constructor) {
-          cleanUp[nextId] = true;
-          release();
-        }
-        /* Allocate resources and insert */
-        newChildren[j] = next;
-        domCursor = FDomUtils.insertNodeAfterNode(
-          rootDomNode,
-          FDomUtils.singleDomNodeFromMarkup(next.genMarkup(nextId)),
-          domCursor
-        );
-      } else {
-        nextUsedToBe.doControl(next.props);
-        if (nextUsedToBeAt === j) {
-          // The common case is fast thanks to nextUsedToBeAt !== j check!
-          domCursor = domCursor ? domCursor.nextSibling :
-                        rootDomNode.firstChild;
-          newChildren[j] = nextUsedToBe;
-        } else {
-          // Could use document.getElementById or offset into children.
-          newChildren[j] = nextUsedToBe;
-          domCursor = insertNodeAfterNode(
-            rootDomNode,
-            rootDomNode.removeChild(
-              nextUsedToBe.rootDomNode ||
-                document.getElementById(nextUsedToBe._rootDomId)
-            ),
-            domCursor
-          );
-        }
-      }
-    }
-
-    /*
-     * So far, the algorithm has been passing through the next children array,
-     * finding any old instance that match the name and reusing that instance to
-     * preserve local state. If next was truthy, we found the correct instance
-     * from the previous currentChildren to use. But now, we need to "look ahead"
-     * to see if the current instance at location j *will* be claimed. If not,
-     * no one else will clean up the resources so we have to do it. This doesn't
-     * even have anything to do with nextChildren[j] except for the fact that it
-     * happens to be at the same index - dealing with this now saves an extra
-     * pass through the entire array sets.
-     */
-    var curIsNotInNextChildrenOrIsFalseyInNextChildren =
-      cur &&
-          (nextChildIndices[cur.name] === undefined ||
-          !nextChildren[nextChildIndices[cur.name]]);
-
-    if (curIsNotInNextChildrenOrIsFalseyInNextChildren) {
-      /*
-       * No need to call release() since it won't be replaced with a substituted
-       * child of the same name. In every other case where we've called release()
-       * - it was because we were going to replace the instance with a new
-       * instance that had the same id (and we would have gotten callbacks fired
-       * on the new instance - though they were intended for the old.
-       */
-      cleanUp[cur._rootDomId] = true;
-      rootDomNode.removeChild(
-        cur.rootDomNode || document.getElementById(cur._rootDomId)
-      );
-    }
-  }
-  release();
-  this.logicalChildren = newChildren;
-  this.curChildIndices = nextChildIndices;
-};
-
-exports.reconcileDomChildrenMultiPass = reconcileDomChildrenMultiPass;
-
-/**
- * @insertNewChildInstance: Initializes (sets up handlers etc) and computes
- * markup for @newChildInstance. Inserts the new markup into the dom after
- * @after. Has side effects on @newChildInstance in that it initializes it and
- * mounts it at the @newInstanceId namespace. @returns the new dom node that was
- * inserted.
- */
-var insertNewChildInstance =
-function(parentRootDomNode, newChildInstance, newInstanceId, after) {
-  return FDomUtils.insertNodeAfterNode(
-    parentRootDomNode,
-    FDomUtils.singleDomNodeFromMarkup(
-      newChildInstance.genMarkup(newInstanceId)
-    ),
-    after
-  );
-};
-
-/**
  * @getAndCacheRootDomNode: Gets the root dom node of an instance or finds it in
  * the dom and caches it.
  */
@@ -340,22 +189,43 @@ var getAndCacheRootDomNode = function(instance) {
 };
 
 /**
- * @removeChildDomNode: removes a child instance's dom node from a parent.
+ * @insertNewChildInstance: Initializes (sets up handlers etc) and computes
+ * markup for @newChildInstance. Inserts the new markup into the dom after
+ * @after. Has side effects on @newChildInstance in that it initializes it and
+ * mounts it at the @newInstanceId namespace.
+ * @returns the new dom node that was inserted.
  */
-var removeChildDomNode = function(parentRootDomNode, childInstance) {
+var insertNewChildInstance =
+function(parentInstance, newChildInstance, newInstanceId, after) {
+  var parentRootDomNode = getAndCacheRootDomNode(parentInstance);
+  return FDomUtils.insertNodeAfterNode(
+    parentRootDomNode,
+    FDomUtils.singleDomNodeFromMarkup(
+      newChildInstance.genMarkup(newInstanceId)
+    ),
+    after
+  );
+};
+
+/**
+ * @removeChildInstanceDom: removes a child instance's dom node from a parent.
+ */
+var removeChildInstanceDom = function(parentInstance, childInstance) {
+  var parentRootDomNode = getAndCacheRootDomNode(parentInstance);
   return parentRootDomNode.removeChild(getAndCacheRootDomNode(childInstance));
 };
 
 /**
- * @moveCurrentInstanceDom: For a given @instance, moves its dom
- * resources after @after. Does not have side effects on @instance, but has side
- * effects on the dom (of course). @returns the dom node that was move.
+ * @moveCurrentInstanceDom: For a given @childInstance, moves its dom resources
+ * after @after. Does not have side effects on @childInstance, but has side
+ * effects on the dom (of course).
+ * @returns the dom node that was moved.
  */
-var moveCurrentInstanceDom =
-function(parentRootDomNode, childInstance, after) {
+var moveCurrentInstanceDom = function(parentInstance, childInstance, after) {
+  var parentRootDomNode = getAndCacheRootDomNode(parentInstance);
   return insertNodeAfterNode(
     parentRootDomNode,
-    removeChildDomNode(parentRootDomNode, childInstance),
+    removeChildInstanceDom(parentInstance, childInstance),
     after
   );
 };
@@ -366,16 +236,20 @@ function(parentRootDomNode, childInstance, after) {
  * @reconcileDomChildren: Reconciles dom children with the provided
  * @childStructure - new child structure that should exist.
  * -(Comment 1) We memoize these child indices for use in the next
- * reconciliation. nextChildIndices[t] = curChildIndices[t+1]
+ *  reconciliation.
  * -(Comment 2) When rendering - we compute childIndices - but we could easily
  *  rip that computation out of the render path and fall back on this.
  * -(Comment 3) If we need to allocate new resources because the name was
  *  previously used to represent a different type of component.
- * -(Comment 1-2): No need to remove the evicted dom node as all dom nodes are
+ * -(Comment 4): No need to remove the evicted dom node as all dom nodes are
  *  removed upon eviction. This is to eliminate flickering. If they are left in
  *  the dom until they are claimed, there's a lot of jitters that occur. But
  *  immediately removing the evicted dom node and reinserting when found causes
  *  the dom list to change in a very uniform manner that avoids flickering.
+ * -(Comment 5): There is a previously existing instance with same type and the
+ *  name somewhere. Control it and make sure it's "placed" at the cursor. We
+ *  must be careful to control the current instance only after we've unevicted
+ *  any potential dom nodes back into the dom.
  *
  * Assumptions: At all times, for any i, we know the child at index i, and for
  * any child name we know the index that that named child resides at. We mantain
@@ -420,9 +294,9 @@ function(parentRootDomNode, childInstance, after) {
  * tells us every name's index involves updating that map to indicate when the
  * current index of a name is in the eviction pool! When we get to Z (two places
  * downstream, we will try to find the current Z by looking up its location in
- * the index map - it will tell us it's in the eviction pool.) When we place
- * an element from the eviction pool back into the logical children list/dom,
- * we need to remove it from the eviction pool. When the stream has terminated,
+ * the index map - it will tell us it's in the eviction pool.) When we place an
+ * element from the eviction pool back into the logical children list/dom, we
+ * need to remove it from the eviction pool. When the stream has terminated,
  * anything left in the eviction pool remained unclaimed and we must free the
  * resources associated with it.
  *
@@ -437,16 +311,17 @@ function(parentRootDomNode, childInstance, after) {
  * will require that every element enter and leave the eviction pool once. We
  * could easily write a mirror of this algorithm that biases the other direction
  * and swap algorithms intelligently when we know the direction that elements
- * are moving.
+ * are moving.)
+ *
  */
 var reconcileDomChildren = function(childStructures) {
   if (!childStructures && !this.logicalChildren) {
     return;
   }
 
+  var self = this;
   var lastCursor = 0;
   var EVICTION_INDEX = -999;
-  var rootDomNode = getAndCacheRootDomNode(this);
   var rootDomId = this._rootDomId;
   var domCursor = null;
   var evictionPool = {};
@@ -468,7 +343,7 @@ var reconcileDomChildren = function(childStructures) {
   /**
    * @placeChildAtIndex: Since the single pass algorithm requires both array and
    * lookup-map behavior, every time we place a child at an index, we need to
-   * update the mapping.
+   * update the mapping. See (Comment 1)
    */
   var placeChildAtIndex = function(childInstance, i) {
     var oldIndex = childIndices[childInstance.name];
@@ -487,6 +362,7 @@ var reconcileDomChildren = function(childStructures) {
    * can be retrieved. Caution: evicting won't update the logicalChildren array
    * Usually when you evict a child it's because you're going to wipe out the
    * contents of that array index anyways.
+   * See (Comment 4)
    */
   var evictChildAt = function(i) {
     var toEvict = logicalChildren[i];
@@ -496,32 +372,31 @@ var reconcileDomChildren = function(childStructures) {
     var name = toEvict && toEvict.name;
     childIndices[name] = EVICTION_INDEX;
     evictionPool[name] = toEvict;
-    removeChildDomNode(rootDomNode, toEvict);
+    removeChildInstanceDom(self, toEvict);
   };
 
   /**
    * @unevictChildTo: Removes a child from eviction, and reinserts their dom
-   * content. Ensures that their logical structure is recorded at index @i.
-   * We know that those dom nodes are cached so we don't need to check.
+   * content. Ensures that their logical structure is recorded at index @i.  We
+   * know that the child's root dom node is cached upon the initial eviction so
+   * we don't need to check.
    * @returns the dom node that was inserted.
    */
   var unevictChildTo = function(childInstance, i, insertAfter) {
     delete evictionPool[childInstance.name];
     return insertNodeAfterNode(
-      rootDomNode,
+      getAndCacheRootDomNode(self),
       childInstance.rootDomNode,
       insertAfter
     );
   };
 
   /**
-   * @onEmptyChildFound: Evict whatever might already reside there.
+   * @onEmptyChildFound: Evict whatever might already reside there. Now
+   * remember, we're not evicting the empty child found, just the instance tha
+   * happens to reside at this particular cursor location.
    */
   var onEmptyChildFound = function(name, cursor) {
-    /*
-     * Now remember, we're not evicting the empty child found, just the instance
-     * tha happens to reside at this particular cursor location.
-     */
     evictChildAt(cursor);
     logicalChildren[cursor] = null;
     childIndices[name] = cursor;
@@ -551,33 +426,31 @@ var reconcileDomChildren = function(childStructures) {
       evictChildAt(cursor);
     }
 
-    if (!currentInstance || currentExistsButWithDifferentType) {
+    if (!currentInstance || currentExistsButWithDifferentType) { /* (Comment 3) */
       nextId = rootDomId + '.' + nextName;
       /* Deal with the previously existing instance corresponding to "next" */
       if (currentExistsButWithDifferentType) {
-        removeChildDomNode(rootDomNode, currentInstance);
-        cleanUp[nextId] = true;    /* See (Comment 1) */
+        removeChildInstanceDom(self, currentInstance);
+        cleanUp[nextId] = true; 
         release();
       }
       next.name = nextName;
       placeChildAtIndex(next, cursor);
-      domCursor = insertNewChildInstance(rootDomNode, next, nextId, domCursor);
+      domCursor = insertNewChildInstance(self, next, nextId, domCursor);
     } else {
       if (currentIndex === EVICTION_INDEX) {
         domCursor = unevictChildTo(currentInstance, cursor, domCursor);
       } else if (currentIndex !== cursor) {
-        domCursor = moveCurrentInstanceDom(
-              rootDomNode, currentInstance, domCursor);
+        domCursor = moveCurrentInstanceDom(self, currentInstance, domCursor);
       } else {
-        /* No DOM movements needed! Just move the DOM cursor along. */
-        domCursor = domCursor ? domCursor.nextSibling : rootDomNode.firstChild;
+        /* No DOM movements needed! Just move the DOM cursor along. It would be
+         * great to not even need to traverse the DOM structure here. We know
+         * the index-that should be sufficient to keep track of dom position */
+        domCursor = domCursor ? domCursor.nextSibling :
+          getAndCacheRootDomNode(self).firstChild;
       }
-      /* There is a previously existing instance with same type and the name
-       * somewhere. Control it and make sure it's "placed" at the cursor. We
-       * must be careful to control the current instance only after we've
-       * unevicted any potential dom nodes back into the dom. */
       placeChildAtIndex(currentInstance, cursor);
-      currentInstance.doControl(next.props);
+      currentInstance.doControl(next.props);   /* See (Comment 5) */
     }
     lastCursor = cursor;
   };
@@ -588,15 +461,17 @@ var reconcileDomChildren = function(childStructures) {
    * for by the stream. (In other words, the list of children shrunk since last
    * time)
    */
+  var streamLength = lastCursor;
   var curLength = logicalChildren.length;
-  for (var k=lastCursor + 1; k < curLength; k++) {
+  var k;
+  for (k=lastCursor + 1; k < curLength; k++) {
     onEmptyChildFound(
       logicalChildren[k] ? logicalChildren[k].name :
-      'ifItWasNullBeforeItDoesntMatterWhatItsNameWas',
+      DOESNT_MATTER_KEY,
       k
     );
   }
-  logicalChildren.length = lastCursor + 1;
+  logicalChildren.length = streamLength+1;
 
   /*
    * No need to delete from eviction pool - just let GC clean it. Alternatively,
@@ -610,13 +485,10 @@ var reconcileDomChildren = function(childStructures) {
     evicted = evictionPool[evictionName];
     cleanUp[evicted._rootDomId] = true;
     delete childIndices[evictionName];
-    // See (Comment 1-2)
   }
   if (evicted) {
     release();
   }
 };
 
-exports.reconcileDomChildren = reconcileDomChildrenMultiPass;
-
-
+exports.reconcileDomChildren = reconcileDomChildren;
