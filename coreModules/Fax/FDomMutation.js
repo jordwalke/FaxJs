@@ -1,5 +1,5 @@
-/*
- * FaxJs User Interface toolkit.
+/**
+ * FaxJS User Interface toolkit.
  *
  * Copyright (c) 2011 Jordan Walke
  *
@@ -9,10 +9,10 @@
  * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
  * sell copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- *
+ * 
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- *
+ * 
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -20,7 +20,7 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
- *
+ * 
  * I am providing code in this repository to you under an open source license.
  * Because this is my personal repository, the license you receive to my code
  * is from me and not from my employer (Facebook).
@@ -40,6 +40,7 @@ var FBrowserUtils = require('./FBrowserUtils');
 var FErrors = require('./FErrors');
 var FEvent = require('./FEvent');
 var FDomUtils = require('./FDomUtils');
+var FEnv = require('./FEnv');
 var keyOf = Fu.keyOf;
 
 /* Useful resolved keys. */
@@ -68,6 +69,11 @@ var appendMarkup = FDomUtils.appendMarkup;
 /* FDomTraversal */
 var FDomTraversal = require('./FDomTraversal');
 var traverseChildStructures = FDomTraversal.traverseChildStructures;
+
+/* choose which way to update text in elements */
+FEnv.ensureBrowserDetected();
+var CONTENT_ACCESSOR_KEY =
+    FEnv.browserInfo.browser === 'Explorer' ? 'innerText' : 'textContent';
 
 /**
  * -@setBrowserOptimalPositionComputation: Before the initial render, call this
@@ -131,7 +137,7 @@ exports.controlSingleDomNode = function(el, elemId, nextProps, lastProps) {
       if (controlUsingSetAttr[propKey]) {
         el.setAttribute(propKey, prop);
       } else if (propKey === CONTENT_KEY) {
-        el.textContent = prop;
+        el[CONTENT_ACCESSOR_KEY] = prop;
       } else if (controlSimply[propKey]) {
         el[propKey] = prop;
       } else if (controlDirectlyNonIdempotent[propKey]) {
@@ -223,14 +229,13 @@ var removeChildInstanceDom = function(parentInstance, childInstance) {
  */
 var moveCurrentInstanceDom = function(parentInstance, childInstance, after) {
   var parentRootDomNode = getAndCacheRootDomNode(parentInstance);
-  return insertNodeAfterNode(
-    parentRootDomNode,
-    removeChildInstanceDom(parentInstance, childInstance),
-    after
-  );
+  var childRootDomNode = getAndCacheRootDomNode(childInstance);
+  if (after && childRootDomNode === after.nextSibling ||
+     !after && parentRootDomNode.firstChild === childRootDomNode) {
+    return childRootDomNode;
+  }
+  return insertNodeAfterNode(parentRootDomNode, childRootDomNode, after);
 };
-
-
 
 /**
  * @reconcileDomChildren: Reconciles dom children with the provided
@@ -242,10 +247,9 @@ var moveCurrentInstanceDom = function(parentInstance, childInstance, after) {
  * -(Comment 3) If we need to allocate new resources because the name was
  *  previously used to represent a different type of component.
  * -(Comment 4): No need to remove the evicted dom node as all dom nodes are
- *  removed upon eviction. This is to eliminate flickering. If they are left in
- *  the dom until they are claimed, there's a lot of jitters that occur. But
- *  immediately removing the evicted dom node and reinserting when found causes
- *  the dom list to change in a very uniform manner that avoids flickering.
+ *  removed upon eviction. This will ensure that cursor position inside of
+ *  textboxes are preserved and onBlur handers don't fire due merely to
+ *  temporary removal.
  * -(Comment 5): There is a previously existing instance with same type and the
  *  name somewhere. Control it and make sure it's "placed" at the cursor. We
  *  must be careful to control the current instance only after we've unevicted
@@ -339,7 +343,6 @@ var reconcileDomChildren = function(childStructures) {
   /* See (Commment 2) */
   var childIndices = this.childIndices || computeNameIndices(logicalChildren);
 
-
   /**
    * @placeChildAtIndex: Since the single pass algorithm requires both array and
    * lookup-map behavior, every time we place a child at an index, we need to
@@ -372,28 +375,11 @@ var reconcileDomChildren = function(childStructures) {
     var name = toEvict && toEvict.name;
     childIndices[name] = EVICTION_INDEX;
     evictionPool[name] = toEvict;
-    removeChildInstanceDom(self, toEvict);
-  };
-
-  /**
-   * @unevictChildTo: Removes a child from eviction, and reinserts their dom
-   * content. Ensures that their logical structure is recorded at index @i.  We
-   * know that the child's root dom node is cached upon the initial eviction so
-   * we don't need to check.
-   * @returns the dom node that was inserted.
-   */
-  var unevictChildTo = function(childInstance, i, insertAfter) {
-    delete evictionPool[childInstance.name];
-    return insertNodeAfterNode(
-      getAndCacheRootDomNode(self),
-      childInstance.rootDomNode,
-      insertAfter
-    );
   };
 
   /**
    * @onEmptyChildFound: Evict whatever might already reside there. Now
-   * remember, we're not evicting the empty child found, just the instance tha
+   * remember, we're not evicting the empty child found, just the instance that
    * happens to reside at this particular cursor location.
    */
   var onEmptyChildFound = function(name, cursor) {
@@ -402,7 +388,6 @@ var reconcileDomChildren = function(childStructures) {
     childIndices[name] = cursor;
     lastCursor = cursor;
   };
-
 
   /**
    * @onChildFound: Invoked each time a child is discovered. @cursor provides
@@ -439,16 +424,14 @@ var reconcileDomChildren = function(childStructures) {
       domCursor = insertNewChildInstance(self, next, nextId, domCursor);
     } else {
       if (currentIndex === EVICTION_INDEX) {
-        domCursor = unevictChildTo(currentInstance, cursor, domCursor);
-      } else if (currentIndex !== cursor) {
-        domCursor = moveCurrentInstanceDom(self, currentInstance, domCursor);
-      } else {
-        /* No DOM movements needed! Just move the DOM cursor along. It would be
-         * great to not even need to traverse the DOM structure here. We know
-         * the index-that should be sufficient to keep track of dom position */
-        domCursor = domCursor ? domCursor.nextSibling :
-          getAndCacheRootDomNode(self).firstChild;
+        delete evictionPool[nextName];
       }
+      /* You might think that if currentIndex === cursor you can assume the
+       * dom is in the right place. You'd be wrong. There's evicted nodes to
+       * the right of the domCursor insertion point - separating the dom
+       * cursor and your existing instance's dom node. This can be optimized
+       * so that it never touches the dom.  */
+      domCursor = moveCurrentInstanceDom(self, currentInstance, domCursor);
       placeChildAtIndex(currentInstance, cursor);
       currentInstance.doControl(next.props);   /* See (Comment 5) */
     }
@@ -483,6 +466,7 @@ var reconcileDomChildren = function(childStructures) {
       continue;
     }
     evicted = evictionPool[evictionName];
+    removeChildInstanceDom(self, evicted);
     cleanUp[evicted._rootDomId] = true;
     delete childIndices[evictionName];
   }
