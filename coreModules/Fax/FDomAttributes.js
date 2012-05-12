@@ -46,6 +46,13 @@ var FBrowserUtils = require('./FBrowserUtils'),
  */
 var SET_MISS_WARM_UP = true;
 
+if (typeof navigator !== 'undefined') {
+  /* choose which way to update text in elements - N/A for node.js rendering */
+  FEnv.ensureBrowserDetected();
+  exports.CONTENT_ACCESSOR_KEY =
+      FEnv.browserInfo.browser === 'Explorer' ? 'innerText' : 'textContent';
+}
+
 
 /*
  * ----------------------------------------------------------------------------

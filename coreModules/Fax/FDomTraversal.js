@@ -27,13 +27,22 @@
  *
  */
 
+/**
+ * @FDomTraversal: Module for dealing with the structure of dom components.
+ */
+
+var FErrors = require('./FErrors');
+
 /* FDomAttributes */
 var FDomAttributes = require('./FDomAttributes');
+
+/* TextComponent */
+var TextComponent = require('./TextComponent');
 
 
 /**
  * @extractChildrenLegacy: In the legacy specification, dom components may
- * accept named attributes that are not in the reserved attribue names (such
+ * accept named attributes that are not in the reserved attribute names (such
  * as onClick/ classSet) and these would be interpreted as named children
  * (instead of using childSet/childList). The new dom children specification
  * accepts a structure that is an array/object tree that is flattened by the
@@ -77,7 +86,7 @@ exports.extractChildrenLegacy = extractChildrenLegacy;
  *
  * The pattern of having callbacks that mutate their environment is not
  * desirable but it may be the only efficient way to implement a very general
- * traverser that is performs well for markup generation, and reconcilation
+ * traverser that is performs well for markup generation, and reconciliation
  * (reconciliation being a mutative process.)
  *
  */
@@ -100,6 +109,10 @@ var traverseChildStructures = function(childStructures, cb, emptyCb) {
       /* We found a component instance */
       cb(structures, prefix, indexIntoFlattened);
       indexIntoFlattened++;
+    } else if (typeof structures === 'string') {
+      /* We found a string instance */
+      cb(new TextComponent(structures), prefix, indexIntoFlattened);
+      indexIntoFlattened++;
     } else if (typeof structures === 'object') {
       for (key in structures) {
         if (structures.hasOwnProperty(key)) {
@@ -107,7 +120,6 @@ var traverseChildStructures = function(childStructures, cb, emptyCb) {
         }
       }
     }
-    // Todo: String children become text nodes.
   };
   traverseImpl(childStructures, '');
 };

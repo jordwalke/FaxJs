@@ -1,4 +1,4 @@
-/*
+/**
  * FaxJs User Interface toolkit.
  *
  * Copyright (c) 2011 Jordan Walke
