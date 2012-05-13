@@ -69,16 +69,16 @@ var structuringInstanceLock = null;
  * propTrigger: A function used to detect transitions in props on your component
  * instance. In very rare cases, it may be necessary - but hardly ever.
  *
- * The core reactive api (doControl/genMarkup) is taken care of for you. If you
- * were building a lower level component (for perf optimizations etc) you'd want
- * to implement doControl/genMarkup carefully yourself - but usually you'll just
- * do as the above example.
+ * The core reactive api (updateAllProps/genMarkup) is taken care of for you. If
+ * you were building a lower level component (for perf optimizations etc) you'd
+ * want to implement updateAllProps/genMarkup carefully yourself - but usually
+ * you'll just make a "StructuredComponent" by using React.Componentize.
  */
 var AllStructuredComponentsHave = {
   /**
-   * @doControl: Reacts to changes streamed from outside of the component.
+   * @updateAllProps: Reacts to changes streamed from outside of the component.
    */
-  doControl: function(props) {
+  updateAllProps: function(props) {
     if (this.propTrigger) {
       var nextStateFragment = this.propTrigger(props);
       if (nextStateFragment) {
@@ -246,7 +246,7 @@ var AllStructuredComponentsHave = {
     structuringInstanceLock = this;
     var structure = this.structure();
     structuringInstanceLock = null;
-    this.child.doControl(structure.props);
+    this.child.updateAllProps(structure.props);
   },
 
   /**

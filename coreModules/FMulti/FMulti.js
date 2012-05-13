@@ -38,15 +38,20 @@ var reconcileDomChildrenByKey = FDomMutation.reconcileDomChildrenByKey;
 /**
  * @FMultiClass: This is essentially a Div component without the ability to
  * control attributes or events. This should be used when the key of a child can
- * completely be used to identify that child. Across multiple doControls, if we
+ * completely be used to identify that child. Across multiple updateAllProps, if we
  * see that a child has changed positions, we will make sure to swap their dom
  * locations, but keep track of internal state within each child.
+ * @deprecated: Just use a Div with childList/childSet or make your own custom
+ * component. Such a thing likely doesn't belong in the core framework. By
+ * removing this custom use case, we could probably simplify some of the
+ * reconciliation logic which was originally flexible enough to support this
+ * use case.
  */
 var FMultiClass = function(initProps) {
   this.props = initProps;
 };
 
-FMultiClass.prototype.doControl = function(props) {
+FMultiClass.prototype.updateAllProps= function(props) {
   reconcileDomChildrenByKey.call(this, props);
 };
 

@@ -430,7 +430,7 @@ var reconcileDomChildren = function(childStructures) {
        * so that it never touches the dom.  */
       domCursor = moveCurrentInstanceDom(self, currentInstance, domCursor);
       placeChildAtIndex(currentInstance, cursor);
-      currentInstance.doControl(next.props);   /* See (Comment 5) */
+      currentInstance.updateAllProps(next.props);   /* See (Comment 5) */
     }
     lastCursor = cursor;
   };

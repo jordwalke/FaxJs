@@ -279,7 +279,7 @@ function renderTopLevelComponentAt(instanceOrConstructor,
       chromeWidth : FEnv.viewportWidth,
       cookies: cookies
     };
-    renderedComponentInstance.doControl(
+    renderedComponentInstance.updateAllProps(
         FUtils.mergeStuff(updateProps, renderedComponentInstance.props));
   };
 
@@ -293,7 +293,7 @@ function renderTopLevelComponentAt(instanceOrConstructor,
       chromeWidth: FEnv.viewportWidth,
       cookies: cookies
     };
-    renderedComponentInstance.doControl(
+    renderedComponentInstance.updateAllProps(
       FUtils.mergeStuff(updateProps, renderedComponentInstance.props));
   };
 

@@ -44,7 +44,7 @@ var reconcileDomChildrenByArray = FDomMutation.reconcileDomChildrenByArray;
  * @FOrderedClass: A reactive component with an Array based API. Should only be
  * used in cases when an element's position in the array can be used to
  * completely identify an instance of a component. Should not be used when a
- * child could switch positions in the array across multiple doControl calls.
+ * child could switch positions in the array across multiple updateAllProps calls.
  * What will happen, is the FOrderedClass component will try to control the
  * instance at one location "into being the next component".  So when component
  * descriptions swap places, state remains at the old index.  Sometimes this is
@@ -61,7 +61,7 @@ var FOrderedClass = function(initProps) {
  * At this point, this.children is as before appending or deleting any children,
  * but props is the new properties.
  */
-FOrderedClass.prototype.doControl = function(props) {
+FOrderedClass.prototype.updateAllProps = function(props) {
   reconcileDomChildrenByArray.call(this, props);
 };
 

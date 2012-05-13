@@ -117,12 +117,12 @@ function(tag, optionalTagTextPar) {
   };
 
   /**
-   * @doControl: Controls a native dom component after it has already been
+   * @updateAllProps: Controls a native dom component after it has already been
    * allocated and attached to the dom.
    * - First reconcile the dom node itself.
    * - Then reconcile the children.
    */
-  NativeComponentConstructor.prototype.doControl = function(nextProps) {
+  NativeComponentConstructor.prototype.updateAllProps = function(nextProps) {
     FErrors.throwIf(!this._rootDomId, FErrors.CONTROL_WITHOUT_BACKING_DOM);
 
     /* Control the header (and any content property) */

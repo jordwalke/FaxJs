@@ -48,12 +48,12 @@ var TextComponent = function(initPropsText) {
 };
 
 /**
- * @doControl: Controls a native dom component after it has already been
+ * @updateAllProps: Controls a native dom component after it has already been
  * allocated and attached to the dom - just updates the text.
  * - Just need to set the text content.
  * - props is of type string - unlike most other components.
  */
-TextComponent.prototype.doControl = function(newText) {
+TextComponent.prototype.updateAllProps = function(newText) {
   /* Control the header (and any content property) */
   var rootDomNode = this.rootDomNode;
   if (newText !== this.props) {
