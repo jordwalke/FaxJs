@@ -24,7 +24,6 @@
 <ul><ul><ul>
 <ul><ul><ul>
 <ul><ul><ul>
-      <a href="http://www.twitter.com/faxjs">  <img  height=15px src="https://si0.twimg.com/a/1323449606/images/logos/logo_twitter_withbird_1000_allblack.png"> </img></a>
 </ul></ul></ul>
 </ul></ul></ul>
 </ul></ul></ul>
