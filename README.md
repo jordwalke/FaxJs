@@ -1,5 +1,3 @@
-### This page contains practical information about getting started. If you just want to learn about FaxJs and what makes it different, go to <a href="http://www.faxjs.org">FaxJs.org</a>.  Come back here to start building!
-
 
 <table cellspacing=0 cellpadding=0 border-style=none border-width=0>
 
