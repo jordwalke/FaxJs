@@ -1,3 +1,7 @@
+Disclaimer:
+===========
+This is an old, experimental project: [React](https://github.com/facebook/react)
+is much better in every way and you should use that instead. This project will remain on Github for historical context.
 
 <table cellspacing=0 cellpadding=0 border-style=none border-width=0>
 
