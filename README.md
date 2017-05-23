@@ -260,14 +260,15 @@ All styleExports are automatically packaged into a single `monolithicStyle.css` 
 the default index.html includes. There's nothing more to do beyond including your styleExports
 at the bottom of your FaxJs modules.
     
-##Backend processing
+## Backend processing
+
 FaxJs uses `modulr` to package js into a single monolithic js file, and Google Closure advanced
 compilation to rename object keys. FaxJs ensures that styleExports are consistent with classNames
 defined in styleExports, which should work excellently for classNames specified using the classSet
 construct.
 
 
-````javascript
+```javascript
 var myDiv = Div({
   classSet: {
     blueDiv: true,
@@ -279,7 +280,8 @@ var myDiv = Div({
 
 
 
-##Events:
+## Events:
+
 There is currently support for the most common application events such as onFocus,
 onBlur, onClick, onKeyUp etc. For each of these events, there is are two other
 corresponding versions of these handlers suffixed with 'Direct' and 'FirstHandler'.
@@ -292,7 +294,7 @@ the component tree has handled that event yet. This eliminates the need to ever
 been handled at the lower levels.
 
 
-````javascript
+```javascript
 var myDiv = Div({
   onClickDirect: function() {
     alert('You Clicked on the div directly, not the span!');
