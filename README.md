@@ -41,7 +41,8 @@ is much better in every way and you should use that instead. This project will r
 </table>
 
 <br>
-### Get Started Now:
+
+## Get Started Now:
 
 Get node.js using <a href='https://sites.google.com/site/nodejsmacosx/'>the OSX Installer</a>. Download/clone FaxJs and Make a new directory for your project.
 
@@ -69,7 +70,7 @@ Get node.js using <a href='https://sites.google.com/site/nodejsmacosx/'>the OSX 
 
 <br>
 
-### Let's Start Hacking!
+## Let's Start Hacking!
 
 Open up `./lib/TestProject/TestProject.js` and take a look at the `MainComponent` UI module.
 
@@ -135,7 +136,7 @@ When someone contains a child component, the properties injected into it that ch
 The two remaining topics are "statefullness" and "event handing". These will be covered further down in this README. For now, let's take a look at the project structure.
 
 <br>
-### Project Structure and building:
+## Project Structure and building:
 Look at `ProjectConfig.js` in your project, and you'll see the set of `projectModules`. `projectModules` is the list of modules in `./lib` that will have special processing applied to them (FaxJS specific performance).
 
 ```javascript
@@ -181,7 +182,7 @@ all browsers, this particular app doesn't work well in IE. Try it in Chrome/Safa
 
 ## FaxJs Additional features:
 
-### Google Closure Advanced Compilation:
+## Google Closure Advanced Compilation:
 In `ProjectConfig.js` there is an entry to control whether or not you'd like to run Google Closure's advanced minification. Set the field to true to see what kind of saving on filesize you can achieve. Expect a large reduction in js/css size. The FaxJs build system is smart enough to take the key minification that closure applied, and apply it to the `styleExports` css output as well, so those css files will also be reduced in size. (This only works correctly if you use `classSet: {myCssClassName: true}`, not `className: 'myCssClassName'`. Key minification works by renaming all occurences of object keys across your entire project. Strings will never be renamed. Be dilligent about using the `classSet` construct which uses object keys to specify class names.) 
 The advanced mode of compliation will significantly reduce your filesize, but will take a long time to compile. It is suggested that you develop with this mode set to `false` but occasionally set it to `true` to test that your app is resilient to key minification.
 
@@ -197,7 +198,7 @@ minifyClosureAdvancedPreserveKeys: {   // Add whatever keys you don't want touch
 **As a general rule of thumb, strings will never be changed by the compiler, object keys likely will. If you don't want something changed, encode it into a string or add it to the `ProjectConfig.js` `minifyClosureAdvancedPreserveKeys` .**
 
 
-### Optional server side rendering:
+## Optional server side rendering:
 The reason why FaxJs uses top level event delegation for the eventing system, is so
 that the interactive portions can work with the markup, regardless of where the
 markup was generated. Once you have a component instance generated, the last two
@@ -223,7 +224,7 @@ server can likely generate the markup faster than your user's browser. You'll ne
 to consider where you want the node.js code executed, as it will depend on how you're
 currently generating your pages (connect etc.)
 
-### Style Sheets:
+## Style Sheets:
 
 FaxJs lets you define stylesheets in your favorite language - javascript. This
 is important because often programatic behavior at runtime needs to be consistent
