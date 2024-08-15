@@ -4,7 +4,6 @@ This is an old, experimental project: [React](https://github.com/facebook/react)
 is much better in every way and you should use that instead. This project will remain on Github for historical context.
 
 <table cellspacing=0 cellpadding=0 border-style=none border-width=0>
-
 <tr>
 <td border-style=none border-width=0>
 <img style="float:right;" src="https://github.com/jordow/FaxJs/raw/gh-pages/images/FaxJsLogo.png"/>
@@ -31,16 +30,13 @@ is much better in every way and you should use that instead. This project will r
 </ul></ul></ul>
 </ul></ul></ul>
 </ul></ul></ul>
-
 </td>
 </tr>
-
 </tr>
 <br>
-
 </table>
-
 <br>
+
 ### Get Started Now:
 
 Get node.js using <a href='https://sites.google.com/site/nodejsmacosx/'>the OSX Installer</a>. Download/clone FaxJs and Make a new directory for your project.
@@ -54,11 +50,9 @@ Get node.js using <a href='https://sites.google.com/site/nodejsmacosx/'>the OSX 
   <tr>
     <td width=50%>
       <img src="https://github.com/jordow/FaxJs/raw/gh-pages/images/newProjectScreenshot.png" />
-
     </td>
     <td border-style=none border-width=0>
         <p> The new project directory is self contained and has all of the core libraries copied into its `./lib` directory. It also has all the project build scripts. </p>
-
     </td>
   </tr>
 <tr>
